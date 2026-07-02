@@ -32,17 +32,11 @@ class CategoriesController extends Controller
                     return '<span class="badge badge-light-primary fs-7">' . $row->slug . '</span>';
                 })
                 ->addColumn('action', function ($row) {
-                    $btn = '<div class="dropdown text-end">
-                                <button class="btn btn-sm btn-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Actions <i class="ki-outline ki-down fs-5 ms-1"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-dark fs-6">
-                                    <li><a class="dropdown-item btn px-3 btn-detail" href="javascript:void(0)" data-id="' . $row->id . '">Detail</a></li>
-                                    <li><a class="dropdown-item btn px-3 btn-edit" href="javascript:void(0)" data-id="' . $row->id . '">Edit</a></li>
-                                    <li><a class="dropdown-item btn px-3 btn-delete" href="javascript:void(0)" data-id="' . $row->id . '" data-name="' . $row->name . '">Hapus</a></li>
-                                </ul>
-                            </div>';
-                    return $btn;
+                    return '<div class="d-flex justify-content-end gap-1 flex-nowrap">'
+                        . '<button class="btn btn-sm btn-icon btn-light-info btn-detail" data-id="' . $row->id . '" title="Detail"><i class="ki-outline ki-eye fs-4"></i></button>'
+                        . '<button class="btn btn-sm btn-icon btn-light-primary btn-edit" data-id="' . $row->id . '" title="Edit"><i class="ki-outline ki-pencil fs-4"></i></button>'
+                        . '<button class="btn btn-sm btn-icon btn-light-danger btn-delete" data-id="' . $row->id . '" data-name="' . $row->name . '" title="Hapus"><i class="ki-outline ki-trash fs-4"></i></button>'
+                        . '</div>';
                 })
                 ->rawColumns(['name', 'slug', 'action'])
                 ->make(true);

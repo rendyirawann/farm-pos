@@ -97,7 +97,8 @@ class RolePermissionSeeder extends Seeder
             'view_data_master', 'view_report', 'view_help',
             'view_resources', 'view_billing',
             'user.show', 'user.create', 'user.edit', 'user.delete', 'user.massdelete', 'user.ban',
-            'role.show', 'role.create', 'role.edit', 'role.delete', 'role.massdelete',
+            // Catatan: role.* (kelola Hak Akses) TIDAK diberikan ke owner.
+            // Role di sistem ini bersifat global lintas-tenant, jadi hanya Superadmin yang boleh mengelola.
             'category.show', 'category.create', 'category.edit', 'category.delete',
             'menu.show', 'menu.create', 'menu.edit', 'menu.delete',
             'promo.show', 'promo.create', 'promo.edit', 'promo.delete',

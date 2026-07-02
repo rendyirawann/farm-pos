@@ -165,6 +165,7 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     // RESOURCES (User & Role Mgmt): view_resources — Superadmin only
     // ====================================================
     Route::middleware(['can:view_resources', 'subscribed'])->group(function () {
+        // --- User management (owner boleh kelola staf-nya) ---
         Route::resource('/admin/users', UserController::class);
         Route::get('/admin/get-datauser', [UserController::class, 'getDataUsers'])->name('get-users');
         Route::post('/admin/users/mass-delete', [UserController::class, 'massDelete'])->name('users.mass-delete');
@@ -172,12 +173,15 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         Route::get('/admin/get-user-show-log-activity/{id}', [UserController::class, 'getActivity'])->name('get-user-show-log-activity');
         Route::post('/admin/users/{id}/ban', [UserController::class, 'ban'])->name('users.ban');
         Route::post('/admin/users/{id}/unban', [UserController::class, 'unban'])->name('users.unban');
-
-        Route::resource('/admin/roles', RoleController::class);
-        Route::get('/admin/get-datarole', [RoleController::class, 'getDataRoles'])->name('get-datarole');
-        Route::post('/admin/roles/mass-delete', [RoleController::class, 'massDelete'])->name('roles.mass-delete');
-        Route::post('/admin/roles/generate-permissions', [RoleController::class, 'generatePermissions'])->name('roles.generate');
         Route::get('/admin/select/role', [RoleController::class, 'select'])->name('role.select');
+
+        // --- Role / Hak Akses management: KHUSUS Superadmin (role bersifat global lintas-tenant) ---
+        Route::middleware('role:Superadmin')->group(function () {
+            Route::resource('/admin/roles', RoleController::class);
+            Route::get('/admin/get-datarole', [RoleController::class, 'getDataRoles'])->name('get-datarole');
+            Route::post('/admin/roles/mass-delete', [RoleController::class, 'massDelete'])->name('roles.mass-delete');
+            Route::post('/admin/roles/generate-permissions', [RoleController::class, 'generatePermissions'])->name('roles.generate');
+        });
     });
 
     // ====================================================

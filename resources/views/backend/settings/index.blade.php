@@ -134,7 +134,7 @@
                                         (langsung tercetak ke printer default), jalankan browser dengan flag
                                         <code>--kiosk-printing</code> lewat <b>shortcut aplikasi</b>:
                                         <div class="bg-dark text-white rounded p-3 my-2" style="font-family:monospace; overflow-x:auto;">
-                                            chrome.exe --kiosk-printing --app=http://127.0.0.1:8044/admin/kasir
+                                            chrome.exe --kiosk-printing --app={{ url('/admin/kasir') }}
                                         </div>
                                         Edge: <code>msedge.exe --kiosk-printing --app=&lt;URL&gt;</code>.
                                         Tambahkan <code>--kiosk</code> untuk layar penuh.

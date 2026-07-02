@@ -56,8 +56,18 @@ class UserController extends Controller implements HasMiddleware
     public function index(): View
     {
         $roles = Role::orderBy('id', 'desc')
+            ->when(!auth()->user()->hasRole('Superadmin'), fn($q) => $q->where('name', '!=', 'Superadmin'))
             ->get();
         return view('backend.user_management.user.index', compact('roles'));
+    }
+
+    /** Cegah non-Superadmin menetapkan role Superadmin (anti eskalasi hak akses). */
+    private function guardRoleAssignment(Request $request)
+    {
+        $requested = (array) $request->input('roles');
+        if (!auth()->user()->hasRole('Superadmin') && in_array('Superadmin', $requested, true)) {
+            abort(403, 'Anda tidak berhak menetapkan role Superadmin.');
+        }
     }
 
 
@@ -165,42 +175,35 @@ class UserController extends Controller implements HasMiddleware
                     }
                 })
                 ->addColumn('action', function ($row) {
-                    // Ambil user yang sedang login
                     $user = auth()->user();
-
-                    $x = '<div class="dropdown text-end">
-                            <button class="btn btn-sm btn-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Actions <i class="ki-outline ki-down fs-5 ms-1"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-dark fs-6">';
-
-                    // 1. Cek Permission Show
-                    if ($user->username == 'superadmin') {
-                        $x .= '<li><a class="dropdown-item btn px-3 btn-detail" href="javascript:void(0)" data-id="' . $row->id . '" >Detail</a></li>';
+                    // Superadmin (via Gate::before) & pemilik permission user.* boleh; jangan tampilkan
+                    // aksi untuk akun Superadmin bagi non-Superadmin (anti-eskalasi).
+                    $rowIsSuperadmin = $row->hasRole('Superadmin');
+                    $iAmSuperadmin = $user->hasRole('Superadmin');
+                    if ($rowIsSuperadmin && !$iAmSuperadmin) {
+                        return '<span class="text-muted fs-8">—</span>';
                     }
 
-                    // 2. Cek Permission Edit
-                    if ($user->username == 'superadmin') {
-                        $x .= '<li><a class="dropdown-item btn px-3 btn-edit" href="javascript:void(0)" data-id="' . $row->id . '" >Edit</a></li>';
+                    $btn = '<div class="d-flex justify-content-end gap-1 flex-nowrap">';
+                    if ($user->can('user.show')) {
+                        $btn .= '<button class="btn btn-sm btn-icon btn-light-info btn-detail" data-id="' . $row->id . '" title="Detail"><i class="ki-outline ki-eye fs-4"></i></button>';
                     }
-
-                    // 3. Cek Permission Delete
-                    if ($user->username == 'superadmin') {
-                        $x .= '<li><a class="dropdown-item btn px-3" data-id="' . $row->id . '" data-bs-toggle="modal" data-bs-target="#Modal_Hapus_Data" id="getDeleteId">Hapus</a></li>';
+                    if ($user->can('user.edit')) {
+                        $btn .= '<button class="btn btn-sm btn-icon btn-light-primary btn-edit" data-id="' . $row->id . '" title="Edit"><i class="ki-outline ki-pencil fs-4"></i></button>';
                     }
-
-                    // 4. Cek Permission Ban
-                    if ($user->username == 'superadmin') {
+                    if ($user->can('user.ban') && $row->id !== $user->id) {
                         if ($row->isBanned()) {
-                            $x .= '<li><a class="dropdown-item px-3 text-success" href="javascript:void(0)" onclick="unbanUser(\'' . $row->id . '\')">Unbanned</a></li>';
+                            $btn .= '<button class="btn btn-sm btn-icon btn-light-success" title="Aktifkan" onclick="unbanUser(\'' . $row->id . '\')"><i class="ki-outline ki-check fs-4"></i></button>';
                         } else {
-                            $x .= '<li><a class="dropdown-item px-3 text-danger" href="javascript:void(0)" onclick="openBanModal(\'' . $row->id . '\')">Banned</a></li>';
+                            $btn .= '<button class="btn btn-sm btn-icon btn-light-warning" title="Banned" onclick="openBanModal(\'' . $row->id . '\')"><i class="ki-outline ki-lock-2 fs-4"></i></button>';
                         }
                     }
+                    if ($user->can('user.delete') && $row->id !== $user->id) {
+                        $btn .= '<button class="btn btn-sm btn-icon btn-light-danger" id="getDeleteId" data-id="' . $row->id . '" data-bs-toggle="modal" data-bs-target="#Modal_Hapus_Data" title="Hapus"><i class="ki-outline ki-trash fs-4"></i></button>';
+                    }
+                    $btn .= '</div>';
 
-                    $x .= '</ul></div>';
-
-                    return $x;
+                    return $btn;
                 })
 
 
@@ -297,7 +300,7 @@ class UserController extends Controller implements HasMiddleware
             return response()->json(['errors' => $validator->errors()]);
         }
 
-
+        $this->guardRoleAssignment($request);
 
         // Logika penyimpanan data
         try {
@@ -611,7 +614,9 @@ class UserController extends Controller implements HasMiddleware
             'user' => $user,
             // 'skpd' => $skpd,
             'userRole' => $user->getRoleNames()->toArray(),
-            'roles' => Role::where('guard_name', '=', 'web')->select(['id', 'name'])->get(),
+            'roles' => Role::where('guard_name', '=', 'web')
+                ->when(!auth()->user()->hasRole('Superadmin'), fn($q) => $q->where('name', '!=', 'Superadmin'))
+                ->select(['id', 'name'])->get(),
         ])->render();
 
         return response()->json(['html' => $html]);
@@ -654,6 +659,8 @@ class UserController extends Controller implements HasMiddleware
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()]);
         }
+
+        $this->guardRoleAssignment($request);
 
         try {
             \DB::beginTransaction();

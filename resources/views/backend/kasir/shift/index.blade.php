@@ -184,7 +184,7 @@
                         icon: 'success',
                         title: 'Berhasil!',
                         text: '{{ session('success') }}',
-                        confirmButtonColor: '#009ef7',
+                        confirmButtonColor: '#4f46e5',
                         timer: 3000
                     });
                 @endif

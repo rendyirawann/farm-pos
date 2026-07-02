@@ -88,27 +88,12 @@ class RoleController extends Controller implements HasMiddleware
 
         return DataTables::of($data)
             ->addColumn('action', function ($data) {
-                // === HAPUS PENGECEKAN PERMISSION DISINI AGAR TOMBOL MUNCUL ===
-
-                $x = '<div class="dropdown text-end">
-                        <button class="btn btn-sm btn-secondary" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
-                            Actions <i class="ki-outline ki-down fs-5 ms-1"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="dropdownMenuButton2">';
-
-                // Tombol Detail
-                // Tombol Detail (Pakai class 'btn-detail' dan data-id, href jadi javascript:void(0))
-                $x .= '<li><a class="dropdown-item btn px-3 btn-detail" href="javascript:void(0)" data-id="' . $data->id . '">Detail</a></li>';
-
-                // Tombol Edit
-                $x .= '<li><a class="dropdown-item btn px-3" id="getEditRowData" data-id="' . $data->id . '" >Edit</a></li>';
-
-                // Tombol Hapus
-                $x .= '<li><a class="dropdown-item btn px-3" data-id="' . $data->id . '" data-bs-toggle="modal" data-bs-target="#Modal_Hapus_Data" id="getDeleteId">Hapus</a></li>';
-
-                $x .= '</ul></div>';
-
-                return $x;
+                // Tombol langsung (tanpa dropdown) agar tetap terlihat di tablet/HP.
+                return '<div class="d-flex justify-content-end gap-1 flex-nowrap">'
+                    . '<button class="btn btn-sm btn-icon btn-light-info btn-detail" data-id="' . $data->id . '" title="Detail"><i class="ki-outline ki-eye fs-4"></i></button>'
+                    . '<button class="btn btn-sm btn-icon btn-light-primary" id="getEditRowData" data-id="' . $data->id . '" title="Edit"><i class="ki-outline ki-pencil fs-4"></i></button>'
+                    . '<button class="btn btn-sm btn-icon btn-light-danger" id="getDeleteId" data-id="' . $data->id . '" data-bs-toggle="modal" data-bs-target="#Modal_Hapus_Data" title="Hapus"><i class="ki-outline ki-trash fs-4"></i></button>'
+                    . '</div>';
             })
 
             ->editColumn('name', function ($data) {

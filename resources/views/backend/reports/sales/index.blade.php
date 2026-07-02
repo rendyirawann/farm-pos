@@ -24,7 +24,7 @@
                                 <select name="payment_method" id="payment_method" class="form-select form-select-solid">
                                     <option value="all">Semua Metode</option>
                                     <option value="cash">Tunai (Cash)</option>
-                                    <option value="midtrans">QRIS / Transfer (Midtrans)</option>
+                                    <option value="qris">QRIS</option>
                                 </select>
                             </div>
                             <div class="col-md-5 d-flex align-items-end gap-2">
@@ -68,7 +68,7 @@
                                     <th>No</th>
                                     <th>Tanggal & Waktu</th>
                                     <th>Invoice</th>
-                                    <th>Pelanggan / Meja</th>
+                                    <th>Pelanggan / No. Antrian</th>
                                     <th>Metode</th>
                                     <th class="text-end">Potongan Diskon</th>
                                     <th class="text-end">Total Belanja</th>

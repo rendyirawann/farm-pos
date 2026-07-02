@@ -97,14 +97,16 @@
                             <span class="menu-title">User Management</span>
                         </a>
                     </div>
-                    <div class="menu-item {{ request()->routeIs('roles.index') ? 'here show ' : '' }}">
-                        <a class="menu-link py-3" href="{{ route('roles.index') }}">
-                            <span class="menu-icon">
-                                <i class="ki-outline ki-code fs-2"></i>
-                            </span>
-                            <span class="menu-title">Role Management</span>
-                        </a>
-                    </div>
+                    @hasrole('Superadmin')
+                        <div class="menu-item {{ request()->routeIs('roles.index') ? 'here show ' : '' }}">
+                            <a class="menu-link py-3" href="{{ route('roles.index') }}">
+                                <span class="menu-icon">
+                                    <i class="ki-outline ki-code fs-2"></i>
+                                </span>
+                                <span class="menu-title">Role Management</span>
+                            </a>
+                        </div>
+                    @endhasrole
                 </div>
             </div>
         @endcan

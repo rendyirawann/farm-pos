@@ -140,7 +140,7 @@
                 <th width="5%" class="text-center">No</th>
                 <th width="15%">Tanggal</th>
                 <th width="15%">No. Invoice</th>
-                <th width="20%">Pelanggan / Meja</th>
+                <th width="20%">Pelanggan / No. Antrian</th>
                 <th width="10%" class="text-center">Metode</th>
                 <th width="15%" class="text-right">Promo / Diskon</th>
                 <th width="20%" class="text-right">Total Belanja</th>
@@ -154,8 +154,7 @@
                     <td class="bold">{{ $order->invoice_no }}</td>
                     <td>
                         {{ $order->customer_name }} <br>
-                        <i
-                            style="color: #666; font-size: 10px;">{{ $order->table ? 'Meja ' . $order->table->table_number : 'Walk-in' }}</i>
+                        <i style="color: #666; font-size: 10px;">{{ $order->queue_number ? 'No. Antrian ' . $order->queue_number : '-' }}</i>
                     </td>
                     <td class="text-center" style="text-transform: uppercase;">{{ $order->payment_method }}</td>
                     <td class="text-right">
