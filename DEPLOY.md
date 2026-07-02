@@ -208,6 +208,27 @@ php artisan up
 
 ---
 
+## Deploy di SUBFOLDER (mis. `https://beoulve-dev.biz.id/stakko-pos`)
+
+Aplikasi sudah dibuat subfolder-aware. Yang perlu dipastikan:
+
+1. **`APP_URL` WAJIB menyertakan subfolder** — ini kunci utamanya:
+   ```env
+   APP_URL=https://beoulve-dev.biz.id/stakko-pos
+   ASSET_URL=https://beoulve-dev.biz.id/stakko-pos
+   ```
+   Semua `asset()`, `route()`, `url()`, `@vite`, manifest, service worker, dan tombol kiosk otomatis ikut ke `/stakko-pos/...`.
+
+2. **Nginx** — cara paling mudah: symlink folder `public` ke docroot utama:
+   ```bash
+   sudo ln -s /var/www/stakko-pos/public /var/www/html/stakko-pos
+   ```
+   (Server block utama meng-serve `/stakko-pos` apa adanya. Alternatif: pakai `location /stakko-pos { alias ...; }` — lebih rumit.)
+
+3. Setelah ubah `.env`, jalankan ulang: `php artisan optimize:clear && php artisan optimize`.
+
+> Tetap **lebih disarankan subdomain root** (`app.beoulve-dev.biz.id`) bila memungkinkan — lebih sederhana untuk PWA/cookie. Tapi subfolder sudah didukung.
+
 ## Catatan penting
 
 - **`migrate:fresh` menghapus SEMUA data** — hanya untuk deploy pertama. Update berikutnya pakai `migrate` saja.

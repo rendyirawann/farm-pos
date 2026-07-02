@@ -309,7 +309,7 @@ License: Proprietary - Stakko POS System
             
             // Register Service Worker
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js')
+                navigator.serviceWorker.register('{{ asset('sw.js') }}')
                     .then(reg => console.log('Service Worker registered successfully!', reg.scope))
                     .catch(err => console.error('Service Worker registration failed:', err));
             }
@@ -322,6 +322,7 @@ License: Proprietary - Stakko POS System
             'method' => optional($posSetting ?? null)->printer_method ?? 'auto',
             'paper_width' => (int) (optional($posSetting ?? null)->paper_width ?? 58),
             'store_name' => optional($posSetting ?? null)->store_name ?? 'Stakko POS',
+            'qz_url' => asset('assets/plugins/custom/qz/qz-tray.js'),
         ];
     @endphp
     <script>

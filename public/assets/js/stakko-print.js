@@ -9,7 +9,8 @@ window.StakkoPrint = (function () {
     'use strict';
 
     const CFG = window.STAKKO_PRINT || { method: 'auto', paper_width: 58, store_name: 'Stakko POS' };
-    const QZ_JS = "/assets/plugins/custom/qz/qz-tray.js";
+    // URL qz-tray.js di-inject dari server (asset()) agar benar di localhost maupun subfolder.
+    const QZ_JS = CFG.qz_url || 'assets/plugins/custom/qz/qz-tray.js';
     const BLE_SERVICE = 0x18f0;
     const BLE_SERVICE_UUID = '000018f0-0000-1000-8000-00805f9b34fb';
     const BLE_WRITE_CHAR = 0x2af1;
