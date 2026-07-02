@@ -38,12 +38,14 @@
                             <span class="menu-title">Menu Makanan & Minuman</span>
                         </a>
                     </div>
-                    <div class="menu-item {{ request()->routeIs('promos.index') ? 'here show ' : '' }}">
-                        <a class="menu-link py-3" href="{{ route('promos.index') }}">
-                            <span class="menu-icon"><i class="ki-outline ki-discount fs-2"></i></span>
-                            <span class="menu-title">Promo & Diskon</span>
-                        </a>
-                    </div>
+                    @if (\App\Tenancy\Plan::tenantAllows($currentTenant ?? null, 'promo'))
+                        <div class="menu-item {{ request()->routeIs('promos.index') ? 'here show ' : '' }}">
+                            <a class="menu-link py-3" href="{{ route('promos.index') }}">
+                                <span class="menu-icon"><i class="ki-outline ki-discount fs-2"></i></span>
+                                <span class="menu-title">Promo & Diskon</span>
+                            </a>
+                        </div>
+                    @endif
                 </div>
             </div>
         @endcan
@@ -67,13 +69,15 @@
                             <span class="menu-title">Sales Report</span>
                         </a>
                     </div>
-                    <div class="menu-item {{ request()->routeIs('reports.items.index') ? 'here show ' : '' }}">
-                        <a class="menu-link py-3 " href="{{ route('reports.items.index') }}"> <span class="menu-icon">
-                                <i class="ki-outline ki-rocket fs-2"></i>
-                            </span>
-                            <span class="menu-title">Sales Items Report</span>
-                        </a>
-                    </div>
+                    @if (\App\Tenancy\Plan::tenantAllows($currentTenant ?? null, 'report_items'))
+                        <div class="menu-item {{ request()->routeIs('reports.items.index') ? 'here show ' : '' }}">
+                            <a class="menu-link py-3 " href="{{ route('reports.items.index') }}"> <span class="menu-icon">
+                                    <i class="ki-outline ki-rocket fs-2"></i>
+                                </span>
+                                <span class="menu-title">Sales Items Report</span>
+                            </a>
+                        </div>
+                    @endif
                 </div>
             </div>
         @endcan

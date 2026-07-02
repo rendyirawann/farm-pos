@@ -19,7 +19,7 @@ class TenantSeeder extends Seeder
                 'phone'                => '08123456789',
                 'email'                => 'demo@stakko.test',
                 'address'              => 'Jl. Contoh No. 1, Indonesia',
-                'plan'                 => 'customize',
+                'plan'                 => 'starter',
                 'subscription_status'  => 'active',
                 'trial_ends_at'        => now()->addDays(14),
                 'subscription_ends_at' => now()->addYear(),
