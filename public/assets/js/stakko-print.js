@@ -25,6 +25,17 @@ window.StakkoPrint = (function () {
     }
     function alertErr(msg) { if (window.Swal) Swal.fire('Gagal Cetak', msg, 'error'); else alert(msg); }
 
+    // Pesan error yang lebih membantu (Brave/HTTP/batal). Return null = jangan tampilkan (mis. user batal).
+    function friendlyErr(e) {
+        const msg = (e && e.message) ? e.message : String(e || '');
+        if (/globally disabled|not allowed|securityerror|secure context|permissions policy/i.test(msg)) {
+            return 'Web Bluetooth diblokir/dimatikan di browser ini (mis. Brave), atau situs belum HTTPS. ' +
+                'Gunakan Chrome/Edge & akses lewat HTTPS, atau aktifkan "Web Bluetooth" di pengaturan browser.';
+        }
+        if (/cancel|dismiss|no devices|chooser|user gesture/i.test(msg)) return null; // user batal/tak pilih
+        return msg;
+    }
+
     // -------- helpers --------
     function b64(bytes) {
         let s = ''; const CH = 0x8000;
@@ -233,7 +244,7 @@ window.StakkoPrint = (function () {
         try {
             if (m === 'native') { window.AndroidPrinter.printReceipt(plainText(receipt)); return; }
             if (m === 'qztray') { printQz(receipt).catch(e => alertErr('QZ Tray: ' + e.message + '. Pastikan aplikasi QZ Tray berjalan.')); return; }
-            if (m === 'webbluetooth') { printBle(receipt).catch(e => alertErr(e.message)); return; }
+            if (m === 'webbluetooth') { printBle(receipt).catch(e => { const f = friendlyErr(e); if (f) alertErr(f); }); return; }
             if (m === 'rawbt') { printRawbt(receipt); return; }
             printBrowser(receipt, printUrl);
         } catch (e) { printBrowser(receipt, printUrl); }
@@ -265,7 +276,7 @@ window.StakkoPrint = (function () {
                 const res = await Swal.fire({ title: 'Pilih Printer (QZ Tray)', input: 'select', inputOptions: opts, showCancelButton: true });
                 if (res.isConfirmed && res.value) { localStorage.setItem('stakko_qz_printer', res.value); toast('success', 'Printer disimpan'); }
             }
-        } catch (e) { alertErr(e.message); }
+        } catch (e) { const f = friendlyErr(e); if (f) alertErr(f); }
     }
 
     // -------- public: test print --------

@@ -115,19 +115,18 @@
                             </div>
 
                             <div class="separator my-6"></div>
+                            <label class="fw-semibold fs-6 mb-2 d-block">Uji Printer</label>
                             <div class="d-flex flex-wrap gap-3">
-                                <button type="button" class="btn btn-light-primary" id="btn-connect-printer">
-                                    <i class="ki-outline ki-plug fs-3"></i> Hubungkan / Pilih Printer
+                                {{-- Tombol "Hubungkan" hanya untuk metode yang perlu memilih perangkat (BLE/QZ/APK) --}}
+                                <button type="button" class="btn btn-light-primary d-none" id="btn-connect-printer">
+                                    <i class="ki-outline ki-plug fs-3"></i> <span id="connect-label">Hubungkan Printer</span>
                                 </button>
                                 <button type="button" class="btn btn-light-success" id="btn-test-print">
                                     <i class="ki-outline ki-printer fs-3"></i> Test Cetak
                                 </button>
                             </div>
-                            <div class="form-text mt-3">
-                                Untuk <b>Web Bluetooth</b>: klik "Hubungkan / Pilih Printer" & pilih printer (sekali per sesi).
-                                Untuk <b>QZ Tray</b>: pastikan aplikasi QZ Tray berjalan, lalu pilih printer.
-                                Untuk aplikasi tablet (APK), unduh di menu <a href="{{ route('download-app') }}">Aplikasi</a>.
-                            </div>
+                            {{-- Petunjuk otomatis sesuai metode terpilih --}}
+                            <div class="form-text mt-3" id="printer-hint"></div>
 
                             {{-- Cetak senyap / kiosk untuk metode Dialog Browser --}}
                             <div class="separator my-6"></div>
@@ -168,9 +167,27 @@
                     Swal.fire({ icon: 'success', title: 'Berhasil!', text: '{{ session('success') }}', timer: 3000 });
                 @endif
 
-                // Metode & ukuran kertas yang dipilih (belum disimpan) langsung dipakai tombol Test/Connect
+                // Petunjuk + tombol "Hubungkan" menyesuaikan metode yang sedang dipilih
+                const HINTS = {
+                    webbluetooth: 'Klik "Hubungkan Printer Bluetooth", pilih printer BLE Anda, lalu "Test Cetak". Wajib Chrome/Edge (bukan Brave) + HTTPS. Catatan: koneksi Bluetooth berlaku per-halaman, jadi saat transaksi hubungkan lagi dari halaman Kasir.',
+                    qztray: 'Pastikan aplikasi QZ Tray berjalan di komputer ini, klik "Pilih Printer" untuk memilih printer, lalu "Test Cetak".',
+                    native: 'Klik "Pilih Printer" untuk memilih printer Bluetooth yang sudah dipasangkan di tablet, lalu "Test Cetak".',
+                    browser: 'Tidak perlu "Hubungkan". Jadikan printer thermal sebagai printer default OS, lalu klik "Test Cetak" (akan lewat dialog print / senyap jika mode kiosk).',
+                    rawbt: 'Tidak perlu "Hubungkan". Pastikan aplikasi RawBT terpasang di Android, lalu klik "Test Cetak" (akan diteruskan ke RawBT).',
+                    auto: 'Mode otomatis: di aplikasi tablet (APK) memakai printer bawaan; di browser memakai dialog print OS. Klik "Test Cetak" untuk menguji.',
+                };
+                function refreshPrinterControls() {
+                    if (!window.StakkoPrint) return;
+                    const m = window.StakkoPrint.resolveMethod();
+                    const needs = window.StakkoPrint.needsButton();
+                    $('#btn-connect-printer').toggleClass('d-none', !needs);
+                    if (needs) $('#connect-label').text(window.StakkoPrint.buttonLabel());
+                    $('#printer-hint').text(HINTS[m] || HINTS[$('input[name=printer_method]:checked').val()] || '');
+                }
+
                 $('input[name="printer_method"]').on('change', function() {
                     if (window.STAKKO_PRINT) window.STAKKO_PRINT.method = this.value;
+                    refreshPrinterControls();
                 });
                 $('select[name="paper_width"]').on('change', function() {
                     if (window.STAKKO_PRINT) window.STAKKO_PRINT.paper_width = parseInt(this.value, 10);
@@ -183,6 +200,8 @@
                 $('#btn-connect-printer').on('click', function() {
                     if (window.StakkoPrint) window.StakkoPrint.quickConnect();
                 });
+
+                refreshPrinterControls();
 
                 $('#form-settings').on('submit', function() {
                     let btn = $('#btn-save');
