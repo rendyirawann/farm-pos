@@ -1,0 +1,106 @@
+/*
+ * Stakko POS — Brand overrides (indigo).
+ * Dimuat SETELAH style.bundle.css agar menimpa warna primary bawaan Metronic (#009ef7).
+ * Palet dari logo: indigo-600 #4f46e5, indigo-700 #4338ca, indigo-50 #eef2ff, periwinkle #a5b4fc.
+ */
+:root,
+[data-bs-theme="light"] {
+    --bs-primary: #4f46e5;
+    --bs-primary-rgb: 79, 70, 229;
+    --bs-primary-active: #4338ca;
+    --bs-primary-light: #eef2ff;
+    --bs-primary-inverse: #ffffff;
+    --bs-text-primary: #4f46e5;
+    --bs-link-color: #4f46e5;
+    --bs-link-color-rgb: 79, 70, 229;
+    --bs-link-hover-color: #4338ca;
+    --kt-primary: #4f46e5;
+    --kt-primary-active: #4338ca;
+    --kt-primary-light: #eef2ff;
+    --kt-primary-inverse: #ffffff;
+    --kt-text-primary: #4f46e5;
+}
+
+[data-bs-theme="dark"] {
+    --bs-primary: #6366f1;
+    --bs-primary-rgb: 99, 102, 241;
+    --bs-primary-active: #4f46e5;
+    --bs-primary-light: #26264f;
+    --bs-text-primary: #818cf8;
+    --bs-link-color: #818cf8;
+    --bs-link-hover-color: #a5b4fc;
+    --kt-primary: #6366f1;
+    --kt-primary-active: #4f46e5;
+    --kt-primary-light: #26264f;
+    --kt-text-primary: #818cf8;
+}
+
+/* Solid primary */
+.btn.btn-primary {
+    --bs-btn-bg: #4f46e5;
+    --bs-btn-border-color: #4f46e5;
+    --bs-btn-hover-bg: #4338ca;
+    --bs-btn-hover-border-color: #4338ca;
+    --bs-btn-active-bg: #4338ca;
+    --bs-btn-active-border-color: #4338ca;
+    --bs-btn-focus-shadow-rgb: 79, 70, 229;
+    --bs-btn-disabled-bg: #4f46e5;
+    --bs-btn-disabled-border-color: #4f46e5;
+}
+.bg-primary { background-color: #4f46e5 !important; }
+.text-primary { color: #4f46e5 !important; }
+.border-primary { border-color: #4f46e5 !important; }
+.link-primary { color: #4f46e5; }
+.link-primary:hover { color: #4338ca; }
+a.text-hover-primary:hover, .text-hover-primary:hover { color: #4f46e5 !important; }
+.badge-primary { background-color: #4f46e5; color: #fff; }
+.progress-bar.bg-primary { background-color: #4f46e5 !important; }
+.symbol-label.bg-primary { background-color: #4f46e5 !important; }
+.spinner-border.text-primary, .text-primary svg, .text-primary [fill] { color: #4f46e5; }
+
+/* Light primary variants */
+.btn.btn-light-primary {
+    --bs-btn-color: #4f46e5;
+    --bs-btn-bg: #eef2ff;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #4f46e5;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #4f46e5;
+}
+.bg-light-primary { background-color: #eef2ff !important; }
+.badge-light-primary { color: #4f46e5 !important; background-color: #eef2ff !important; }
+.symbol-label.bg-light-primary { background-color: #eef2ff !important; color: #4f46e5 !important; }
+
+[data-bs-theme="dark"] .bg-light-primary,
+[data-bs-theme="dark"] .badge-light-primary,
+[data-bs-theme="dark"] .btn.btn-light-primary { background-color: #26264f !important; }
+[data-bs-theme="dark"] .btn.btn-light-primary { --bs-btn-color: #a5b4fc; }
+[data-bs-theme="dark"] .badge-light-primary { color: #a5b4fc !important; }
+
+/* Outline / active states */
+.btn.btn-outline.btn-active-light-primary.active,
+.btn.btn-active-light-primary.active,
+.btn-check:checked + .btn.btn-active-light-primary {
+    color: #4f46e5;
+    border-color: #4f46e5;
+    background-color: #eef2ff;
+}
+.btn.btn-active-primary.active { background-color: #4f46e5; color: #fff; }
+
+/* Active menu item (header + sidebar) */
+.menu-item .menu-link.active,
+.menu-item.here > .menu-link,
+.menu-state-primary .menu-item .menu-link.active {
+    color: #4f46e5;
+}
+.app-header-menu .menu-link.active { color: #4f46e5 !important; }
+
+/* Form controls focus + checkbox/switch */
+.form-check-input:checked { background-color: #4f46e5; border-color: #4f46e5; }
+.form-control:focus, .form-select:focus { border-color: #a5b4fc; }
+
+/* Freshness: sedikit lebih rounded & shadow lembut */
+.card { border-radius: 1rem; }
+.btn { border-radius: .65rem; }
+.modal-content { border-radius: 1rem; }
+.form-control, .form-select { border-radius: .65rem; }

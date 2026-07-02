@@ -1,0 +1,24 @@
+{
+  "name": "Stakko POS",
+  "short_name": "Stakko",
+  "description": "Stakko Point of Sale System with Offline Mode support",
+  "start_url": "/admin/kasir",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#009ef7",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/media/logos/stakko-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/media/logos/stakko-icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\View;
+use App\Models\DailySalesTarget;
+use App\Models\Order; // Pastikan menggunakan Order (bukan Sale)
+use Carbon\Carbon;
+
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
+use App\Tenancy\TenantManager;
+
+class AppServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        // Konteks tenant aktif: scoped (bukan singleton) agar aman di runtime persisten
+        // seperti Octane — state tenant di-reset tiap request, tidak bocor antar-request.
+        $this->app->scoped(TenantManager::class);
+    }
+
+    public function boot(): void
+    {
+        // Paksa HTTPS di Production/VPS agar tidak terjadi Mixed Content
+        if (config('app.env') === 'production') {
+            URL::forceRootUrl(config('app.url'));
+            URL::forceScheme('https');
+        }
+
+        // Implicitly grant "Superadmin" role all permissions
+        Gate::before(function ($user, $ability) {
+            return $user->hasRole('Superadmin') ? true : null;
+        });
+
+        // Bagikan tenant aktif + status langganan ke semua view backend (untuk banner billing & gating menu)
+        View::composer('backend.*', function ($view) {
+            $tenant = null;
+            if (auth()->check() && auth()->user()->tenant_id) {
+                $tenant = app(TenantManager::class)->tenant();
+            }
+            $view->with('currentTenant', $tenant);
+        });
+
+        // Inject data ringkas ke sidebar backend (HANYA jika user login):
+        // Target Penjualan Harian vs Omzet hari ini. (Budget & pengeluaran sudah dihapus.)
+        View::composer('backend.*', function ($view) {
+            if (auth()->check()) {
+                $today = date('Y-m-d');
+
+                // 1. Target Penjualan Harian
+                $salesTargetObj = DailySalesTarget::where('date', $today)->first();
+                $salesTarget = $salesTargetObj ? $salesTargetObj->amount : 0;
+
+                // 2. Omzet Harian (Dari tabel orders yang sudah dibayar)
+                $income = Order::whereDate('created_at', $today)
+                    ->where('payment_status', 'paid')
+                    ->sum('grand_total');
+
+                // Kalkulasi Persentase Penjualan vs Target
+                $salesPercentage = 0;
+                $salesBarWidth = 0;
+                $salesProgressColor = 'bg-warning';
+                if ($salesTarget > 0) {
+                    $salesPercentage = round(($income / $salesTarget) * 100);
+                    $salesBarWidth = $salesPercentage > 100 ? 100 : $salesPercentage;
+                    if ($salesPercentage >= 100) {
+                        $salesProgressColor = 'bg-success';
+                    } elseif ($salesPercentage >= 50) {
+                        $salesProgressColor = 'bg-primary';
+                    }
+                }
+
+                $view->with(compact(
+                    'salesTarget',
+                    'income',
+                    'salesPercentage',
+                    'salesBarWidth',
+                    'salesProgressColor'
+                ));
+            }
+        });
+    }
+}
