@@ -100,15 +100,32 @@
                                 </ul>
 
                                 @if ($isContact)
-                                    <a href="{{ $waLink }}" target="_blank" rel="noopener"
-                                        class="btn btn-primary mt-auto">
-                                        <i class="ki-outline ki-whatsapp fs-3 me-1"></i> Konsultasi via WhatsApp
-                                    </a>
+                                    @if ($isCurrent)
+                                        <div class="mt-auto">
+                                            <div class="btn btn-light-success w-100 mb-2 disabled">
+                                                <i class="ki-outline ki-check-circle fs-3 me-1"></i> Paket Aktif Anda
+                                            </div>
+                                            <a href="{{ $waLink }}" target="_blank" rel="noopener" class="btn btn-light-primary w-100">
+                                                <i class="ki-outline ki-whatsapp fs-3 me-1"></i> Perpanjang / Konsultasi
+                                            </a>
+                                        </div>
+                                    @else
+                                        <a href="{{ $waLink }}" target="_blank" rel="noopener" class="btn btn-primary mt-auto">
+                                            <i class="ki-outline ki-whatsapp fs-3 me-1"></i> Konsultasi via WhatsApp
+                                        </a>
+                                    @endif
                                 @else
-                                    <button type="button" class="btn btn-light-primary mt-auto btn-subscribe" data-plan="{{ $key }}">
-                                        {{ $isCurrent ? 'Perpanjang' : 'Berlangganan ' . $plan['name'] }}
-                                        — Bayar Rp {{ number_format($plan['price'], 0, ',', '.') }}
-                                    </button>
+                                    @if ($isCurrent)
+                                        {{-- Sudah berlangganan paket ini: hanya boleh Perpanjang (bukan langganan baru) --}}
+                                        <button type="button" class="btn btn-success mt-auto btn-subscribe" data-plan="{{ $key }}">
+                                            <i class="ki-outline ki-arrows-circle fs-3 me-1"></i>
+                                            Perpanjang {{ $plan['name'] }} — Rp {{ number_format($plan['price'], 0, ',', '.') }}
+                                        </button>
+                                    @else
+                                        <button type="button" class="btn btn-light-primary mt-auto btn-subscribe" data-plan="{{ $key }}">
+                                            Berlangganan {{ $plan['name'] }} — Bayar Rp {{ number_format($plan['price'], 0, ',', '.') }}
+                                        </button>
+                                    @endif
                                 @endif
                             </div>
                         </div>
