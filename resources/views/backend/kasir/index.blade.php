@@ -344,9 +344,8 @@
         }
 
         function doPrintReceipt(receipt, printUrl) {
-            if (hasPrinter() && receipt) {
-                try { window.AndroidPrinter.printReceipt(escposText(receipt)); return; } catch (e) { /* fallback */ }
-            }
+            // Engine cetak terpusat (browser/qztray/webbluetooth/rawbt/native)
+            if (window.StakkoPrint) { window.StakkoPrint.print(receipt, printUrl); return; }
             if (printUrl) openPrint(printUrl);
         }
 
@@ -756,31 +755,15 @@
             } catch (e) { /* abaikan */ }
         }
 
-        // ===== Tombol Printer (hanya muncul di aplikasi tablet) =====
-        function updatePrinterLabel() {
-            try {
-                const sel = window.AndroidPrinter.getSelectedPrinter ? window.AndroidPrinter.getSelectedPrinter() : '';
-                $('#printer-label').text(sel ? 'Printer ✓' : 'Pilih Printer');
-            } catch (e) {}
-        }
+        // ===== Tombol Printer (muncul jika metode butuh koneksi: native/BT/QZ) =====
         function initPrinterButton() {
-            if (!hasPrinter()) return;
-            $('#btn-printer').removeClass('d-none');
-            updatePrinterLabel();
+            if (window.StakkoPrint && window.StakkoPrint.needsButton()) {
+                $('#btn-printer').removeClass('d-none');
+                $('#printer-label').text(window.StakkoPrint.buttonLabel());
+            }
         }
         $('#btn-printer').on('click', function() {
-            let list = [];
-            try { list = JSON.parse(window.AndroidPrinter.getPrinters() || '[]'); } catch (e) {}
-            if (!list.length) { Swal.fire('Belum ada printer', 'Pasangkan printer Bluetooth di Setelan Android dulu, lalu coba lagi.', 'info'); return; }
-            const opts = {}; list.forEach(p => opts[p.address] = p.name);
-            Swal.fire({ title: 'Pilih Printer', input: 'select', inputOptions: opts, showCancelButton: true, confirmButtonText: 'Pilih' })
-                .then(res => {
-                    if (res.isConfirmed && res.value) {
-                        try { window.AndroidPrinter.setPrinter(res.value); } catch (e) {}
-                        updatePrinterLabel();
-                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Printer dipilih', showConfirmButton: false, timer: 1500 });
-                    }
-                });
+            if (window.StakkoPrint) window.StakkoPrint.quickConnect();
         });
 
         // ===== Sync + status jaringan =====

@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use App\Models\DailySalesTarget;
 use App\Models\Order; // Pastikan menggunakan Order (bukan Sale)
+use App\Models\Setting;
 use Carbon\Carbon;
 
 use Illuminate\Support\Facades\Gate;
@@ -45,6 +46,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Inject data ringkas ke sidebar backend (HANYA jika user login):
         // Target Penjualan Harian vs Omzet hari ini. (Budget & pengeluaran sudah dihapus.)
+        // Bagikan setelan toko (untuk konfigurasi printer di layout).
+        View::composer('backend.*', function ($view) {
+            $view->with('posSetting', auth()->check() ? Setting::first() : null);
+        });
+
         View::composer('backend.*', function ($view) {
             if (auth()->check()) {
                 $today = date('Y-m-d');

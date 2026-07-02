@@ -316,6 +316,16 @@ License: Proprietary - Stakko POS System
         });
     </script>
     
+    <!-- Konfigurasi & engine cetak struk (multi-metode) -->
+    <script>
+        window.STAKKO_PRINT = @json([
+            'method' => optional($posSetting ?? null)->printer_method ?? 'auto',
+            'paper_width' => (int) (optional($posSetting ?? null)->paper_width ?? 58),
+            'store_name' => optional($posSetting ?? null)->store_name ?? 'Stakko POS',
+        ]);
+    </script>
+    <script src="{{ asset('assets/js/stakko-print.js') }}"></script>
+
     @include('partials._number_format')
     @stack('scripts')
     <!--end::Javascript-->

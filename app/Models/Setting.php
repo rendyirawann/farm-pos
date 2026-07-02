@@ -10,5 +10,5 @@ class Setting extends Model
     use BelongsToTenant;
 
     protected $table = 'settings';
-    protected $fillable = ['tenant_id', 'store_name', 'address', 'phone', 'tax_rate'];
+    protected $fillable = ['tenant_id', 'store_name', 'address', 'phone', 'tax_rate', 'printer_method', 'paper_width'];
 }
