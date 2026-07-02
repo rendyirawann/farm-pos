@@ -14,9 +14,14 @@ class CreateActivityLogTable extends Migration
             $table->string('event')->nullable(); // Memastikan kolom event juga ada
             $table->text('description');
 
-            // Relasi UUID (Penting untuk sistem kita!)
-            $table->nullableUuidMorphs('subject', 'subject');
-            $table->nullableUuidMorphs('causer', 'causer');
+            // ID morph disimpan sebagai STRING agar bisa menampung UUID (users)
+            // maupun bigint (menu/order/kategori/dll) sekaligus.
+            $table->string('subject_type')->nullable();
+            $table->string('subject_id')->nullable();
+            $table->index(['subject_type', 'subject_id'], 'subject');
+            $table->string('causer_type')->nullable();
+            $table->string('causer_id')->nullable();
+            $table->index(['causer_type', 'causer_id'], 'causer');
 
             $table->json('properties')->nullable();
             $table->uuid('batch_uuid')->nullable(); // Ini yang tadi bikin bentrok

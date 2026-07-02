@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\LogsAllActivity;
 
 class MenuAddon extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, LogsAllActivity;
 
     protected $table = 'menu_addons';
 

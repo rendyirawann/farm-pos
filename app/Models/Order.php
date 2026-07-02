@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\LogsAllActivity;
 
 class Order extends Model
 {
-    use HasUuids, BelongsToTenant;
+    use HasUuids, BelongsToTenant, LogsAllActivity;
 
     protected $fillable = [
         'uuid',
