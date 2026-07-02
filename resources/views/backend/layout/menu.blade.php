@@ -146,23 +146,26 @@
             </a>
         </div>
 
-        <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
-            class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
-            <span class="menu-link py-3  {{ request()->routeIs('log-activity.index') ? 'active ' : '' }}">
-                <span class="menu-title">Help</span>
-                <span class="menu-arrow d-lg-none">
+        {{-- HELP: Superadmin + admin + owner (yang punya view_help) --}}
+        @can('view_help')
+            <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
+                class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
+                <span class="menu-link py-3  {{ request()->routeIs('log-activity.index') ? 'active ' : '' }}">
+                    <span class="menu-title">Help</span>
+                    <span class="menu-arrow d-lg-none">
+                    </span>
                 </span>
-            </span>
-            <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-200px">
-                <div class="menu-item {{ request()->routeIs('log-activity.index') ? 'here show ' : '' }}">
-                    <a class="menu-link py-3 " href="{{ route('log-activity.index') }}">
-                        <span class="menu-icon">
-                            <i class="ki-outline ki-rocket fs-2"></i>
-                        </span>
-                        <span class="menu-title">Log Activity</span>
-                    </a>
+                <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-200px">
+                    <div class="menu-item {{ request()->routeIs('log-activity.index') ? 'here show ' : '' }}">
+                        <a class="menu-link py-3 " href="{{ route('log-activity.index') }}">
+                            <span class="menu-icon">
+                                <i class="ki-outline ki-rocket fs-2"></i>
+                            </span>
+                            <span class="menu-title">Log Activity</span>
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
+        @endcan
     </div>
 </div>
