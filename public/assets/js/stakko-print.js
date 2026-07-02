@@ -193,8 +193,36 @@ window.StakkoPrint = (function () {
         window.location.href = 'rawbt:base64,' + b64(bytesFromReceipt(r));
     }
 
-    // -------- Browser / OS dialog --------
-    function printBrowser(printUrl) {
+    // -------- Browser / OS dialog (mendukung mode kiosk --kiosk-printing) --------
+    function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+    function receiptHtml(r) {
+        const paperMm = (Number(CFG.paper_width) >= 80 ? '80mm' : '58mm');
+        return '<!doctype html><html><head><meta charset="utf-8"><style>'
+            + '@page{size:' + paperMm + ' auto;margin:0;}'
+            + 'html,body{margin:0;padding:0;}'
+            + 'pre{font-family:"Courier New",monospace;font-size:12px;line-height:1.25;white-space:pre;margin:0;padding:6px 6px 24px;width:' + paperMm + ';}'
+            + '</style></head><body><pre>' + escapeHtml(plainText(r)) + '</pre></body></html>';
+    }
+    let _printFrame = null;
+    function printBrowser(r, printUrl) {
+        // Cetak lewat iframe tersembunyi: tanpa tab baru, dan JIKA browser dijalankan
+        // dengan flag --kiosk-printing maka langsung tercetak ke printer default (senyap).
+        if (r) {
+            try {
+                if (_printFrame) { try { _printFrame.remove(); } catch (e) {} }
+                const f = document.createElement('iframe');
+                f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+                document.body.appendChild(f);
+                _printFrame = f;
+                const doc = f.contentWindow.document;
+                doc.open(); doc.write(receiptHtml(r)); doc.close();
+                setTimeout(function () {
+                    try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) {}
+                    setTimeout(function () { try { f.remove(); } catch (e) {} _printFrame = null; }, 3000);
+                }, 350);
+                return;
+            } catch (e) { /* fallback ke bawah */ }
+        }
         if (printUrl) window.open(printUrl, '_blank'); else window.print();
     }
 
@@ -206,8 +234,8 @@ window.StakkoPrint = (function () {
             if (m === 'qztray') { printQz(receipt).catch(e => alertErr('QZ Tray: ' + e.message + '. Pastikan aplikasi QZ Tray berjalan.')); return; }
             if (m === 'webbluetooth') { printBle(receipt).catch(e => alertErr(e.message)); return; }
             if (m === 'rawbt') { printRawbt(receipt); return; }
-            printBrowser(printUrl);
-        } catch (e) { printBrowser(printUrl); }
+            printBrowser(receipt, printUrl);
+        } catch (e) { printBrowser(receipt, printUrl); }
     }
 
     // -------- public: quickConnect (dipakai tombol di Kasir/Setelan) --------
@@ -251,8 +279,6 @@ window.StakkoPrint = (function () {
             subtotal: 51000, discount_amount: 0, tax: 5100, grand_total: 56100,
             payment_method: 'cash', payment_status: 'paid', cash_received: 60000, change_amount: 3900,
         };
-        const m = resolveMethod();
-        if (m === 'browser') return Swal.fire('Metode Browser', 'Mode ini mencetak lewat dialog print OS saat Anda menekan Cetak Struk pada transaksi. Pastikan printer thermal terpasang sebagai printer OS & set sebagai default.', 'info');
         print(sample, null);
     }
 

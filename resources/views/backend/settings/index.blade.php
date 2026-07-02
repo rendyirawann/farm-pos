@@ -122,6 +122,27 @@
                                 Untuk <b>QZ Tray</b>: pastikan aplikasi QZ Tray berjalan, lalu pilih printer.
                                 Untuk aplikasi tablet (APK), unduh di menu <a href="{{ route('download-app') }}">Aplikasi</a>.
                             </div>
+
+                            {{-- Cetak senyap / kiosk untuk metode Dialog Browser --}}
+                            <div class="separator my-6"></div>
+                            <div class="d-flex bg-light-warning rounded border border-warning border-dashed p-5">
+                                <i class="ki-outline ki-rocket fs-2x text-warning me-4 mt-1"></i>
+                                <div>
+                                    <h4 class="fw-bold text-gray-900 mb-2">Cetak otomatis tanpa dialog (mode Kiosk)</h4>
+                                    <div class="fs-7 text-gray-700">
+                                        Khusus metode <b>Dialog Browser / OS</b>: agar dialog print tidak perlu diklik
+                                        (langsung tercetak ke printer default), jalankan browser dengan flag
+                                        <code>--kiosk-printing</code> lewat <b>shortcut aplikasi</b>:
+                                        <div class="bg-dark text-white rounded p-3 my-2" style="font-family:monospace; overflow-x:auto;">
+                                            chrome.exe --kiosk-printing --app=http://127.0.0.1:8044/admin/kasir
+                                        </div>
+                                        Edge: <code>msedge.exe --kiosk-printing --app=&lt;URL&gt;</code>.
+                                        Tambahkan <code>--kiosk</code> untuk layar penuh.
+                                        <br>Lalu di Windows: <b>Settings → Printers</b> → jadikan printer thermal sebagai
+                                        <b>default</b>, dan set ukuran kertas driver ke 58/80mm.
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
