@@ -318,10 +318,17 @@ License: Proprietary - Stakko POS System
     
     <!-- Konfigurasi & engine cetak struk (multi-metode) -->
     @php
+        $ps = $posSetting ?? null;
         $stakkoPrintCfg = [
-            'method' => optional($posSetting ?? null)->printer_method ?? 'auto',
-            'paper_width' => (int) (optional($posSetting ?? null)->paper_width ?? 58),
-            'store_name' => optional($posSetting ?? null)->store_name ?? 'Stakko POS',
+            'method' => optional($ps)->printer_method ?? 'auto',
+            'paper_width' => (int) (optional($ps)->paper_width ?? 58),
+            'store_name' => optional($ps)->store_name ?? 'Stakko POS',
+            'tax_rate' => (int) (optional($ps)->tax_rate ?? 0),
+            // Alamat & telepon di struk mengikuti toggle "tampilkan" (default tampil).
+            'store_address' => (optional($ps)->receipt_show_address ?? true) ? (optional($ps)->address ?? '') : '',
+            'store_phone' => (optional($ps)->receipt_show_phone ?? true) ? (optional($ps)->phone ?? '') : '',
+            'receipt_header' => optional($ps)->receipt_header ?? '',
+            'receipt_footer' => optional($ps)->receipt_footer ?? 'Terima kasih atas kunjungan Anda!',
             'qz_url' => asset('assets/plugins/custom/qz/qz-tray.js'),
         ];
     @endphp

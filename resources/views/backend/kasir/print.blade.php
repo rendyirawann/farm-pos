@@ -31,8 +31,9 @@
     <div class="ticket">
         <div class="text-center bold" style="font-size: 16px;">{{ $setting->store_name ?? 'Stakko POS' }}</div>
         <div class="text-center mb-1">
-            {!! nl2br(e($setting->address ?? '')) !!}<br>
-            Telp: {{ $setting->phone ?? '-' }}
+            @if (!empty($setting->receipt_header)){!! nl2br(e($setting->receipt_header)) !!}<br>@endif
+            @if (($setting->receipt_show_address ?? true) && !empty($setting->address)){!! nl2br(e($setting->address)) !!}<br>@endif
+            @if (($setting->receipt_show_phone ?? true) && !empty($setting->phone))Telp: {{ $setting->phone }}@endif
         </div>
 
         <div class="border-bottom mb-1"></div>
@@ -84,6 +85,9 @@
                     <td width="40%">{{ number_format($item->price, 0, ',', '.') }}</td>
                     <td width="40%" class="text-right">{{ number_format($item->subtotal, 0, ',', '.') }}</td>
                 </tr>
+                @if (!empty($item->notes))
+                    <tr><td colspan="3" class="addon">* {{ $item->notes }}</td></tr>
+                @endif
             @endforeach
         </table>
 
@@ -131,8 +135,7 @@
         </div>
 
         <div class="text-center mt-1" style="font-size: 11px;">
-            Terima Kasih atas Kunjungan Anda!<br>
-            Silakan datang kembali.
+            {!! nl2br(e($setting->receipt_footer ?? 'Terima kasih atas kunjungan Anda!')) !!}
         </div>
         <br><br>
     </div>

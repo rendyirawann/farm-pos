@@ -61,6 +61,7 @@ window.StakkoPrint = (function () {
         const line = (s = '') => { enc(s); push(0x0a); };
         const rule = () => line('-'.repeat(W));
         const row = (l, rr) => { l = String(l); rr = String(rr); const gap = Math.max(1, W - l.length - rr.length); line(l + ' '.repeat(gap) + rr); };
+        const lines = (v) => String(v == null ? '' : v).split('\n').map(s => s.trim()).filter(Boolean);
 
         push(ESC, 0x40);            // init
         push(ESC, 0x74, 0x00);      // codepage CP437
@@ -69,8 +70,10 @@ window.StakkoPrint = (function () {
         push(GS, 0x21, 0x11);       // double height+width
         line((r.store_name || CFG.store_name || 'Stakko POS').toUpperCase());
         push(GS, 0x21, 0x00); push(ESC, 0x45, 0x00);
-        if (r.store_address) line(r.store_address);
-        if (r.store_phone) line('Telp: ' + r.store_phone);
+        lines(r.receipt_header ?? CFG.receipt_header).forEach(l => line(l));
+        lines(r.store_address ?? CFG.store_address).forEach(l => line(l));
+        const phone = r.store_phone ?? CFG.store_phone;
+        if (phone) line('Telp: ' + phone);
         rule();
         push(ESC, 0x61, 0x01); push(GS, 0x21, 0x01);   // center, double height
         line('No. Antrian ' + (r.queue_number ?? '-'));
@@ -89,7 +92,8 @@ window.StakkoPrint = (function () {
         rule();
         row('Subtotal', money(r.subtotal));
         if (Number(r.discount_amount) > 0) row('Diskon', '-' + money(r.discount_amount));
-        row('Pajak', money(r.tax));
+        const taxRate = r.tax_rate ?? CFG.tax_rate;
+        row('Pajak' + (taxRate != null ? ' (' + taxRate + '%)' : ''), money(r.tax));
         push(ESC, 0x45, 0x01); row('TOTAL', money(r.grand_total)); push(ESC, 0x45, 0x00);
         row('Metode', (r.payment_method || '-').toUpperCase());
         if (r.payment_method === 'cash' && r.cash_received != null) {
@@ -99,7 +103,7 @@ window.StakkoPrint = (function () {
         rule();
         push(ESC, 0x61, 0x01);
         line(r.payment_status === 'paid' ? '*** LUNAS ***' : '** BELUM LUNAS **');
-        line('Terima kasih!');
+        lines(r.receipt_footer ?? CFG.receipt_footer ?? 'Terima kasih!').forEach(l => line(l));
         push(0x0a, 0x0a, 0x0a);
         push(GS, 0x56, 0x42, 0x03); // feed + partial cut (Function B; diabaikan printer tanpa cutter)
         return new Uint8Array(buf);
@@ -111,7 +115,12 @@ window.StakkoPrint = (function () {
         const center = (s) => { s = String(s); return s.length >= W ? s.slice(0, W) : ' '.repeat(Math.floor((W - s.length) / 2)) + s; };
         const row = (l, rr) => { l = String(l); rr = String(rr); const gap = Math.max(1, W - l.length - rr.length); return l + ' '.repeat(gap) + rr; };
         const sep = '-'.repeat(W); const o = [];
+        const lines = (v) => String(v == null ? '' : v).split('\n').map(s => s.trim()).filter(Boolean);
         o.push(center((r.store_name || CFG.store_name || 'Stakko POS').toUpperCase()));
+        lines(r.receipt_header ?? CFG.receipt_header).forEach(l => o.push(center(l)));
+        lines(r.store_address ?? CFG.store_address).forEach(l => o.push(center(l)));
+        const phone = r.store_phone ?? CFG.store_phone;
+        if (phone) o.push(center('Telp: ' + phone));
         o.push(sep); o.push(center('NO. ANTRIAN ' + (r.queue_number ?? '-'))); o.push(sep);
         if (r.invoice_no) o.push(row('No', r.invoice_no));
         if (r.datetime) o.push(row('Tgl', r.datetime));
@@ -126,16 +135,20 @@ window.StakkoPrint = (function () {
         o.push(sep);
         o.push(row('Subtotal', money(r.subtotal)));
         if (Number(r.discount_amount) > 0) o.push(row('Diskon', '-' + money(r.discount_amount)));
-        o.push(row('Pajak', money(r.tax)));
+        const taxRate = r.tax_rate ?? CFG.tax_rate;
+        o.push(row('Pajak' + (taxRate != null ? ' (' + taxRate + '%)' : ''), money(r.tax)));
         o.push(row('TOTAL', money(r.grand_total)));
         o.push(row('Metode', (r.payment_method || '-').toUpperCase()));
         if (r.payment_method === 'cash' && r.cash_received != null) {
             o.push(row('Tunai', money(r.cash_received))); o.push(row('Kembali', money(r.change_amount)));
         }
         o.push(sep); o.push(center(r.payment_status === 'paid' ? '*** LUNAS ***' : '** BELUM LUNAS **'));
-        o.push(center('Terima kasih!'));
+        lines(r.receipt_footer ?? CFG.receipt_footer ?? 'Terima kasih!').forEach(l => o.push(center(l)));
         return o.join('\n');
     }
+
+    // -------- preview (dipakai halaman Setelan utk pratinjau struk) --------
+    function preview(r) { return plainText(r); }
 
     // -------- method resolution --------
     const hasNative = () => !!(window.AndroidPrinter && typeof window.AndroidPrinter.printReceipt === 'function');
@@ -288,11 +301,11 @@ window.StakkoPrint = (function () {
                 { name: 'Kopi Susu', qty: 2, price: 18000, subtotal: 36000, addons: [{ name: 'Extra Shot' }] },
                 { name: 'Roti Bakar', qty: 1, price: 15000, subtotal: 15000 },
             ],
-            subtotal: 51000, discount_amount: 0, tax: 5100, grand_total: 56100,
+            subtotal: 51000, discount_amount: 0, tax: 5100, tax_rate: 10, grand_total: 56100,
             payment_method: 'cash', payment_status: 'paid', cash_received: 60000, change_amount: 3900,
         };
         print(sample, null);
     }
 
-    return { print, quickConnect, needsButton, buttonLabel, test, cols, resolveMethod, hasNative, connectBle };
+    return { print, quickConnect, needsButton, buttonLabel, test, preview, cols, resolveMethod, hasNative, connectBle };
 })();

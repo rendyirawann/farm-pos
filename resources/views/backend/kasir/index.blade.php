@@ -320,43 +320,6 @@
         const STORE_NAME = @json($setting->store_name ?? 'Stakko POS');
         const hasPrinter = () => !!(window.AndroidPrinter && typeof window.AndroidPrinter.printReceipt === 'function');
 
-        function escposText(r) {
-            const W = 32;
-            const money = n => 'Rp' + Number(n || 0).toLocaleString('id-ID');
-            const center = s => { s = String(s); if (s.length >= W) return s.slice(0, W); return ' '.repeat(Math.floor((W - s.length) / 2)) + s; };
-            const row = (l, rr) => { l = String(l); rr = String(rr); const sp = W - l.length - rr.length; return sp > 0 ? l + ' '.repeat(sp) + rr : (l + ' ' + rr).slice(0, W); };
-            const sep = '-'.repeat(W);
-            const o = [];
-            o.push(center((r.store_name || STORE_NAME).toUpperCase()));
-            o.push(sep);
-            o.push(center('NO. ANTRIAN ' + (r.queue_number ?? '-')));
-            o.push(sep);
-            o.push(row('No', r.invoice_no || ''));
-            o.push(row('Tgl', r.datetime || ''));
-            if (r.customer_name) o.push(row('Plg', r.customer_name));
-            o.push(sep);
-            (r.items || []).forEach(it => {
-                o.push(String(it.name));
-                if (it.addons && it.addons.length) it.addons.forEach(a => o.push('  + ' + (a.name || '')));
-                o.push(row('  ' + it.qty + ' x ' + money(it.price), money(it.subtotal)));
-                if (it.notes) o.push('  * ' + it.notes);
-            });
-            o.push(sep);
-            o.push(row('Subtotal', money(r.subtotal)));
-            if (Number(r.discount_amount) > 0) o.push(row('Diskon', '-' + money(r.discount_amount)));
-            o.push(row('Pajak', money(r.tax)));
-            o.push(row('TOTAL', money(r.grand_total)));
-            o.push(row('Metode', (r.payment_method || '-').toUpperCase()));
-            if (r.payment_method === 'cash' && r.cash_received != null) {
-                o.push(row('Tunai', money(r.cash_received)));
-                o.push(row('Kembali', money(r.change_amount)));
-            }
-            o.push(sep);
-            o.push(center(r.payment_status === 'paid' ? '*** LUNAS ***' : '** BELUM LUNAS **'));
-            o.push(center('Terima kasih!'));
-            return o.join('\n');
-        }
-
         function doPrintReceipt(receipt, printUrl) {
             // Engine cetak terpusat (browser/qztray/webbluetooth/rawbt/native)
             if (window.StakkoPrint) { window.StakkoPrint.print(receipt, printUrl); return; }
@@ -775,7 +738,7 @@
                     </div>
                     ${rows}
                     <div class="d-flex justify-content-between mt-3"><span class="text-muted">Subtotal</span><span>${rupiah(o.subtotal)}</span></div>
-                    <div class="d-flex justify-content-between"><span class="text-muted">Diskon</span><span class="text-danger">- ${rupiah(o.discount_amount)}</span></div>
+                    ${Number(o.discount_amount) > 0 ? `<div class="d-flex justify-content-between"><span class="text-muted">Diskon</span><span class="text-danger">- ${rupiah(o.discount_amount)}</span></div>` : ''}
                     <div class="d-flex justify-content-between"><span class="text-muted">Pajak</span><span>${rupiah(o.tax)}</span></div>
                     <div class="d-flex justify-content-between fw-bold fs-4"><span>Total</span><span class="text-success">${rupiah(o.grand_total)}</span></div>
                     <div class="text-end mt-4"><button type="button" class="btn btn-sm btn-light-primary" onclick="doPrintReceipt(window.__lastDetail, '${ROUTES.print}/${o.id}')"><i class="ki-outline ki-printer"></i> Cetak Struk</button></div>`);

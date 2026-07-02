@@ -11,5 +11,13 @@ class Setting extends Model
     use BelongsToTenant, LogsAllActivity;
 
     protected $table = 'settings';
-    protected $fillable = ['tenant_id', 'store_name', 'address', 'phone', 'tax_rate', 'printer_method', 'paper_width'];
+    protected $fillable = [
+        'tenant_id', 'store_name', 'address', 'phone', 'tax_rate', 'printer_method', 'paper_width',
+        'receipt_header', 'receipt_footer', 'receipt_show_address', 'receipt_show_phone',
+    ];
+
+    protected $casts = [
+        'receipt_show_address' => 'boolean',
+        'receipt_show_phone'   => 'boolean',
+    ];
 }

@@ -15,8 +15,9 @@
                         <ul class="nav nav-tabs nav-line-tabs ms-auto border-0" role="tablist">
                             @if ($canGeneral)
                                 <li class="nav-item"><a class="nav-link active fw-semibold" data-bs-toggle="tab" href="#tab-umum">Umum</a></li>
+                                <li class="nav-item"><a class="nav-link fw-semibold" data-bs-toggle="tab" href="#tab-struk">Struk</a></li>
                             @endif
-                            <li class="nav-item"><a class="nav-link {{ $canGeneral ? '' : 'active' }} fw-semibold" data-bs-toggle="tab" href="#tab-printer">Printer Struk</a></li>
+                            <li class="nav-item"><a class="nav-link {{ $canGeneral ? '' : 'active' }} fw-semibold" data-bs-toggle="tab" href="#tab-printer">Printer</a></li>
                         </ul>
                     </div>
 
@@ -28,20 +29,20 @@
                                 <label class="col-lg-3 col-form-label required fw-semibold fs-6">Nama Toko</label>
                                 <div class="col-lg-9">
                                     <input type="text" name="store_name" class="form-control form-control-solid"
-                                        value="{{ $setting->store_name }}" required>
+                                        value="{{ old('store_name', $setting->store_name) }}" required>
                                 </div>
                             </div>
                             <div class="row mb-6">
                                 <label class="col-lg-3 col-form-label fw-semibold fs-6">Alamat Toko</label>
                                 <div class="col-lg-9">
-                                    <textarea name="address" class="form-control form-control-solid" rows="3">{{ $setting->address }}</textarea>
+                                    <textarea name="address" class="form-control form-control-solid" rows="3">{{ old('address', $setting->address) }}</textarea>
                                 </div>
                             </div>
                             <div class="row mb-6">
                                 <label class="col-lg-3 col-form-label fw-semibold fs-6">No. Telepon / WA</label>
                                 <div class="col-lg-9">
                                     <input type="text" name="phone" class="form-control form-control-solid"
-                                        value="{{ $setting->phone }}">
+                                        value="{{ old('phone', $setting->phone) }}">
                                 </div>
                             </div>
                             <div class="row mb-2">
@@ -49,10 +50,60 @@
                                 <div class="col-lg-9">
                                     <div class="input-group input-group-solid w-200px">
                                         <input type="number" name="tax_rate" class="form-control form-control-solid js-no-format"
-                                            value="{{ $setting->tax_rate }}" min="0" max="100" required>
+                                            value="{{ old('tax_rate', $setting->tax_rate) }}" min="0" max="100" required>
                                         <span class="input-group-text">%</span>
                                     </div>
                                     <div class="form-text">Masukkan angka 0 jika toko tidak membebankan pajak ke pelanggan.</div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- ========== TAB STRUK (owner/admin/Superadmin) ========== --}}
+                        @if ($canGeneral)
+                        <div class="tab-pane fade" id="tab-struk">
+                            <div class="row">
+                                <div class="col-lg-7">
+                                    <div class="alert alert-primary d-flex align-items-center">
+                                        <i class="ki-outline ki-information-5 fs-2x text-primary me-3"></i>
+                                        <span class="fs-7 text-gray-700">Sesuaikan tampilan struk. Nama toko, alamat &amp; telepon diambil dari tab <b>Umum</b>.</span>
+                                    </div>
+
+                                    <div class="mb-6">
+                                        <label class="fw-semibold fs-6 mb-2">Teks Header (opsional)</label>
+                                        <input type="text" name="receipt_header" class="form-control form-control-solid"
+                                            maxlength="120" value="{{ old('receipt_header', $setting->receipt_header) }}"
+                                            placeholder="mis. Cabang Bandung / Coffee &amp; Eatery">
+                                        <div class="form-text">Muncul tepat di bawah nama toko.</div>
+                                    </div>
+
+                                    <div class="mb-6">
+                                        <label class="fw-semibold fs-6 mb-2">Teks Footer / Ucapan (opsional)</label>
+                                        <textarea name="receipt_footer" class="form-control form-control-solid" rows="3"
+                                            maxlength="255" placeholder="mis. Terima kasih atas kunjungan Anda!">{{ old('receipt_footer', $setting->receipt_footer) }}</textarea>
+                                        <div class="form-text">Muncul di kaki struk. Boleh beberapa baris (mis. IG: @@tokoanda). Kosongkan bila tidak ingin ada footer.</div>
+                                    </div>
+
+                                    <label class="fw-semibold fs-6 mb-3 d-block">Tampilkan di Struk</label>
+                                    <label class="form-check form-switch form-check-custom form-check-solid mb-3">
+                                        <input class="form-check-input" type="checkbox" name="receipt_show_address" value="1"
+                                            {{ ($errors->any() ? old('receipt_show_address') : ($setting->receipt_show_address ?? true)) ? 'checked' : '' }}>
+                                        <span class="form-check-label fw-semibold ms-3">Alamat toko</span>
+                                    </label>
+                                    <label class="form-check form-switch form-check-custom form-check-solid mb-3">
+                                        <input class="form-check-input" type="checkbox" name="receipt_show_phone" value="1"
+                                            {{ ($errors->any() ? old('receipt_show_phone') : ($setting->receipt_show_phone ?? true)) ? 'checked' : '' }}>
+                                        <span class="form-check-label fw-semibold ms-3">No. Telepon</span>
+                                    </label>
+                                </div>
+
+                                {{-- Pratinjau struk (live) --}}
+                                <div class="col-lg-5 mt-6 mt-lg-0">
+                                    <label class="fw-semibold fs-6 mb-2 d-block">Pratinjau</label>
+                                    <div class="bg-light rounded border p-4 d-flex justify-content-center">
+                                        <pre id="struk-preview" style="font-family:'Courier New',monospace; font-size:12px; line-height:1.3; white-space:pre; margin:0; background:#fff; padding:10px; border:1px dashed #bbb; border-radius:4px; overflow-x:auto; max-width:100%;"></pre>
+                                    </div>
+                                    <div class="form-text">Contoh data; mengikuti ukuran kertas di tab Printer.</div>
                                 </div>
                             </div>
                         </div>
@@ -166,6 +217,9 @@
                 @if (session('success'))
                     Swal.fire({ icon: 'success', title: 'Berhasil!', text: '{{ session('success') }}', timer: 3000 });
                 @endif
+                @if ($errors->any())
+                    Swal.fire({ icon: 'error', title: 'Gagal menyimpan', html: `{!! implode('<br>', array_map('e', $errors->all())) !!}` });
+                @endif
 
                 // Petunjuk + tombol "Hubungkan" menyesuaikan metode yang sedang dipilih
                 const HINTS = {
@@ -202,6 +256,43 @@
                 });
 
                 refreshPrinterControls();
+
+                // ===== Pratinjau struk (tab Struk) — memakai engine cetak yang sama =====
+                function buildPreviewReceipt() {
+                    const showAddr = $('input[name="receipt_show_address"]').is(':checked');
+                    const showPhone = $('input[name="receipt_show_phone"]').is(':checked');
+                    const subtotal = 51000, discount = 0;
+                    const net = Math.max(0, subtotal - discount);
+                    const rate = parseFloat($('input[name="tax_rate"]').val()) || 0;   // ikut nilai Pajak di tab Umum
+                    const tax = Math.round(net * (rate / 100));
+                    const grand = net + tax;
+                    const cash = 60000;
+                    return {
+                        store_name: ($('input[name="store_name"]').val() || 'Stakko POS'),
+                        store_address: showAddr ? ($('textarea[name="address"]').val() || '') : '',
+                        store_phone: showPhone ? ($('input[name="phone"]').val() || '') : '',
+                        receipt_header: $('input[name="receipt_header"]').val() || '',
+                        receipt_footer: $('textarea[name="receipt_footer"]').val() || '',
+                        invoice_no: 'STK-INV-CONTOH', queue_number: 7, customer_name: 'Budi',
+                        datetime: '01/01/2026 12.00',
+                        items: [
+                            { name: 'Kopi Susu', qty: 2, price: 18000, subtotal: 36000, addons: [{ name: 'Extra Shot' }], notes: 'less ice' },
+                            { name: 'Roti Bakar', qty: 1, price: 15000, subtotal: 15000 },
+                        ],
+                        subtotal: subtotal, discount_amount: discount, tax: tax, tax_rate: rate, grand_total: grand,
+                        payment_method: 'cash', payment_status: 'paid', cash_received: cash, change_amount: Math.max(0, cash - grand),
+                    };
+                }
+                function renderStrukPreview() {
+                    const el = document.getElementById('struk-preview');
+                    if (!el || !window.StakkoPrint || !window.StakkoPrint.preview) return;
+                    const w = parseInt($('select[name="paper_width"]').val(), 10) || 58;
+                    if (window.STAKKO_PRINT) window.STAKKO_PRINT.paper_width = w;
+                    el.textContent = window.StakkoPrint.preview(buildPreviewReceipt());
+                }
+                $('input[name="receipt_header"], textarea[name="receipt_footer"], input[name="store_name"], textarea[name="address"], input[name="phone"], input[name="tax_rate"], input[name="receipt_show_address"], input[name="receipt_show_phone"], select[name="paper_width"]')
+                    .on('input change', renderStrukPreview);
+                renderStrukPreview();
 
                 $('#form-settings').on('submit', function() {
                     let btn = $('#btn-save');
