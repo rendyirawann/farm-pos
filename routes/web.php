@@ -119,6 +119,8 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
             ->middleware('can:order.delete')->name('kasir.order.destroy');
         Route::post('/admin/kasir/sales/reset-today', [KasirController::class, 'resetToday'])
             ->middleware('can:sales.clear')->name('kasir.sales.reset-today');
+        Route::post('/admin/kasir/sales/target', [KasirController::class, 'setTarget'])
+            ->middleware('can:sales.target')->name('kasir.sales.target');
     });
 
     // ====================================================

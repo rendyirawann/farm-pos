@@ -103,6 +103,11 @@
                                             <span class="badge badge-success ms-1" id="count-completed">0</span></a>
                                     </li>
                                     <li class="nav-item ms-auto d-flex align-items-center gap-1">
+                                        @can('sales.target')
+                                            <button class="btn btn-sm btn-icon btn-light-primary" id="btn-set-target"
+                                                title="Set / ubah target penjualan hari ini">
+                                                <i class="ki-outline ki-dollar fs-4"></i></button>
+                                        @endcan
                                         @can('sales.clear')
                                             <button class="btn btn-sm btn-icon btn-light-danger" id="btn-reset-today"
                                                 title="Reset penjualan hari ini (hapus semua pesanan hari ini)">
@@ -297,6 +302,7 @@
             base:       "{{ url('admin/kasir/order') }}",   // + /{id}, /{id}/pay, /{id}/complete, DELETE /{id}
             print:      "{{ url('admin/kasir/print') }}",   // + /{id}
             resetToday: "{{ route('kasir.sales.reset-today') }}",
+            setTarget:  "{{ route('kasir.sales.target') }}",
         };
         const CSRF = "{{ csrf_token() }}";
         // Hak akses owner: tampilkan tombol hapus pesanan (server tetap menjaga via can:order.delete).
@@ -688,6 +694,33 @@
                         } else { Swal.fire('Gagal', res.error || 'Gagal menghapus pesanan.', 'error'); }
                     })
                     .fail(xhr => Swal.fire('Gagal', (xhr.responseJSON && xhr.responseJSON.error) || 'Gagal menghapus pesanan.', 'error'));
+            });
+        });
+
+        // ===== Set / ubah target penjualan hari ini (owner) =====
+        $('#btn-set-target').on('click', function() {
+            const current = window.rawNum ? window.rawNum($('#sb-target').text()) : 0;
+            Swal.fire({
+                title: 'Target Penjualan Hari Ini',
+                text: 'Masukkan target penjualan (Rupiah) untuk hari ini.',
+                input: 'number',
+                inputValue: current || '',
+                inputAttributes: { min: 0, step: 1000 },
+                inputPlaceholder: 'mis. 1000000',
+                showCancelButton: true,
+                confirmButtonText: 'Simpan',
+                cancelButtonText: 'Batal',
+                inputValidator: v => (v === '' || v === null || Number(v) < 0) ? 'Masukkan nominal yang valid' : undefined,
+            }).then(r => {
+                if (!r.isConfirmed) return;
+                $.ajax({ url: ROUTES.setTarget, method: 'POST', data: { _token: CSRF, amount: Number(r.value) } })
+                    .done(res => {
+                        if (res.success) {
+                            applyWidget(res.widget);
+                            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Target diperbarui', showConfirmButton: false, timer: 1800 });
+                        } else { Swal.fire('Gagal', res.error || 'Gagal menyimpan target.', 'error'); }
+                    })
+                    .fail(xhr => Swal.fire('Gagal', (xhr.responseJSON && xhr.responseJSON.error) || 'Gagal menyimpan target.', 'error'));
             });
         });
 

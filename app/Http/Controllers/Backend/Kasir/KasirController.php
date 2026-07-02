@@ -312,6 +312,37 @@ class KasirController extends Controller
     }
 
     /**
+     * Set / ubah target penjualan hari ini (khusus OWNER).
+     * Berguna setelah reset (baris target ikut terhapus) atau untuk mengubah target berjalan.
+     */
+    public function setTarget(Request $request)
+    {
+        abort_unless(auth()->user()->can('sales.target'), 403);
+
+        $tenantId = app(TenantManager::class)->id();
+        abort_if($tenantId === null, 403, 'Tidak ada tenant aktif.');
+
+        $data = $request->validate([
+            'amount' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            // Upsert baris target hari ini (unik per tenant+tanggal; tenant_id terisi otomatis).
+            DailySalesTarget::updateOrCreate(
+                ['date' => Carbon::today()->toDateString()],
+                ['amount' => $data['amount']]
+            );
+
+            return response()->json([
+                'success' => true,
+                'widget'  => $this->todaySalesWidget(),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Nilai widget "Penjualan Hari Ini" & "Target" (sama persis dgn komposer di AppServiceProvider),
      * dikembalikan agar sidebar bisa diperbarui via JS tanpa reload (keranjang tetap aman).
      */

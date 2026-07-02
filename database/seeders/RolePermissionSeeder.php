@@ -67,6 +67,7 @@ class RolePermissionSeeder extends Seeder
         $orderPermissions = [
             'order.delete',   // hapus pesanan (berjalan/selesai)
             'sales.clear',    // reset/kosongkan penjualan hari ini
+            'sales.target',   // set/ubah target penjualan hari ini
         ];
 
         // Create all permissions
@@ -110,7 +111,7 @@ class RolePermissionSeeder extends Seeder
             'promo.show', 'promo.create', 'promo.edit', 'promo.delete',
             'report.sales', 'report.items',
             // Aksi sensitif khusus owner (admin/kasir TIDAK diberi).
-            'order.delete', 'sales.clear',
+            'order.delete', 'sales.clear', 'sales.target',
         ];
         $roleOwner->syncPermissions($ownerPermissions);
 
