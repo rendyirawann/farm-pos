@@ -12,6 +12,8 @@ use App\Models\Category;
 use App\Models\Setting;
 use App\Models\Promo;
 use App\Models\Shift;
+use App\Models\DailySalesTarget;
+use App\Tenancy\TenantManager;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -237,6 +239,113 @@ class KasirController extends Controller
             DB::rollBack();
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Hapus 1 pesanan (khusus OWNER). Boleh untuk pesanan berjalan maupun selesai,
+     * baik yang belum lunas maupun sudah lunas. order_details ikut terhapus (cascade FK).
+     */
+    public function destroyOrder($id)
+    {
+        abort_unless(auth()->user()->can('order.delete'), 403);
+
+        try {
+            DB::beginTransaction();
+            $order = Order::findOrFail($id); // ter-scope per-tenant
+            $order->delete();                // order_details terhapus otomatis via cascadeOnDelete
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'widget'  => $this->todaySalesWidget(),
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Reset penjualan hari ini (khusus OWNER) — untuk membersihkan data testing.
+     * Menghapus SEMUA pesanan hari ini (per-tenant) + baris target penjualan hari ini.
+     * "Penjualan Hari Ini" adalah query turunan dari orders, jadi otomatis kembali 0.
+     */
+    public function resetToday(Request $request)
+    {
+        abort_unless(auth()->user()->can('sales.clear'), 403);
+
+        // Cegah wipe lintas-tenant (mis. akun tanpa tenant aktif).
+        $tenantId = app(TenantManager::class)->id();
+        abort_if($tenantId === null, 403, 'Tidak ada tenant aktif.');
+
+        try {
+            DB::beginTransaction();
+            $today = Carbon::today()->toDateString();
+
+            // Hapus semua pesanan hari ini (order_details ikut via cascade FK).
+            // Query ter-scope otomatis ke tenant aktif oleh TenantScope.
+            $deleted = Order::whereDate('created_at', $today)->delete();
+
+            // Reset target penjualan hari ini (kembali diisi saat buka shift pertama berikutnya).
+            DailySalesTarget::where('date', $today)->delete();
+
+            DB::commit();
+
+            // Catatan aktivitas (best-effort; tidak memblokir bila gagal).
+            try {
+                activity('orders')
+                    ->causedBy(auth()->user())
+                    ->withProperties(['deleted_orders' => $deleted, 'date' => $today])
+                    ->log('Reset penjualan hari ini');
+            } catch (\Throwable $e) {
+            }
+
+            return response()->json([
+                'success' => true,
+                'deleted' => $deleted,
+                'widget'  => $this->todaySalesWidget(),
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Nilai widget "Penjualan Hari Ini" & "Target" (sama persis dgn komposer di AppServiceProvider),
+     * dikembalikan agar sidebar bisa diperbarui via JS tanpa reload (keranjang tetap aman).
+     */
+    private function todaySalesWidget(): array
+    {
+        $today = Carbon::today()->toDateString();
+
+        $income = (float) Order::whereDate('created_at', $today)
+            ->where('payment_status', 'paid')
+            ->sum('grand_total');
+
+        $targetObj = DailySalesTarget::where('date', $today)->first();
+        $target = $targetObj ? (float) $targetObj->amount : 0.0;
+
+        $percentage = 0;
+        $barWidth = 0;
+        $color = 'bg-warning';
+        if ($target > 0) {
+            $percentage = (int) round(($income / $target) * 100);
+            $barWidth = $percentage > 100 ? 100 : $percentage;
+            if ($percentage >= 100) {
+                $color = 'bg-success';
+            } elseif ($percentage >= 50) {
+                $color = 'bg-primary';
+            }
+        }
+
+        return [
+            'income'     => $income,
+            'target'     => $target,
+            'percentage' => $percentage,
+            'bar_width'  => $barWidth,
+            'bar_color'  => $color,
+        ];
     }
 
     /** Struk cetak. */

@@ -171,16 +171,16 @@
                 <div class="d-flex align-items-center flex-column w-100 mb-6">
                     <div class="d-flex justify-content-between fw-bolder fs-6 text-gray-800 w-100 mt-auto mb-3">
                         <span>Target Penjualan Hari Ini</span>
-                        <span>Rp {{ number_format($salesTarget ?? 0, 0, ',', '.') }}</span>
+                        <span id="sb-target">Rp {{ number_format($salesTarget ?? 0, 0, ',', '.') }}</span>
                     </div>
                     <div class="w-100 bg-light-success rounded mb-2" style="height: 24px">
-                        <div class="{{ $salesProgressColor ?? 'bg-warning' }} rounded" role="progressbar"
+                        <div id="sb-progress" class="{{ $salesProgressColor ?? 'bg-warning' }} rounded" role="progressbar"
                             style="height: 24px; width: {{ $salesBarWidth ?? 0 }}%; transition: width 0.5s ease;"
                             aria-valuenow="{{ $salesBarWidth ?? 0 }}" aria-valuemin="0" aria-valuemax="100">
                         </div>
                     </div>
                     <div class="fw-semibold fs-7 text-muted w-100 mt-auto d-flex justify-content-between">
-                        <span>Tercapai {{ $salesPercentage ?? 0 }}%</span>
+                        <span id="sb-percent">Tercapai {{ $salesPercentage ?? 0 }}%</span>
                         @if (($salesPercentage ?? 0) >= 100)
                             <span class="text-success fw-bold">Target Terlampaui! 🎉</span>
                         @else
@@ -193,7 +193,7 @@
             <div class="px-1 mb-6">
                 <div class="border border-primary border-dashed bg-light-primary rounded w-100 py-3 px-4">
                     <span class="fs-6 text-primary fw-bold">Penjualan Hari Ini</span>
-                    <div class="fs-2 fw-bold text-gray-800">Rp {{ number_format($income ?? 0, 0, ',', '.') }}</div>
+                    <div id="sb-income" class="fs-2 fw-bold text-gray-800">Rp {{ number_format($income ?? 0, 0, ',', '.') }}</div>
                 </div>
             </div>
 

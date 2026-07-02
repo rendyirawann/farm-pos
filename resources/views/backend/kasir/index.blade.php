@@ -102,7 +102,12 @@
                                             data-bs-toggle="tab" href="#tab-completed">Selesai
                                             <span class="badge badge-success ms-1" id="count-completed">0</span></a>
                                     </li>
-                                    <li class="nav-item ms-auto">
+                                    <li class="nav-item ms-auto d-flex align-items-center gap-1">
+                                        @can('sales.clear')
+                                            <button class="btn btn-sm btn-icon btn-light-danger" id="btn-reset-today"
+                                                title="Reset penjualan hari ini (hapus semua pesanan hari ini)">
+                                                <i class="ki-outline ki-trash fs-4"></i></button>
+                                        @endcan
                                         <button class="btn btn-sm btn-icon btn-light" id="btn-refresh-orders" title="Muat ulang">
                                             <i class="ki-outline ki-arrows-circle fs-4"></i></button>
                                     </li>
@@ -287,12 +292,15 @@
         const MENUS = @json($menusData);
         const TAX_RATE = {{ (float) ($setting->tax_rate ?? 0) }};
         const ROUTES = {
-            store:    "{{ route('kasir.store') }}",
-            orders:   "{{ route('kasir.orders') }}",
-            base:     "{{ url('admin/kasir/order') }}",   // + /{id}, /{id}/pay, /{id}/complete
-            print:    "{{ url('admin/kasir/print') }}",   // + /{id}
+            store:      "{{ route('kasir.store') }}",
+            orders:     "{{ route('kasir.orders') }}",
+            base:       "{{ url('admin/kasir/order') }}",   // + /{id}, /{id}/pay, /{id}/complete, DELETE /{id}
+            print:      "{{ url('admin/kasir/print') }}",   // + /{id}
+            resetToday: "{{ route('kasir.sales.reset-today') }}",
         };
         const CSRF = "{{ csrf_token() }}";
+        // Hak akses owner: tampilkan tombol hapus pesanan (server tetap menjaga via can:order.delete).
+        const CAN_DELETE = @json(auth()->user()->can('order.delete'));
 
         // ================= STATE =================
         let cart = [];
@@ -611,6 +619,9 @@
             const selesaiBtn = done ? '' :
                 `<button class="btn btn-sm btn-light-success flex-fill fw-bold btn-complete" data-id="${o.id}" data-paid="${paid ? 1 : 0}" data-total="${o.grand_total}">
                     <i class="ki-outline ki-check fs-5"></i> Selesai</button>`;
+            const delBtn = CAN_DELETE
+                ? `<button class="btn btn-sm btn-light-danger btn-del-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" title="Hapus pesanan"><i class="ki-outline ki-trash fs-5"></i></button>`
+                : '';
             return `
                 <div class="d-flex flex-column border rounded p-3 mb-2">
                     <div class="d-flex justify-content-between align-items-start">
@@ -626,6 +637,7 @@
                     <div class="d-flex gap-2 mt-2">
                         <button class="btn btn-sm btn-light flex-fill btn-view" data-id="${o.id}"><i class="ki-outline ki-eye fs-5"></i> View</button>
                         ${selesaiBtn}
+                        ${delBtn}
                     </div>
                 </div>`;
         }
@@ -641,6 +653,64 @@
             });
         }
         $('#btn-refresh-orders').on('click', loadOrders);
+
+        // ===== Perbarui widget "Penjualan Hari Ini" di sidebar tanpa reload =====
+        function applyWidget(w) {
+            if (!w) return;
+            $('#sb-income').text(rupiah(w.income));
+            $('#sb-target').text(rupiah(w.target));
+            $('#sb-percent').text('Tercapai ' + (w.percentage || 0) + '%');
+            const $bar = $('#sb-progress');
+            if ($bar.length) {
+                $bar.css('width', (w.bar_width || 0) + '%').attr('aria-valuenow', w.bar_width || 0);
+                $bar.removeClass('bg-warning bg-primary bg-success').addClass(w.bar_color || 'bg-warning');
+            }
+        }
+
+        // ===== Hapus pesanan (owner) — berjalan/selesai, lunas/belum lunas =====
+        $('body').on('click', '.btn-del-order', function() {
+            const id = $(this).data('id');
+            const q = $(this).data('q');
+            Swal.fire({
+                title: 'Hapus pesanan?',
+                html: `Pesanan <b>No. ${q || '-'}</b> beserta itemnya akan dihapus permanen.<br>Tindakan ini tidak bisa dibatalkan.`,
+                icon: 'warning', showCancelButton: true,
+                confirmButtonText: '<i class="ki-outline ki-trash"></i> Ya, Hapus',
+                cancelButtonText: 'Batal', confirmButtonColor: '#d33',
+            }).then(r => {
+                if (!r.isConfirmed) return;
+                $.ajax({ url: ROUTES.base + '/' + id, method: 'POST', data: { _token: CSRF, _method: 'DELETE' } })
+                    .done(res => {
+                        if (res.success) {
+                            applyWidget(res.widget);
+                            loadOrders();
+                            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Pesanan dihapus', showConfirmButton: false, timer: 1800 });
+                        } else { Swal.fire('Gagal', res.error || 'Gagal menghapus pesanan.', 'error'); }
+                    })
+                    .fail(xhr => Swal.fire('Gagal', (xhr.responseJSON && xhr.responseJSON.error) || 'Gagal menghapus pesanan.', 'error'));
+            });
+        });
+
+        // ===== Reset penjualan hari ini (owner) — bersihkan data testing =====
+        $('#btn-reset-today').on('click', function() {
+            Swal.fire({
+                title: 'Reset penjualan hari ini?',
+                html: 'Semua <b>pesanan hari ini</b> akan dihapus permanen dan <b>target penjualan hari ini</b> direset ke 0.<br>Cocok untuk membersihkan data testing.',
+                icon: 'warning', showCancelButton: true,
+                confirmButtonText: 'Ya, Reset', cancelButtonText: 'Batal', confirmButtonColor: '#d33',
+            }).then(r => {
+                if (!r.isConfirmed) return;
+                $.ajax({ url: ROUTES.resetToday, method: 'POST', data: { _token: CSRF } })
+                    .done(res => {
+                        if (res.success) {
+                            applyWidget(res.widget);
+                            loadOrders();
+                            Swal.fire({ icon: 'success', title: 'Direset', text: (res.deleted || 0) + ' pesanan hari ini dihapus.' });
+                        } else { Swal.fire('Gagal', res.error || 'Gagal mereset penjualan.', 'error'); }
+                    })
+                    .fail(xhr => Swal.fire('Gagal', (xhr.responseJSON && xhr.responseJSON.error) || 'Gagal mereset penjualan.', 'error'));
+            });
+        });
 
         // View detail
         $('body').on('click', '.btn-view', function() {

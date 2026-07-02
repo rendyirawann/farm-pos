@@ -112,6 +112,13 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         Route::post('/admin/kasir/order/{id}/pay', [KasirController::class, 'payOrder'])->name('kasir.pay');
         Route::post('/admin/kasir/order/{id}/complete', [KasirController::class, 'completeOrder'])->name('kasir.complete');
         Route::get('/admin/kasir/print/{id}', [KasirController::class, 'printReceipt'])->name('kasir.print');
+
+        // Aksi sensitif khusus OWNER (Superadmin lolos via Gate::before) —
+        // hapus pesanan & reset penjualan hari ini.
+        Route::delete('/admin/kasir/order/{id}', [KasirController::class, 'destroyOrder'])
+            ->middleware('can:order.delete')->name('kasir.order.destroy');
+        Route::post('/admin/kasir/sales/reset-today', [KasirController::class, 'resetToday'])
+            ->middleware('can:sales.clear')->name('kasir.sales.reset-today');
     });
 
     // ====================================================

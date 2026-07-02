@@ -63,10 +63,16 @@ class RolePermissionSeeder extends Seeder
             'report.items',
         ];
 
+        // --- Kontrol Order / Penjualan (aksi sensitif, khusus owner) ---
+        $orderPermissions = [
+            'order.delete',   // hapus pesanan (berjalan/selesai)
+            'sales.clear',    // reset/kosongkan penjualan hari ini
+        ];
+
         // Create all permissions
         $allPermissions = array_merge(
             $navPermissions, $userPermissions, $rolePermissions,
-            $masterPermissions, $reportPermissions
+            $masterPermissions, $reportPermissions, $orderPermissions
         );
 
         foreach ($allPermissions as $permission) {
@@ -103,6 +109,8 @@ class RolePermissionSeeder extends Seeder
             'menu.show', 'menu.create', 'menu.edit', 'menu.delete',
             'promo.show', 'promo.create', 'promo.edit', 'promo.delete',
             'report.sales', 'report.items',
+            // Aksi sensitif khusus owner (admin/kasir TIDAK diberi).
+            'order.delete', 'sales.clear',
         ];
         $roleOwner->syncPermissions($ownerPermissions);
 
