@@ -29,19 +29,29 @@ class SettingController extends Controller
     // Menyimpan perubahan pengaturan
     public function update(Request $request)
     {
-        $request->validate([
-            'store_name'     => 'required|string|max:255',
-            'address'        => 'nullable|string|max:500',
-            'phone'          => 'nullable|string|max:30',
-            'tax_rate'       => 'required|numeric|min:0|max:100',
+        // Pengaturan printer (tab Printer) boleh diubah semua role.
+        $rules = [
             'printer_method' => 'nullable|in:auto,browser,qztray,webbluetooth,rawbt',
             'paper_width'    => 'nullable|in:58,80',
-        ]);
+        ];
+        $fields = ['printer_method', 'paper_width'];
+
+        // Pengaturan toko/pajak (tab Umum) hanya owner/admin/Superadmin.
+        $canGeneral = auth()->user()->can('view_data_master');
+        if ($canGeneral) {
+            $rules += [
+                'store_name' => 'required|string|max:255',
+                'address'    => 'nullable|string|max:500',
+                'phone'      => 'nullable|string|max:30',
+                'tax_rate'   => 'required|numeric|min:0|max:100',
+            ];
+            $fields = array_merge($fields, ['store_name', 'address', 'phone', 'tax_rate']);
+        }
+
+        $request->validate($rules);
 
         $setting = Setting::first();
-        $setting->update($request->only([
-            'store_name', 'address', 'phone', 'tax_rate', 'printer_method', 'paper_width',
-        ]));
+        $setting->update($request->only($fields));
 
         return redirect()->back()->with('success', 'Pengaturan berhasil diperbarui!');
     }

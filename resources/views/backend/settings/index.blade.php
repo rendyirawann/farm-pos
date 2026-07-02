@@ -2,6 +2,8 @@
 @section('title', 'Pengaturan Sistem')
 @section('content')
 
+    @php $canGeneral = auth()->user()->can('view_data_master'); @endphp
+
     <div id="kt_app_content" class="app-content flex-column-fluid mt-5">
         <div id="kt_app_content_container" class="app-container container-xxl">
 
@@ -11,13 +13,16 @@
                     <div class="card-header d-flex align-items-center">
                         <h3 class="card-title fw-bold m-0"><i class="ki-outline ki-setting-2 fs-2 me-2"></i> Konfigurasi Sistem</h3>
                         <ul class="nav nav-tabs nav-line-tabs ms-auto border-0" role="tablist">
-                            <li class="nav-item"><a class="nav-link active fw-semibold" data-bs-toggle="tab" href="#tab-umum">Umum</a></li>
-                            <li class="nav-item"><a class="nav-link fw-semibold" data-bs-toggle="tab" href="#tab-printer">Printer Struk</a></li>
+                            @if ($canGeneral)
+                                <li class="nav-item"><a class="nav-link active fw-semibold" data-bs-toggle="tab" href="#tab-umum">Umum</a></li>
+                            @endif
+                            <li class="nav-item"><a class="nav-link {{ $canGeneral ? '' : 'active' }} fw-semibold" data-bs-toggle="tab" href="#tab-printer">Printer Struk</a></li>
                         </ul>
                     </div>
 
                     <div class="card-body tab-content">
-                        {{-- ========== TAB UMUM ========== --}}
+                        {{-- ========== TAB UMUM (owner/admin/Superadmin) ========== --}}
+                        @if ($canGeneral)
                         <div class="tab-pane fade show active" id="tab-umum">
                             <div class="row mb-6">
                                 <label class="col-lg-3 col-form-label required fw-semibold fs-6">Nama Toko</label>
@@ -51,9 +56,10 @@
                                 </div>
                             </div>
                         </div>
+                        @endif
 
-                        {{-- ========== TAB PRINTER ========== --}}
-                        <div class="tab-pane fade" id="tab-printer">
+                        {{-- ========== TAB PRINTER (semua role) ========== --}}
+                        <div class="tab-pane fade {{ $canGeneral ? '' : 'show active' }}" id="tab-printer">
                             <div class="alert alert-primary d-flex align-items-center">
                                 <i class="ki-outline ki-information-5 fs-2x text-primary me-3"></i>
                                 <span class="fs-7 text-gray-700">Pilih cara sistem menyambung ke printer thermal saat mencetak struk.
