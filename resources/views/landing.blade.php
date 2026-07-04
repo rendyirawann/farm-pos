@@ -64,19 +64,17 @@
         .landing-prev.swiper-button-disabled, .landing-next.swiper-button-disabled { opacity: 0; pointer-events: none; }
 
         /* Kotak pilihan durasi paket: scrollbar tipis yang terlihat + scroll terkurung di kotak */
-        .plan-periods-scroll {
-            max-height: 104px;          /* sengaja pendek: hanya ~2 opsi tampil, sisanya di-scroll */
-            overflow-y: auto;
-            overscroll-behavior: contain; /* scroll terkurung di kotak, tidak merembet ke halaman */
-            scroll-snap-type: y proximity;
-            scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
-        }
-        .plan-periods-scroll > div { scroll-snap-align: start; }
-        .plan-periods-scroll > div + div { margin-top: .375rem; }
-        .plan-periods-scroll::-webkit-scrollbar { width: 6px; }
-        .plan-periods-scroll::-webkit-scrollbar-track { background: transparent; }
-        .plan-periods-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
-        .plan-periods-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* Pilihan durasi paket (pills) — klik untuk mengubah angka harga (inline CSS, tak butuh build) */
+        .plan-dur-wrap { display: inline-flex; flex-wrap: wrap; gap: 6px; background: #f1f5f9; border-radius: 14px; padding: 5px; }
+        .plan-dur-btn { border: 0; cursor: pointer; border-radius: 10px; padding: 7px 14px; font-size: 12px; font-weight: 700; color: #64748b; background: transparent; transition: all .15s ease; white-space: nowrap; }
+        .plan-dur-btn:hover { color: #0f172a; }
+        .plan-dur-btn.is-active { background: #fff; color: #0f172a; box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+        .plan-dur-btn .disc { margin-left: 5px; font-size: 10px; font-weight: 800; color: #059669; }
+
+        /* Tombol nonaktif (maintenance) — kontras cukup di latar terang maupun gelap */
+        .mooda-soon-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; padding: 12px 20px; font-size: 14px; font-weight: 600; cursor: not-allowed; user-select: none; background: #e2e8f0; color: #475569; border: 1px solid #cbd5e1; }
+        .mooda-soon-btn.w-full { width: 100%; }
+        .mooda-soon-chip { display: inline-block; border-radius: 12px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: not-allowed; user-select: none; background: #e2e8f0; color: #64748b; border: 1px solid #cbd5e1; }
 
         /* ===== MODE MOBILE/TABLET: scroll VERTIKAL (bukan swiper horizontal) ===== */
         html.lp-mobile, html.lp-mobile body { height: auto; overflow-x: hidden; overflow-y: auto; }
@@ -153,7 +151,7 @@
             <div class="flex items-center gap-2">
                 <a href="{{ route('login') }}" class="hidden rounded-xl bg-white/95 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-black/5 backdrop-blur transition hover:bg-white sm:inline-block">Masuk</a>
                 @if (\App\Tenancy\Plan::maintenance())
-                    <span title="{{ \App\Tenancy\Plan::maintenanceText() }}" class="cursor-not-allowed select-none rounded-xl bg-slate-400 px-4 py-2 text-sm font-semibold text-white shadow-lg">Daftar</span>
+                    <span title="{{ \App\Tenancy\Plan::maintenanceText() }}" class="mooda-soon-chip">Daftar</span>
                 @else
                     <a href="{{ route('register') }}" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-700">Daftar</a>
                 @endif
@@ -201,7 +199,7 @@
                     </p>
                     <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
                         @if (\App\Tenancy\Plan::maintenance())
-                            <span class="inline-flex cursor-not-allowed select-none items-center gap-2 rounded-xl bg-white/10 px-7 py-3.5 text-base font-semibold text-slate-300 ring-1 ring-white/20">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
+                            <span class="mooda-soon-btn">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
                         @else
                             <a href="{{ route('register') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-indigo-900/40 transition hover:bg-indigo-700">Mulai Sekarang</a>
                         @endif
@@ -325,38 +323,42 @@
                                 @php
                                     $periods = \App\Tenancy\Plan::periods($key);
                                     $basePpm = $periods[0]['price_per_month'] ?? ($plan['price'] ?? 0);
-                                    $minPpm = collect($periods)->min('price_per_month') ?? ($plan['price'] ?? 0);
+                                    // Default = durasi termurah (per-bulan terendah) sebagai hook.
+                                    $defIdx = 0; $lowest = PHP_INT_MAX;
+                                    foreach ($periods as $i => $p) { if ($p['price_per_month'] < $lowest) { $lowest = $p['price_per_month']; $defIdx = $i; } }
+                                    $def = $periods[$defIdx];
+                                    $defMonths = (int) $def['months'];
+                                    $defTotal = (int) $def['price_per_month'] * $defMonths;
+                                    $defDisc = $basePpm > 0 ? (int) round((1 - $def['price_per_month'] / $basePpm) * 100) : 0;
+                                    $defNote = $defMonths <= 1 ? 'Tanpa komitmen'
+                                        : 'Bayar ' . $defMonths . ' bln di muka · total Rp ' . number_format($defTotal, 0, ',', '.') . ($defDisc > 0 ? ' · Hemat ' . $defDisc . '%' : '');
                                 @endphp
-                                <div class="mt-4 flex items-end gap-1">
-                                    @if (count($periods) > 1)<span class="pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">mulai</span>@endif
-                                    <span class="text-4xl font-extrabold tracking-tight text-slate-900">Rp {{ number_format($minPpm, 0, ',', '.') }}</span>
-                                    <span class="pb-1 text-sm text-slate-500">/bulan</span>
-                                </div>
-                                @if (count($periods) > 1)
-                                    {{-- Opsi durasi: scroll DI DALAM kartu (max-height), bukan halaman --}}
-                                    <div class="plan-periods-scroll mt-4 rounded-2xl bg-slate-50 p-3 pe-2 ring-1 ring-slate-100">
-                                        @foreach ($periods as $per)
-                                            @php
-                                                $ppm = (int) $per['price_per_month'];
-                                                $pm = (int) $per['months'];
-                                                $total = $ppm * $pm;
-                                                $disc = $basePpm > 0 ? (int) round((1 - $ppm / $basePpm) * 100) : 0;
-                                            @endphp
-                                            <div class="flex items-start justify-between gap-3 rounded-xl px-2 py-1.5 hover:bg-white">
-                                                <div class="min-w-0">
-                                                    <div class="flex items-center gap-1.5">
-                                                        <span class="text-sm font-semibold text-slate-800">{{ $per['label'] ?? ($pm . ' Bulan') }}</span>
-                                                        @if ($disc > 0)<span class="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">-{{ $disc }}%</span>@endif
-                                                    </div>
-                                                    <span class="block text-[11px] leading-tight text-slate-400">{{ $pm == 1 ? 'Tanpa komitmen' : 'Bayar ' . $pm . ' bln · total Rp ' . number_format($total, 0, ',', '.') }}</span>
-                                                </div>
-                                                <div class="flex-none whitespace-nowrap pt-0.5 text-right">
-                                                    <span class="text-sm font-extrabold text-slate-900">Rp {{ number_format($ppm, 0, ',', '.') }}</span><span class="text-[10px] text-slate-400">/bln</span>
-                                                </div>
-                                            </div>
-                                        @endforeach
+                                <div class="mt-4" data-plan-pricing>
+                                    <div class="flex items-end gap-1">
+                                        <span class="text-4xl font-extrabold tracking-tight text-slate-900" data-price-display>Rp {{ number_format($def['price_per_month'], 0, ',', '.') }}</span>
+                                        <span class="pb-1 text-sm text-slate-500">/bulan</span>
                                     </div>
-                                @endif
+                                    <div class="mt-1 text-sm text-slate-500" data-price-note>{{ $defNote }}</div>
+
+                                    @if (count($periods) > 1)
+                                        {{-- Pilih durasi: klik pill -> angka harga berubah (tanpa kotak scroll) --}}
+                                        <div class="plan-dur-wrap mt-4" role="tablist" aria-label="Pilih durasi langganan">
+                                            @foreach ($periods as $i => $per)
+                                                @php
+                                                    $ppm = (int) $per['price_per_month'];
+                                                    $pm = (int) $per['months'];
+                                                    $total = $ppm * $pm;
+                                                    $disc = $basePpm > 0 ? (int) round((1 - $ppm / $basePpm) * 100) : 0;
+                                                    $short = $pm == 1 ? 'Bulanan' : $pm . ' Bulan';
+                                                @endphp
+                                                <button type="button" class="plan-dur-btn {{ $i === $defIdx ? 'is-active' : '' }}"
+                                                    data-ppm="{{ $ppm }}" data-total="{{ $total }}" data-months="{{ $pm }}" data-disc="{{ $disc }}">
+                                                    {{ $short }}@if ($disc > 0)<span class="disc">-{{ $disc }}%</span>@endif
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
                                 <ul class="mt-5 flex-1 space-y-2.5">
                                     @foreach ($plan['features'] as $f)
                                         <li class="flex items-start gap-2.5 text-sm {{ $pop ? 'text-slate-200' : 'text-slate-700' }}">
@@ -366,7 +368,7 @@
                                     @endforeach
                                 </ul>
                                 @if (\App\Tenancy\Plan::maintenance())
-                                    <span title="{{ \App\Tenancy\Plan::maintenanceText() }}" class="mt-7 inline-flex w-full cursor-not-allowed select-none items-center justify-center gap-2 rounded-xl bg-slate-200 px-6 py-3 text-sm font-semibold text-slate-500">
+                                    <span title="{{ \App\Tenancy\Plan::maintenanceText() }}" class="mooda-soon-btn w-full mt-7">
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
                                         {{ \App\Tenancy\Plan::maintenanceText() }}
                                     </span>
@@ -423,7 +425,7 @@
                     <p class="mx-auto mt-5 max-w-lg text-lg text-slate-200">Bergabung dengan bisnis kuliner yang sudah beralih ke sistem digital modern.</p>
                     <div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
                         @if (\App\Tenancy\Plan::maintenance())
-                            <span class="cursor-not-allowed select-none rounded-xl bg-white/15 px-8 py-3.5 text-base font-semibold text-slate-200 ring-1 ring-white/25">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
+                            <span class="mooda-soon-btn">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
                         @else
                             <a href="{{ route('register') }}" class="rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-indigo-700 shadow-xl transition hover:bg-slate-100">Daftar Sekarang</a>
                         @endif
@@ -471,30 +473,64 @@
          Pakai IntersectionObserver agar bekerja untuk mode swiper (desktop) & tumpukan vertikal (mobile). --}}
     <script>
         (function () {
+            // ===== Logo navbar adaptif: putih di slide gelap, gelap di slide terang =====
             var white = document.getElementById('nav-logo-white');
             var dark = document.getElementById('nav-logo-dark');
-            if (!white || !dark) return;
-            var darkSlides = document.querySelectorAll('[data-nav-dark]');
-            if (!darkSlides.length || !('IntersectionObserver' in window)) return;
-            var active = new Set();
-            function apply() {
-                var overDark = active.size > 0;
-                white.classList.toggle('hidden', !overDark);
-                dark.classList.toggle('hidden', overDark);
+            function showDark(isDark) {
+                if (!white || !dark) return;
+                white.classList.toggle('hidden', !isDark);
+                dark.classList.toggle('hidden', isDark);
             }
-            var io = new IntersectionObserver(function (entries) {
-                entries.forEach(function (e) {
-                    if (e.isIntersecting) { active.add(e.target); } else { active.delete(e.target); }
-                });
-                apply();
-            }, { root: null, rootMargin: '-16px 0px -88% 0px', threshold: 0 });
-            darkSlides.forEach(function (s) { io.observe(s); });
-        })();
+            if (white && dark) {
+                var tries = 0;
+                var timer = setInterval(function () {
+                    tries++;
+                    var el = document.getElementById('landing-swiper');
+                    var sw = el && el.swiper;
+                    if (sw && sw.slides && sw.slides.length) {
+                        clearInterval(timer);
+                        // Deterministik dari slide aktif Swiper (anti-flicker; IO tak andal dgn transform).
+                        var apply = function () {
+                            var slide = sw.slides[sw.activeIndex];
+                            showDark(!!(slide && slide.hasAttribute('data-nav-dark')));
+                        };
+                        sw.on('slideChange', apply);
+                        sw.on('slideChangeTransitionStart', apply);
+                        sw.on('slideChangeTransitionEnd', apply);
+                        apply();
+                    } else if (tries > 30) {
+                        clearInterval(timer);
+                        // Fallback (mobile / swiper nonaktif): IntersectionObserver pada slide gelap.
+                        var darkSlides = document.querySelectorAll('[data-nav-dark]');
+                        if (!('IntersectionObserver' in window) || !darkSlides.length) return;
+                        var set = new Set();
+                        var io = new IntersectionObserver(function (entries) {
+                            entries.forEach(function (e) { if (e.isIntersecting) { set.add(e.target); } else { set.delete(e.target); } });
+                            showDark(set.size > 0);
+                        }, { rootMargin: '-16px 0px -88% 0px', threshold: 0 });
+                        darkSlides.forEach(function (s) { io.observe(s); });
+                    }
+                }, 100);
+            }
 
-        // Roda mouse di dalam kotak durasi = scroll kotak; jangan diteruskan ke swiper/halaman.
-        document.querySelectorAll('.plan-periods-scroll').forEach(function (box) {
-            box.addEventListener('wheel', function (e) { e.stopPropagation(); }, { passive: true });
-        });
+            // ===== Pilihan durasi paket: klik pill -> ubah angka harga & catatan =====
+            var rp = function (n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); };
+            document.querySelectorAll('[data-plan-pricing]').forEach(function (box) {
+                var display = box.querySelector('[data-price-display]');
+                var note = box.querySelector('[data-price-note]');
+                var btns = box.querySelectorAll('.plan-dur-btn');
+                btns.forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        btns.forEach(function (b) { b.classList.remove('is-active'); });
+                        btn.classList.add('is-active');
+                        var ppm = +btn.dataset.ppm, total = +btn.dataset.total, months = +btn.dataset.months, disc = +btn.dataset.disc;
+                        if (display) display.textContent = rp(ppm);
+                        if (note) note.textContent = months <= 1 ? 'Tanpa komitmen'
+                            : ('Bayar ' + months + ' bln di muka · total ' + rp(total) + (disc > 0 ? ' · Hemat ' + disc + '%' : ''));
+                    });
+                });
+            });
+        })();
     </script>
 
 </body>
