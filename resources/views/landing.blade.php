@@ -293,13 +293,13 @@
 
             {{-- SLIDE 4 — HARGA --}}
             <div id="harga" class="swiper-slide lp-slide relative bg-white">
-                <div class="lp-content w-full max-w-6xl px-6 py-24">
+                <div class="lp-content w-full max-w-6xl px-6 py-14">
                     <div class="mx-auto max-w-2xl text-center">
                         <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">Harga</span>
                         <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Paket sederhana & transparan</h2>
                         <p class="mt-3 text-lg text-slate-600">Tanpa biaya tersembunyi. Bayar bulanan, batalkan kapan saja.</p>
                     </div>
-                    <div class="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div class="mx-auto mt-6 grid max-w-4xl grid-cols-1 gap-6 sm:grid-cols-2">
                         @foreach (config('plans.plans') as $key => $plan)
                             @continue(!empty($plan['contact']))
                             @php $pop = false; @endphp
@@ -318,7 +318,8 @@
                                     <span class="pb-1 text-sm text-slate-500">/bulan</span>
                                 </div>
                                 @if (count($periods) > 1)
-                                    <div class="mt-4 space-y-2 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                                    {{-- Opsi durasi: scroll DI DALAM kartu (max-height), bukan halaman --}}
+                                    <div class="mt-4 max-h-44 space-y-1.5 overflow-y-auto rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
                                         @foreach ($periods as $per)
                                             @php
                                                 $ppm = (int) $per['price_per_month'];
@@ -326,14 +327,16 @@
                                                 $total = $ppm * $pm;
                                                 $disc = $basePpm > 0 ? (int) round((1 - $ppm / $basePpm) * 100) : 0;
                                             @endphp
-                                            <div class="flex items-center justify-between gap-2">
-                                                <div class="text-sm">
-                                                    <span class="font-semibold text-slate-800">{{ $per['label'] ?? ($pm . ' Bulan') }}</span>
-                                                    @if ($disc > 0)<span class="ml-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">Hemat {{ $disc }}%</span>@endif
-                                                    <span class="block text-[11px] text-slate-400">{{ $pm == 1 ? 'Tanpa komitmen' : 'Bayar ' . $pm . ' bln di muka · total Rp ' . number_format($total, 0, ',', '.') }}</span>
+                                            <div class="flex items-start justify-between gap-3 rounded-xl px-2 py-1.5 hover:bg-white">
+                                                <div class="min-w-0">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <span class="text-sm font-semibold text-slate-800">{{ $per['label'] ?? ($pm . ' Bulan') }}</span>
+                                                        @if ($disc > 0)<span class="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">-{{ $disc }}%</span>@endif
+                                                    </div>
+                                                    <span class="block text-[11px] leading-tight text-slate-400">{{ $pm == 1 ? 'Tanpa komitmen' : 'Bayar ' . $pm . ' bln · total Rp ' . number_format($total, 0, ',', '.') }}</span>
                                                 </div>
-                                                <div class="whitespace-nowrap text-right">
-                                                    <span class="text-base font-extrabold text-slate-900">Rp {{ number_format($ppm, 0, ',', '.') }}</span><span class="text-xs text-slate-400">/bln</span>
+                                                <div class="flex-none whitespace-nowrap pt-0.5 text-right">
+                                                    <span class="text-sm font-extrabold text-slate-900">Rp {{ number_format($ppm, 0, ',', '.') }}</span><span class="text-[10px] text-slate-400">/bln</span>
                                                 </div>
                                             </div>
                                         @endforeach
