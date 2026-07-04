@@ -64,7 +64,15 @@
         .landing-prev.swiper-button-disabled, .landing-next.swiper-button-disabled { opacity: 0; pointer-events: none; }
 
         /* Kotak pilihan durasi paket: scrollbar tipis yang terlihat + scroll terkurung di kotak */
-        .plan-periods-scroll { overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        .plan-periods-scroll {
+            max-height: 104px;          /* sengaja pendek: hanya ~2 opsi tampil, sisanya di-scroll */
+            overflow-y: auto;
+            overscroll-behavior: contain; /* scroll terkurung di kotak, tidak merembet ke halaman */
+            scroll-snap-type: y proximity;
+            scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+        }
+        .plan-periods-scroll > div { scroll-snap-align: start; }
+        .plan-periods-scroll > div + div { margin-top: .375rem; }
         .plan-periods-scroll::-webkit-scrollbar { width: 6px; }
         .plan-periods-scroll::-webkit-scrollbar-track { background: transparent; }
         .plan-periods-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
@@ -326,7 +334,7 @@
                                 </div>
                                 @if (count($periods) > 1)
                                     {{-- Opsi durasi: scroll DI DALAM kartu (max-height), bukan halaman --}}
-                                    <div class="plan-periods-scroll mt-4 max-h-28 space-y-1.5 overflow-y-auto rounded-2xl bg-slate-50 p-3 pe-2 ring-1 ring-slate-100">
+                                    <div class="plan-periods-scroll mt-4 rounded-2xl bg-slate-50 p-3 pe-2 ring-1 ring-slate-100">
                                         @foreach ($periods as $per)
                                             @php
                                                 $ppm = (int) $per['price_per_month'];
