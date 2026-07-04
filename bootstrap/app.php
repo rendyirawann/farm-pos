@@ -13,6 +13,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
 
+        // Behind nginx -> Octane (RoadRunner) reverse proxy on localhost.
+        // Trust forwarded headers so HTTPS scheme / client IP are detected correctly.
+        $middleware->trustProxies(at: '*', headers:
+            Illuminate\Http\Request::HEADER_X_FORWARDED_FOR |
+            Illuminate\Http\Request::HEADER_X_FORWARDED_HOST |
+            Illuminate\Http\Request::HEADER_X_FORWARDED_PORT |
+            Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
+        );
+
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,

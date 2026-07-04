@@ -42,6 +42,15 @@ class BillingController extends Controller
      */
     public function checkout(Request $request)
     {
+        // Pembelian paket dinonaktifkan sementara (menunggu Midtrans production siap).
+        // Re-enable: set BILLING_PURCHASE_ENABLED=true di .env lalu `php artisan optimize`.
+        if (! config('billing.purchase_enabled', false)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Pembelian paket langganan segera hadir. Fitur ini sementara dinonaktifkan.',
+            ], 503);
+        }
+
         $request->validate([
             'plan'   => ['required', 'string', 'in:' . implode(',', array_keys(Plan::all()))],
             'months' => ['nullable', 'integer', 'min:1', 'max:36'],

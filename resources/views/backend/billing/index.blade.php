@@ -155,13 +155,21 @@
                                         </div>
                                     </div>
 
-                                    @php $prefix = ($isCurrent ? 'Perpanjang ' : 'Berlangganan ') . $plan['name']; @endphp
-                                    <button type="button"
-                                        class="btn {{ $isCurrent ? 'btn-success' : 'btn-light-primary' }} btn-subscribe"
-                                        data-plan="{{ $key }}" data-group="period-{{ $key }}" data-prefix="{{ $prefix }}">
-                                        @if ($isCurrent)<i class="ki-outline ki-arrows-circle fs-3 me-1"></i>@endif
-                                        <span class="btn-subscribe-label">{{ $prefix }} — Rp {{ number_format($firstTotal, 0, ',', '.') }}</span>
-                                    </button>
+                                    @if (config('billing.purchase_enabled', false))
+                                        @php $prefix = ($isCurrent ? 'Perpanjang ' : 'Berlangganan ') . $plan['name']; @endphp
+                                        <button type="button"
+                                            class="btn {{ $isCurrent ? 'btn-success' : 'btn-light-primary' }} btn-subscribe"
+                                            data-plan="{{ $key }}" data-group="period-{{ $key }}" data-prefix="{{ $prefix }}">
+                                            @if ($isCurrent)<i class="ki-outline ki-arrows-circle fs-3 me-1"></i>@endif
+                                            <span class="btn-subscribe-label">{{ $prefix }} — Rp {{ number_format($firstTotal, 0, ',', '.') }}</span>
+                                        </button>
+                                    @else
+                                        {{-- Pembelian paket dinonaktifkan sementara (Midtrans belum siap) --}}
+                                        <button type="button" class="btn btn-light-secondary w-100" disabled>
+                                            <i class="ki-outline ki-time fs-3 me-1"></i>
+                                            <span>Segera Hadir</span>
+                                        </button>
+                                    @endif
                                 @endif
                             </div>
                         </div>
