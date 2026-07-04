@@ -861,7 +861,24 @@
             cacheForOffline();
             initPrinterButton();
             updateSyncBadge();
-            setInterval(loadOrders, 20000);
+
+            // Real-time via Reverb (menggantikan polling 20 detik). Poll 60s
+            // dipertahankan sebagai fallback bila koneksi WebSocket terputus.
+            (function () {
+                const tenantId = document.querySelector('meta[name="tenant-id"]')?.content;
+                if (window.Echo && tenantId) {
+                    let deb;
+                    window.Echo.private('orders.' + tenantId)
+                        .listen('.order.changed', function () {
+                            clearTimeout(deb);
+                            deb = setTimeout(loadOrders, 400);
+                        });
+                    setInterval(loadOrders, 60000);
+                } else {
+                    setInterval(loadOrders, 20000); // fallback: Echo tidak tersedia
+                }
+            })();
+
             setInterval(updateSyncBadge, 5000);
         });
     </script>

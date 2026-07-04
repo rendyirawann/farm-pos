@@ -27,3 +27,9 @@ Broadcast::channel('online-users', function ($user) {
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
+
+// 3. Channel real-time pesanan per-tenant (Kasir & Dapur). PRIVATE.
+// User hanya boleh mendengarkan channel milik tenant-nya sendiri.
+Broadcast::channel('orders.{tenantId}', function ($user, $tenantId) {
+    return (string) $user->tenant_id === (string) $tenantId;
+});

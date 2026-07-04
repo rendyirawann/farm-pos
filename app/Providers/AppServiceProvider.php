@@ -24,6 +24,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Real-time: broadcast perubahan order (menggantikan polling Kasir & Dapur)
+        \App\Models\Order::observe(\App\Observers\OrderObserver::class);
+        \App\Models\OrderDetail::observe(\App\Observers\OrderDetailObserver::class);
+
         // Paksa HTTPS di Production/VPS agar tidak terjadi Mixed Content
         if (config('app.env') === 'production') {
             URL::forceRootUrl(config('app.url'));

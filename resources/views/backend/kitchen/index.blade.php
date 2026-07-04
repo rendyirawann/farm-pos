@@ -283,8 +283,23 @@
                 });
             }
 
-            // AUTO-REFRESH HALAMAN DAPUR 15 DETIK
-            setInterval(function() { location.reload(); }, 15000);
+            // Real-time via Reverb: reload hanya saat ada perubahan order
+            // (menggantikan auto-reload buta tiap 15 detik). Fallback lambat 90s
+            // bila koneksi WebSocket terputus.
+            (function () {
+                const tenantId = document.querySelector('meta[name="tenant-id"]')?.content;
+                if (window.Echo && tenantId) {
+                    let deb;
+                    window.Echo.private('orders.' + tenantId)
+                        .listen('.order.changed', function () {
+                            clearTimeout(deb);
+                            deb = setTimeout(function () { location.reload(); }, 600);
+                        });
+                    setInterval(function () { location.reload(); }, 90000);
+                } else {
+                    setInterval(function () { location.reload(); }, 15000); // fallback
+                }
+            })();
         </script>
     @endpush
 @endsection

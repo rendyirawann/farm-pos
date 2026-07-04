@@ -36,6 +36,13 @@ License: Proprietary - Mooda System
     <link href="{{ asset('assets/css/mooda-brand.css') }}" rel="stylesheet" type="text/css" />
 
     <!--end::Global Stylesheets Bundle-->
+
+    {{-- Laravel Echo + Reverb client (real-time; menggantikan polling) --}}
+    @auth
+        <meta name="tenant-id" content="{{ auth()->user()->tenant_id }}">
+    @endauth
+    @vite(['resources/js/app.js'])
+
     <script>
         // Frame-busting to prevent site from being loaded within a frame without permission (click-jacking)
         if (window.top != window.self) {
