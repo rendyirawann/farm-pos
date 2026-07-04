@@ -29,7 +29,7 @@ import org.json.JSONObject
 import java.util.UUID
 
 /**
- * Pembungkus WebView Stakko POS + jembatan cetak thermal ESC/POS (Bluetooth).
+ * Pembungkus WebView Mooda + jembatan cetak thermal ESC/POS (Bluetooth).
  * Web memanggil: window.AndroidPrinter.printReceipt(text), getPrinters(), setPrinter(mac).
  */
 class MainActivity : AppCompatActivity() {

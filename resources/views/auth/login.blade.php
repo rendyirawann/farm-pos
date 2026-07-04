@@ -134,10 +134,10 @@
             <div class="d-flex flex-center flex-column align-items-stretch h-lg-100 w-md-400px">
 
                 <div class="d-flex flex-center flex-column flex-column-fluid mb-2">
-                    <img alt="Stakko POS" class="theme-light-show h-40px h-lg-60px"
-                        src="{{ asset('assets/media/logos/stakko-logo.png') }}" />
-                    <img alt="Stakko POS" class="theme-dark-show h-40px h-lg-60px"
-                        src="{{ asset('assets/media/logos/stakko-logo-white.png') }}" />
+                    <img alt="Mooda" class="theme-light-show h-40px h-lg-60px"
+                        src="{{ asset('assets/media/logos/mooda-logo.png') }}" />
+                    <img alt="Mooda" class="theme-dark-show h-40px h-lg-60px"
+                        src="{{ asset('assets/media/logos/mooda-logo-white.png') }}" />
                     <div class="text-muted fw-semibold fs-6 mt-4">Masuk untuk mengelola restoran Anda</div>
                 </div>
 
@@ -557,7 +557,7 @@
             }
 
             // --- MANUAL BOOK VIEWER LOGIC (PDF.JS INTEGRATION) ---
-            const pdfUrl = "{{ asset('assets/media/manuals/Panduan_DineSyncPOS.pdf') }}";
+            const pdfUrl = "{{ asset('assets/media/manuals/Panduan_Mooda.pdf') }}";
             let pdfDoc = null;
             let currentPage = 1;
             let totalPages = 1;

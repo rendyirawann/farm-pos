@@ -447,7 +447,7 @@ class KasirController extends Controller
         $nextQueue = (int) (Order::whereDate('created_at', Carbon::today())->max('queue_number')) + 1;
 
         return [
-            'invoice_no'    => 'STK-INV-' . date('YmdHis') . rand(10, 99),
+            'invoice_no'    => 'MDA-INV-' . date('YmdHis') . rand(10, 99),
             'queue_number'  => $nextQueue,
             'customer_name' => $customerName ?: 'Pelanggan',
         ];
@@ -551,7 +551,7 @@ class KasirController extends Controller
     {
         $setting = Setting::first();
         return [
-            'store_name'     => $setting->store_name ?? 'Stakko POS',
+            'store_name'     => $setting->store_name ?? 'Mooda',
             'invoice_no'     => $order->invoice_no,
             'queue_number'   => $order->queue_number,
             'customer_name'  => $order->customer_name,

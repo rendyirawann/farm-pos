@@ -3,9 +3,9 @@
     data-kt-drawer-direction="start" data-kt-drawer-toggle="#kt_app_sidebar_toggle">
     <div class="d-flex flex-stack px-4 px-lg-6 py-3 py-lg-8" id="kt_app_sidebar_logo">
         <a href="{{ route('dashboard') }}">
-            <img alt="Stakko POS" src="{{ asset('assets/media/logos/stakko-logo.png') }}"
+            <img alt="Mooda" src="{{ asset('assets/media/logos/mooda-logo.png') }}"
                 class="h-40px h-lg-60px theme-light-show" />
-            <img alt="Stakko POS" src="{{ asset('assets/media/logos/stakko-logo-white.png') }}"
+            <img alt="Mooda" src="{{ asset('assets/media/logos/mooda-logo-white.png') }}"
                 class="h-40px h-lg-60px theme-dark-show" />
         </a>
         <div class="ms-3">

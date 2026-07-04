@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('settings', function (Blueprint $table) {
             $table->id();
-            $table->string('store_name')->default('Stakko POS');
+            $table->string('store_name')->default('Mooda');
             $table->text('address')->nullable();
             $table->string('phone')->nullable();
             $table->integer('tax_rate')->default(10); // Disimpan dalam bentuk persen (Contoh: 10, 11, atau 0)

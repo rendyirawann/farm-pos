@@ -110,7 +110,7 @@
 <body onload="window.print()">
 
     <div class="header">
-        <div class="title">{{ $setting->store_name ?? 'Stakko POS' }}</div>
+        <div class="title">{{ $setting->store_name ?? 'Mooda' }}</div>
         <div class="subtitle">LAPORAN PENJUALAN KESELURUHAN (F&B)</div>
     </div>
 

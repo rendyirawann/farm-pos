@@ -4,7 +4,7 @@
         <!--begin::Copyright-->
         <div class="text-gray-900 order-2 order-md-1">
             <span class="text-muted fw-semibold me-1">{{ date('Y') }}&copy;</span>
-            <a href="#" target="_blank" class="text-gray-800 text-hover-primary">Stakko POS Apps</a>
+            <a href="https://mooda.id" target="_blank" rel="noopener" class="text-gray-800 text-hover-primary">Mooda.ID</a>
         </div>
         <!--end::Copyright-->
         <!--begin::Menu-->

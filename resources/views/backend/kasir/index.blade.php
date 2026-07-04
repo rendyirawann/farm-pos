@@ -317,12 +317,12 @@
         const openPrint = url => window.open(url, '_blank');
 
         // ===== Cetak struk: bridge printer thermal (APK) atau window.print (browser) =====
-        const STORE_NAME = @json($setting->store_name ?? 'Stakko POS');
+        const STORE_NAME = @json($setting->store_name ?? 'Mooda');
         const hasPrinter = () => !!(window.AndroidPrinter && typeof window.AndroidPrinter.printReceipt === 'function');
 
         function doPrintReceipt(receipt, printUrl) {
             // Engine cetak terpusat (browser/qztray/webbluetooth/rawbt/native)
-            if (window.StakkoPrint) { window.StakkoPrint.print(receipt, printUrl); return; }
+            if (window.MoodaPrint) { window.MoodaPrint.print(receipt, printUrl); return; }
             if (printUrl) openPrint(printUrl);
         }
 
@@ -823,13 +823,13 @@
 
         // ===== Tombol Printer (muncul jika metode butuh koneksi: native/BT/QZ) =====
         function initPrinterButton() {
-            if (window.StakkoPrint && window.StakkoPrint.needsButton()) {
+            if (window.MoodaPrint && window.MoodaPrint.needsButton()) {
                 $('#btn-printer').removeClass('d-none');
-                $('#printer-label').text(window.StakkoPrint.buttonLabel());
+                $('#printer-label').text(window.MoodaPrint.buttonLabel());
             }
         }
         $('#btn-printer').on('click', function() {
-            if (window.StakkoPrint) window.StakkoPrint.quickConnect();
+            if (window.MoodaPrint) window.MoodaPrint.quickConnect();
         });
 
         // ===== Sync + status jaringan =====

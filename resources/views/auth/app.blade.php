@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <!--
 Author: Rendy Irawan
-Product Name: Stakko POS
-Website: http://www.stakko.id
-Contact: support@stakko.id
-License: Proprietary - Stakko POS System
+Product Name: Mooda
+Website: http://www.mooda.id
+Contact: support@mooda.id
+License: Proprietary - Mooda System
 -->
 <html lang="en">
 <!--begin::Head-->
@@ -13,24 +13,26 @@ License: Proprietary - Stakko POS System
 
     <title>@yield('title')</title>
     <meta charset="utf-8" />
-    <meta name="description" content="Stakko POS - Solusi Manajemen Restoran Modern, Kasir Pintar, dan Sistem Antrian Terintegrasi." />
-    <meta name="keywords" content="pos, point of sale, kasir restoran, manajemen meja, antrian kiosk, stakko, aplikasi restoran" />
+    <meta name="description" content="Mooda - Solusi Manajemen Restoran Modern, Kasir Pintar, dan Sistem Antrian Terintegrasi." />
+    <meta name="keywords" content="pos, point of sale, kasir restoran, manajemen meja, kasir pintar, mooda, aplikasi restoran" />
     <meta name="author" content="Rendy Irawan" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta property="og:locale" content="id_ID" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Stakko POS - Powering Your Restaurant Operations" />
+    <meta property="og:title" content="Mooda - Powering Your Restaurant Operations" />
     <meta property="og:url" content="{{ url()->current() }}" />
-    <meta property="og:site_name" content="Stakko POS" />
+    <meta property="og:site_name" content="Mooda" />
     <link rel="canonical" href="{{ url()->current() }}" />
-    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}" />
+    <link rel="icon" type="image/png" href="{{ asset('assets/media/logos/mooda-mark-192.png') }}" />
+    <link rel="apple-touch-icon" href="{{ asset('assets/media/logos/mooda-mark-192.png') }}" />
+    <link rel="shortcut icon" href="{{ asset('assets/media/logos/mooda-mark-192.png') }}" />
     <!--begin::Fonts(mandatory for all pages)-->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700" />
     <!--end::Fonts-->
     <!--begin::Global Stylesheets Bundle(mandatory for all pages)-->
     <link href="{{ asset('assets/plugins/global/plugins.bundle.css') }}" rel="stylesheet" type="text/css" />
     <link href="{{ asset('assets/css/style.bundle.css') }}" rel="stylesheet" type="text/css" />
-    <link href="{{ asset('assets/css/stakko-brand.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ asset('assets/css/mooda-brand.css') }}" rel="stylesheet" type="text/css" />
     <!--end::Global Stylesheets Bundle-->
     <script>
         // Frame-busting to prevent site from being loaded within a frame without permission (click-jacking)
@@ -95,10 +97,10 @@ License: Proprietary - Stakko POS System
                 <div class="d-flex flex-column flex-center pb-0 pb-lg-10 p-10 w-100">
                     <!--begin::Image-->
                     <img class="theme-light-show mx-auto mw-100 w-150px w-lg-300px mb-10 mb-lg-20"
-                        src="{{ asset('assets/media/logos/stakko-logo.png') }}" alt="Stakko POS" />
+                        src="{{ asset('assets/media/logos/mooda-logo.png') }}" alt="Mooda" />
 
                     <img class="theme-dark-show mx-auto mw-100 w-150px w-lg-300px mb-10 mb-lg-20"
-                        src="{{ asset('assets/media/logos/stakko-logo-white.png') }}" alt="Stakko POS" />
+                        src="{{ asset('assets/media/logos/mooda-logo-white.png') }}" alt="Mooda" />
 
                     <!--end::Image-->
                     <!--begin::Title-->
@@ -106,13 +108,13 @@ License: Proprietary - Stakko POS System
                     <!--end::Title-->
                     <!--begin::Text-->
                     <h1 class="text-gray-800 fs-2qx fw-bold text-center mb-7">
-                        Stakko <br> Restaurant POS System
+                        Mooda <br> Restaurant POS System
                     </h1>
                     <div class="text-gray-600 fs-base text-center fw-semibold">
                         Aplikasi Point of Sale cerdas untuk membantu restoran Anda dalam mengelola pesanan,
                         manajemen meja, dan mempercepat pelayanan dapur.
                         <br /><br />
-                        <span class="badge badge-light-primary fs-7 fw-bold">PT. Stakko Indonesia</span>
+                        <span class="badge badge-light-primary fs-7 fw-bold">PT. Mooda Indonesia</span>
                     </div>
                     <!--end::Text-->
                 </div>

@@ -1,5 +1,5 @@
 @extends('auth.app')
-@section('title', 'Reset Password - Stakko POS')
+@section('title', 'Reset Password - Mooda')
 @section('content')
     <div class="d-flex flex-column-fluid flex-lg-row-auto justify-content-center justify-content-lg-start p-12">
 
@@ -10,9 +10,9 @@
                 {{-- Logo --}}
                 <div class="d-flex flex-center flex-column flex-column-fluid mb-2">
                     <img alt="Logo" class="theme-light-show h-40px h-lg-150px"
-                        src="{{ asset('assets/media/logos/dine-sync-pos2.png') }}" />
+                        src="{{ asset('assets/media/logos/mooda-logo.png') }}" />
                     <img alt="Logo" class="theme-dark-show h-40px h-lg-150px"
-                        src="{{ asset('assets/media/logos/dine-sync-pos2.png') }}" />
+                        src="{{ asset('assets/media/logos/mooda-logo.png') }}" />
                 </div>
 
                 <div class="d-flex flex-center flex-column flex-column-fluid pb-15 pb-lg-20 my-6">

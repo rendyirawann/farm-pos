@@ -10,12 +10,12 @@
                 <div class="col-md-8 col-lg-7">
                     <div class="card card-flush shadow-sm h-100">
                         <div class="card-body text-center p-8 p-lg-10">
-                            <img src="{{ asset('assets/media/logos/stakko-icon.png') }}" alt="Stakko POS"
+                            <img src="{{ asset('assets/media/logos/mooda-mark.png') }}" alt="Mooda"
                                 class="h-90px rounded-4 shadow mb-5">
-                            <h1 class="fw-bold text-gray-900 mb-2">Aplikasi Tablet Stakko POS</h1>
+                            <h1 class="fw-bold text-gray-900 mb-2">Aplikasi Tablet Mooda</h1>
                             <div class="text-muted fs-5 mb-2">Versi {{ $version }} • Android</div>
                             <p class="text-gray-600 fs-6 mb-8 mx-auto" style="max-width:480px;">
-                                Pasang Stakko POS sebagai aplikasi di tablet Anda untuk pengalaman layar penuh.
+                                Pasang Mooda sebagai aplikasi di tablet Anda untuk pengalaman layar penuh.
                                 Aplikasi tetap terhubung ke server melalui internet — data selalu sinkron dengan versi web.
                             </p>
 
@@ -58,12 +58,12 @@
                                 <ol class="text-gray-700 fs-7 ps-4 mb-0">
                                     <li class="mb-1">Buka sistem ini di browser <b>Chrome</b> tablet.</li>
                                     <li class="mb-1">Menu ⋮ → <b>Tambahkan ke Layar Utama</b>.</li>
-                                    <li class="mb-1">Ikon Stakko POS muncul & berjalan layar penuh.</li>
+                                    <li class="mb-1">Ikon Mooda muncul & berjalan layar penuh.</li>
                                 </ol>
                             </div>
                             <div class="alert alert-primary d-flex align-items-center mt-6 mb-0">
                                 <i class="ki-outline ki-information-5 fs-2 text-primary me-3"></i>
-                                <span class="fs-8 text-gray-700">Aplikasi membutuhkan koneksi internet & terhubung ke server Stakko.</span>
+                                <span class="fs-8 text-gray-700">Aplikasi membutuhkan koneksi internet & terhubung ke server Mooda.</span>
                             </div>
                         </div>
                     </div>

@@ -9,7 +9,7 @@
             <div class="d-flex flex-center flex-column align-items-stretch h-lg-100 w-100 w-md-450px">
 
                 <div class="d-flex flex-center flex-column flex-column-fluid mb-2">
-                    <img alt="Logo" class="h-40px h-lg-90px" src="{{ asset('assets/media/logos/dine-sync-pos2.png') }}" />
+                    <img alt="Logo" class="h-40px h-lg-90px" src="{{ asset('assets/media/logos/mooda-logo.png') }}" />
                 </div>
 
                 <div class="d-flex flex-center flex-column flex-column-fluid py-6">

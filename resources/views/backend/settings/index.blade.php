@@ -231,28 +231,28 @@
                     auto: 'Mode otomatis: di aplikasi tablet (APK) memakai printer bawaan; di browser memakai dialog print OS. Klik "Test Cetak" untuk menguji.',
                 };
                 function refreshPrinterControls() {
-                    if (!window.StakkoPrint) return;
-                    const m = window.StakkoPrint.resolveMethod();
-                    const needs = window.StakkoPrint.needsButton();
+                    if (!window.MoodaPrint) return;
+                    const m = window.MoodaPrint.resolveMethod();
+                    const needs = window.MoodaPrint.needsButton();
                     $('#btn-connect-printer').toggleClass('d-none', !needs);
-                    if (needs) $('#connect-label').text(window.StakkoPrint.buttonLabel());
+                    if (needs) $('#connect-label').text(window.MoodaPrint.buttonLabel());
                     $('#printer-hint').text(HINTS[m] || HINTS[$('input[name=printer_method]:checked').val()] || '');
                 }
 
                 $('input[name="printer_method"]').on('change', function() {
-                    if (window.STAKKO_PRINT) window.STAKKO_PRINT.method = this.value;
+                    if (window.MOODA_PRINT) window.MOODA_PRINT.method = this.value;
                     refreshPrinterControls();
                 });
                 $('select[name="paper_width"]').on('change', function() {
-                    if (window.STAKKO_PRINT) window.STAKKO_PRINT.paper_width = parseInt(this.value, 10);
+                    if (window.MOODA_PRINT) window.MOODA_PRINT.paper_width = parseInt(this.value, 10);
                 });
 
                 $('#btn-test-print').on('click', function() {
-                    if (window.StakkoPrint) window.StakkoPrint.test();
+                    if (window.MoodaPrint) window.MoodaPrint.test();
                     else Swal.fire('Info', 'Engine cetak belum termuat, muat ulang halaman.', 'info');
                 });
                 $('#btn-connect-printer').on('click', function() {
-                    if (window.StakkoPrint) window.StakkoPrint.quickConnect();
+                    if (window.MoodaPrint) window.MoodaPrint.quickConnect();
                 });
 
                 refreshPrinterControls();
@@ -268,12 +268,12 @@
                     const grand = net + tax;
                     const cash = 60000;
                     return {
-                        store_name: ($('input[name="store_name"]').val() || 'Stakko POS'),
+                        store_name: ($('input[name="store_name"]').val() || 'Mooda'),
                         store_address: showAddr ? ($('textarea[name="address"]').val() || '') : '',
                         store_phone: showPhone ? ($('input[name="phone"]').val() || '') : '',
                         receipt_header: $('input[name="receipt_header"]').val() || '',
                         receipt_footer: $('textarea[name="receipt_footer"]').val() || '',
-                        invoice_no: 'STK-INV-CONTOH', queue_number: 7, customer_name: 'Budi',
+                        invoice_no: 'MDA-INV-CONTOH', queue_number: 7, customer_name: 'Budi',
                         datetime: '01/01/2026 12.00',
                         items: [
                             { name: 'Kopi Susu', qty: 2, price: 18000, subtotal: 36000, addons: [{ name: 'Extra Shot' }], notes: 'less ice' },
@@ -285,10 +285,10 @@
                 }
                 function renderStrukPreview() {
                     const el = document.getElementById('struk-preview');
-                    if (!el || !window.StakkoPrint || !window.StakkoPrint.preview) return;
+                    if (!el || !window.MoodaPrint || !window.MoodaPrint.preview) return;
                     const w = parseInt($('select[name="paper_width"]').val(), 10) || 58;
-                    if (window.STAKKO_PRINT) window.STAKKO_PRINT.paper_width = w;
-                    el.textContent = window.StakkoPrint.preview(buildPreviewReceipt());
+                    if (window.MOODA_PRINT) window.MOODA_PRINT.paper_width = w;
+                    el.textContent = window.MoodaPrint.preview(buildPreviewReceipt());
                 }
                 $('input[name="receipt_header"], textarea[name="receipt_footer"], input[name="store_name"], textarea[name="address"], input[name="phone"], input[name="tax_rate"], input[name="receipt_show_address"], input[name="receipt_show_phone"], select[name="paper_width"]')
                     .on('input change', renderStrukPreview);

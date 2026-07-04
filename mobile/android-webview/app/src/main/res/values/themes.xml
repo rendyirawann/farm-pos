@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.StakkoPOS" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="Theme.MoodaPOS" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorPrimary">#4F46E5</item>
         <item name="colorPrimaryDark">#4338CA</item>
         <item name="android:statusBarColor">#4F46E5</item>

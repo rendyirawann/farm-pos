@@ -1,15 +1,15 @@
-// Stakko POS Service Worker — subfolder-aware.
+// Mooda Service Worker — subfolder-aware.
 // BASE otomatis mengikuti lokasi sw.js: "/" di localhost, "/subfolder/" di server.
 const BASE = self.location.href.replace(/sw\.js.*$/, '');
-const CACHE_NAME = 'stakko-pos-cache-v5';
+const CACHE_NAME = 'mooda-pos-cache-v1';
 const ASSETS_TO_CACHE = [
   BASE + 'admin/kasir',
   BASE + 'assets/css/style.bundle.css',
-  BASE + 'assets/css/stakko-brand.css',
+  BASE + 'assets/css/mooda-brand.css',
   BASE + 'assets/plugins/global/plugins.bundle.css',
   BASE + 'assets/plugins/global/plugins.bundle.js',
   BASE + 'assets/js/scripts.bundle.js',
-  BASE + 'assets/media/logos/stakko-logo.png',
+  BASE + 'assets/media/logos/mooda-logo.png',
   BASE + 'assets/plugins/custom/dexie/dexie.min.js',
   'https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700'
 ];

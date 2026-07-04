@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "StakkoPOS"
+rootProject.name = "MoodaPOS"
 include ':app'

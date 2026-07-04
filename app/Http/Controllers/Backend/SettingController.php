@@ -16,7 +16,7 @@ class SettingController extends Controller
         // Jika belum ada data sama sekali, buat 1 baris default
         if (!$setting) {
             $setting = Setting::create([
-                'store_name'     => 'Stakko POS',
+                'store_name'     => 'Mooda',
                 'tax_rate'       => 10,
                 'printer_method' => 'auto',
                 'paper_width'    => 58,
@@ -60,7 +60,7 @@ class SettingController extends Controller
 
         // Pastikan baris ada (mirror index) agar POST tanpa GET sebelumnya tidak fatal.
         $setting = Setting::firstOrCreate([], [
-            'store_name'     => 'Stakko POS',
+            'store_name'     => 'Mooda',
             'tax_rate'       => 10,
             'printer_method' => 'auto',
             'paper_width'    => 58,

@@ -1,6 +1,6 @@
-# Panduan Deploy Stakko POS (VPS Linux + Nginx + PostgreSQL)
+# Panduan Deploy Mooda (VPS Linux + Nginx + PostgreSQL)
 
-Stakko POS = Laravel 12 + PostgreSQL. **Tidak butuh Reverb / WebSocket** (real-time pakai polling + `location.reload`; offline pakai Dexie). Wajib **HTTPS** untuk PWA, mode offline (service worker), Web Bluetooth, dan APK/TWA.
+Mooda = Laravel 12 + PostgreSQL. **Tidak butuh Reverb / WebSocket** (real-time pakai polling + `location.reload`; offline pakai Dexie). Wajib **HTTPS** untuk PWA, mode offline (service worker), Web Bluetooth, dan APK/TWA.
 
 > Disarankan pasang di **root domain / subdomain** (mis. `https://app.beoulve-dev.biz.id`), bukan subpath `/stakko-pos`, agar PWA & service worker mulus.
 
@@ -59,7 +59,7 @@ nano .env
 Isi yang penting di `.env`:
 
 ```env
-APP_NAME="Stakko POS"
+APP_NAME="Mooda"
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://app.beoulve-dev.biz.id     # domain HTTPS Anda
@@ -186,7 +186,7 @@ crontab -e
 
 Taruh file APK hasil build (PWABuilder / Android Studio) di:
 ```
-/var/www/stakko-pos/public/downloads/stakko-pos.apk
+/var/www/stakko-pos/public/downloads/mooda-pos.apk
 ```
 Tombol Download di menu **Aplikasi** otomatis aktif. (Lihat `mobile/README-BUILD-APK.md`.)
 

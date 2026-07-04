@@ -1,6 +1,6 @@
-# Stakko POS
+# Mooda
 
-**Stakko POS** adalah sistem *point-of-sale* (POS) untuk sektor F&B, dibangun sebagai **SaaS multi-tenant** (single-database / shared-schema) di atas **Laravel 12** dan **PostgreSQL**. Ditargetkan untuk UMKM dan dioptimalkan untuk dijalankan di **tablet** (responsif juga di HP, laptop, dan desktop).
+**Mooda** adalah sistem *point-of-sale* (POS) untuk sektor F&B, dibangun sebagai **SaaS multi-tenant** (single-database / shared-schema) di atas **Laravel 12** dan **PostgreSQL**. Ditargetkan untuk UMKM dan dioptimalkan untuk dijalankan di **tablet** (responsif juga di HP, laptop, dan desktop).
 
 ## Fitur Utama
 

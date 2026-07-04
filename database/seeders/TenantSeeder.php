@@ -14,10 +14,10 @@ class TenantSeeder extends Seeder
         $tenant = Tenant::firstOrCreate(
             ['slug' => 'demo-resto'],
             [
-                'name'                 => 'Demo Resto Stakko',
+                'name'                 => 'Demo Resto Mooda',
                 'business_type'        => 'Restoran',
                 'phone'                => '08123456789',
-                'email'                => 'demo@stakko.test',
+                'email'                => 'demo@mooda.test',
                 'address'              => 'Jl. Contoh No. 1, Indonesia',
                 'plan'                 => 'starter',
                 'subscription_status'  => 'active',

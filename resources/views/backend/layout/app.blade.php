@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <!--
 Author: Rendy Irawan
-Product Name: Stakko POS
-Website: http://www.stakko.id
-Contact: support@stakko.id
-License: Proprietary - Stakko POS System
+Product Name: Mooda
+Website: http://www.mooda.id
+Contact: support@mooda.id
+License: Proprietary - Mooda System
 -->
 <html lang="en">
 <!--begin::Head-->
@@ -13,18 +13,19 @@ License: Proprietary - Stakko POS System
     <base href="{{ url('/') }}/" />
     <title>@yield('title')</title>
     <meta charset="utf-8" />
-    <meta name="description" content="Stakko POS - Dashboard Manajemen Restoran Berbasis Awan." />
-    <meta name="keywords" content="dashboard pos, admin stakko, manajemen restoran, laporan penjualan" />
+    <meta name="description" content="Mooda - Dashboard Manajemen Restoran Berbasis Awan." />
+    <meta name="keywords" content="dashboard pos, admin mooda, manajemen restoran, laporan penjualan" />
     <meta name="author" content="Rendy Irawan" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta property="og:locale" content="id_ID" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Stakko POS - Admin Dashboard" />
+    <meta property="og:title" content="Mooda - Admin Dashboard" />
     <meta property="og:url" content="{{ url()->current() }}" />
-    <meta property="og:site_name" content="Stakko POS" />
+    <meta property="og:site_name" content="Mooda" />
     <link rel="canonical" href="{{ url()->current() }}" />
-    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}" />
-    <link rel="apple-touch-icon" href="{{ asset('assets/media/logos/stakko-icon-180.png') }}" />
+    <link rel="icon" type="image/png" href="{{ asset('assets/media/logos/mooda-mark-192.png') }}" />
+    <link rel="apple-touch-icon" href="{{ asset('assets/media/logos/mooda-mark-192.png') }}" />
+    <link rel="shortcut icon" href="{{ asset('assets/media/logos/mooda-mark-192.png') }}" />
     <link rel="manifest" href="{{ asset('manifest.json') }}" />
     <!--begin::Fonts(mandatory for all pages)-->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700" />
@@ -32,7 +33,7 @@ License: Proprietary - Stakko POS System
     <!--begin::Global Stylesheets Bundle(mandatory for all pages)-->
     <link href="{{ asset('assets/plugins/global/plugins.bundle.css') }}" rel="stylesheet" type="text/css" />
     <link href="{{ asset('assets/css/style.bundle.css') }}" rel="stylesheet" type="text/css" />
-    <link href="{{ asset('assets/css/stakko-brand.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ asset('assets/css/mooda-brand.css') }}" rel="stylesheet" type="text/css" />
 
     <!--end::Global Stylesheets Bundle-->
     <script>
@@ -72,10 +73,10 @@ License: Proprietary - Stakko POS System
     <!--end::Theme mode setup on page load-->
     <!--begin::loader-->
     <div class="page-loader flex-column">
-        <img alt="Stakko POS" class="theme-light-show max-h-50px"
-            src="{{ asset('assets/media/logos/stakko-logo.png') }}" />
-        <img alt="Stakko POS" class="theme-dark-show max-h-50px"
-            src="{{ asset('assets/media/logos/stakko-logo-white.png') }}" />
+        <img alt="Mooda" class="theme-light-show max-h-50px"
+            src="{{ asset('assets/media/logos/mooda-logo.png') }}" />
+        <img alt="Mooda" class="theme-dark-show max-h-50px"
+            src="{{ asset('assets/media/logos/mooda-logo-white.png') }}" />
         <div class="d-flex align-items-center mt-5">
             <span class="spinner-border text-primary" role="status"></span>
             <span class="text-muted fs-6 fw-semibold ms-5">Loading...</span>
@@ -108,9 +109,9 @@ License: Proprietary - Stakko POS System
                             <!--end::Logo wrapper-->
                             <!--begin::Logo image-->
                             <a href="{{ route('dashboard') }}" class="d-flex d-lg-none">
-                                <img alt="Stakko POS" src="{{ asset('assets/media/logos/stakko-logo.png') }}"
+                                <img alt="Mooda" src="{{ asset('assets/media/logos/mooda-logo.png') }}"
                                     class="h-25px theme-light-show" />
-                                <img alt="Stakko POS" src="{{ asset('assets/media/logos/stakko-logo-white.png') }}"
+                                <img alt="Mooda" src="{{ asset('assets/media/logos/mooda-logo-white.png') }}"
                                     class="h-25px theme-dark-show" />
                             </a>
                             <!--end::Logo image-->
@@ -189,7 +190,7 @@ License: Proprietary - Stakko POS System
     <!-- Service Worker registration & Offline PWA Sync Engine -->
     <script>
         // 1. Initialize Dexie Database globally
-        window.posDB = new Dexie('StakkoPOS');
+        window.posDB = new Dexie('MoodaPOS');
         window.posDB.version(2).stores({
             menus: 'id, uuid, name, price, category_id',
             categories: 'id, name',
@@ -319,10 +320,10 @@ License: Proprietary - Stakko POS System
     <!-- Konfigurasi & engine cetak struk (multi-metode) -->
     @php
         $ps = $posSetting ?? null;
-        $stakkoPrintCfg = [
+        $moodaPrintCfg = [
             'method' => optional($ps)->printer_method ?? 'auto',
             'paper_width' => (int) (optional($ps)->paper_width ?? 58),
-            'store_name' => optional($ps)->store_name ?? 'Stakko POS',
+            'store_name' => optional($ps)->store_name ?? 'Mooda',
             'tax_rate' => (int) (optional($ps)->tax_rate ?? 0),
             // Alamat & telepon di struk mengikuti toggle "tampilkan" (default tampil).
             'store_address' => (optional($ps)->receipt_show_address ?? true) ? (optional($ps)->address ?? '') : '',
@@ -333,9 +334,9 @@ License: Proprietary - Stakko POS System
         ];
     @endphp
     <script>
-        window.STAKKO_PRINT = @json($stakkoPrintCfg);
+        window.MOODA_PRINT = @json($moodaPrintCfg);
     </script>
-    <script src="{{ asset('assets/js/stakko-print.js') }}"></script>
+    <script src="{{ asset('assets/js/mooda-print.js') }}"></script>
 
     @include('partials._number_format')
     @stack('scripts')

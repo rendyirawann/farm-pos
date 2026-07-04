@@ -62,7 +62,7 @@
                         $isContact = $plan['contact'] ?? false;
                         $isCurrent = $tenant->plan === $key && $active;
                         $waLink = $isContact
-                            ? 'https://wa.me/' . ($plan['wa'] ?? '') . '?text=' . rawurlencode('Halo, saya ingin berlangganan paket ' . $plan['name'] . ' Stakko POS untuk bisnis "' . $tenant->name . '". Mohon info fitur & harganya.')
+                            ? 'https://wa.me/' . ($plan['wa'] ?? '') . '?text=' . rawurlencode('Halo, saya ingin berlangganan paket ' . $plan['name'] . ' Mooda untuk bisnis "' . $tenant->name . '". Mohon info fitur & harganya.')
                             : null;
                     @endphp
                     <div class="col-md-6 col-lg-5">

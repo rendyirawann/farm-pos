@@ -29,7 +29,7 @@
 <body onload="window.print()">
 
     <div class="ticket">
-        <div class="text-center bold" style="font-size: 16px;">{{ $setting->store_name ?? 'Stakko POS' }}</div>
+        <div class="text-center bold" style="font-size: 16px;">{{ $setting->store_name ?? 'Mooda' }}</div>
         <div class="text-center mb-1">
             @if (!empty($setting->receipt_header)){!! nl2br(e($setting->receipt_header)) !!}<br>@endif
             @if (($setting->receipt_show_address ?? true) && !empty($setting->address)){!! nl2br(e($setting->address)) !!}<br>@endif
