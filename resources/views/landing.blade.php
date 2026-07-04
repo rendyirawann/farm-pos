@@ -63,6 +63,13 @@
         .landing-pagination .swiper-pagination-bullet-active { opacity: 1; width: 28px; }
         .landing-prev.swiper-button-disabled, .landing-next.swiper-button-disabled { opacity: 0; pointer-events: none; }
 
+        /* Kotak pilihan durasi paket: scrollbar tipis yang terlihat + scroll terkurung di kotak */
+        .plan-periods-scroll { overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        .plan-periods-scroll::-webkit-scrollbar { width: 6px; }
+        .plan-periods-scroll::-webkit-scrollbar-track { background: transparent; }
+        .plan-periods-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .plan-periods-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
         /* ===== MODE MOBILE/TABLET: scroll VERTIKAL (bukan swiper horizontal) ===== */
         html.lp-mobile, html.lp-mobile body { height: auto; overflow-x: hidden; overflow-y: auto; }
         html.lp-mobile { scroll-padding-top: 72px; scroll-behavior: smooth; }
@@ -319,7 +326,7 @@
                                 </div>
                                 @if (count($periods) > 1)
                                     {{-- Opsi durasi: scroll DI DALAM kartu (max-height), bukan halaman --}}
-                                    <div class="mt-4 max-h-44 space-y-1.5 overflow-y-auto rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100">
+                                    <div class="plan-periods-scroll mt-4 max-h-28 space-y-1.5 overflow-y-auto rounded-2xl bg-slate-50 p-3 pe-2 ring-1 ring-slate-100">
                                         @foreach ($periods as $per)
                                             @php
                                                 $ppm = (int) $per['price_per_month'];
@@ -475,6 +482,11 @@
             }, { root: null, rootMargin: '-16px 0px -88% 0px', threshold: 0 });
             darkSlides.forEach(function (s) { io.observe(s); });
         })();
+
+        // Roda mouse di dalam kotak durasi = scroll kotak; jangan diteruskan ke swiper/halaman.
+        document.querySelectorAll('.plan-periods-scroll').forEach(function (box) {
+            box.addEventListener('wheel', function (e) { e.stopPropagation(); }, { passive: true });
+        });
     </script>
 
 </body>
