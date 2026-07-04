@@ -64,6 +64,10 @@
                         $waLink = $isContact
                             ? 'https://wa.me/' . ($plan['wa'] ?? '') . '?text=' . rawurlencode('Halo, saya ingin berlangganan paket ' . $plan['name'] . ' Mooda untuk bisnis "' . $tenant->name . '". Mohon info fitur & harganya.')
                             : null;
+                        $periods = $isContact ? [] : \App\Tenancy\Plan::periods($key);
+                        $basePpm = $periods[0]['price_per_month'] ?? ($plan['price'] ?? 0);
+                        $minPpm  = collect($periods)->min('price_per_month') ?? ($plan['price'] ?? 0);
+                        $firstTotal = isset($periods[0]) ? $periods[0]['price_per_month'] * $periods[0]['months'] : ($plan['price'] ?? 0);
                     @endphp
                     <div class="col-md-6 col-lg-5">
                         <div class="card card-flush h-100 border border-2 {{ $isCurrent ? 'border-success' : ($isContact ? 'border-primary' : 'border-gray-200') }}">
@@ -85,7 +89,10 @@
                                         <span class="fs-3x fw-bolder text-gray-900">Custom</span>
                                         <span class="fs-6 text-muted">/sesuai fitur</span>
                                     @else
-                                        <span class="fs-3x fw-bolder text-gray-900">Rp {{ number_format($plan['price'], 0, ',', '.') }}</span>
+                                        @if (count($periods) > 1)
+                                            <span class="fs-7 text-muted d-block">mulai</span>
+                                        @endif
+                                        <span class="fs-3x fw-bolder text-gray-900">Rp {{ number_format($minPpm, 0, ',', '.') }}</span>
                                         <span class="fs-6 text-muted">/bulan</span>
                                     @endif
                                 </div>
@@ -115,17 +122,46 @@
                                         </a>
                                     @endif
                                 @else
-                                    @if ($isCurrent)
-                                        {{-- Sudah berlangganan paket ini: hanya boleh Perpanjang (bukan langganan baru) --}}
-                                        <button type="button" class="btn btn-success mt-auto btn-subscribe" data-plan="{{ $key }}">
-                                            <i class="ki-outline ki-arrows-circle fs-3 me-1"></i>
-                                            Perpanjang {{ $plan['name'] }} — Rp {{ number_format($plan['price'], 0, ',', '.') }}
-                                        </button>
-                                    @else
-                                        <button type="button" class="btn btn-light-primary mt-auto btn-subscribe" data-plan="{{ $key }}">
-                                            Berlangganan {{ $plan['name'] }} — Bayar Rp {{ number_format($plan['price'], 0, ',', '.') }}
-                                        </button>
-                                    @endif
+                                    {{-- Pilihan durasi langganan (bisa di-scroll) --}}
+                                    <div class="mb-4 mt-auto">
+                                        <label class="fw-semibold fs-7 text-muted mb-2 d-block">Pilih durasi langganan</label>
+                                        <div class="pe-1" style="max-height: 232px; overflow-y: auto;">
+                                            @foreach ($periods as $i => $per)
+                                                @php
+                                                    $ppm = (int) $per['price_per_month'];
+                                                    $pm = (int) $per['months'];
+                                                    $ptotal = $ppm * $pm;
+                                                    $disc = $basePpm > 0 ? (int) round((1 - $ppm / $basePpm) * 100) : 0;
+                                                @endphp
+                                                <label class="d-flex align-items-center justify-content-between border border-gray-300 rounded p-3 mb-2 cursor-pointer">
+                                                    <span class="d-flex align-items-start">
+                                                        <input class="form-check-input mt-1 me-3 plan-period" type="radio"
+                                                            name="period-{{ $key }}" value="{{ $pm }}" data-total="{{ $ptotal }}"
+                                                            {{ $i === 0 ? 'checked' : '' }}>
+                                                        <span>
+                                                            <span class="fw-bold text-gray-900">{{ $per['label'] ?? ($pm . ' Bulan') }}</span>
+                                                            @if ($disc > 0)
+                                                                <span class="badge badge-light-success ms-2">Hemat {{ $disc }}%</span>
+                                                            @endif
+                                                            <span class="d-block fs-8 text-muted">{{ $pm == 1 ? 'Tanpa komitmen' : 'Bayar ' . $pm . ' bulan di muka' }}</span>
+                                                        </span>
+                                                    </span>
+                                                    <span class="text-end text-nowrap ps-2">
+                                                        <span class="fw-bolder text-gray-900">Rp {{ number_format($ppm, 0, ',', '.') }}</span><span class="fs-8 text-muted">/bln</span>
+                                                        <span class="d-block fs-8 text-muted">Total Rp {{ number_format($ptotal, 0, ',', '.') }}</span>
+                                                    </span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                    </div>
+
+                                    @php $prefix = ($isCurrent ? 'Perpanjang ' : 'Berlangganan ') . $plan['name']; @endphp
+                                    <button type="button"
+                                        class="btn {{ $isCurrent ? 'btn-success' : 'btn-light-primary' }} btn-subscribe"
+                                        data-plan="{{ $key }}" data-group="period-{{ $key }}" data-prefix="{{ $prefix }}">
+                                        @if ($isCurrent)<i class="ki-outline ki-arrows-circle fs-3 me-1"></i>@endif
+                                        <span class="btn-subscribe-label">{{ $prefix }} — Rp {{ number_format($firstTotal, 0, ',', '.') }}</span>
+                                    </button>
                                 @endif
                             </div>
                         </div>
@@ -180,12 +216,31 @@
     <script src="https://app.{{ $isProduction ? '' : 'sandbox.' }}midtrans.com/snap/snap.js"
         data-client-key="{{ $clientKey }}"></script>
     <script>
+        const rp = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
         document.querySelectorAll('.btn-subscribe').forEach(function (btn) {
+            const group = btn.dataset.group;
+            const prefix = btn.dataset.prefix || 'Berlangganan';
+            const labelEl = btn.querySelector('.btn-subscribe-label');
+            const selectedRadio = () => group ? document.querySelector('input[name="' + group + '"]:checked') : null;
+
+            function refreshLabel() {
+                const r = selectedRadio();
+                if (r && labelEl) labelEl.textContent = prefix + ' — ' + rp(r.dataset.total);
+            }
+            if (group) {
+                document.querySelectorAll('input[name="' + group + '"]').forEach(function (r) {
+                    r.addEventListener('change', refreshLabel);
+                });
+                refreshLabel();
+            }
+
             btn.addEventListener('click', function () {
-                const plan = this.dataset.plan;
-                const original = this.innerHTML;
-                this.disabled = true;
-                this.innerHTML = 'Memproses...';
+                const plan = btn.dataset.plan;
+                const r = selectedRadio();
+                const months = r ? parseInt(r.value, 10) : 1;
+                const original = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = 'Memproses...';
 
                 fetch("{{ route('billing.checkout') }}", {
                     method: 'POST',
@@ -194,7 +249,7 @@
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
                         'Accept': 'application/json',
                     },
-                    body: JSON.stringify({ plan: plan }),
+                    body: JSON.stringify({ plan: plan, months: months }),
                 })
                 .then(r => r.json())
                 .then(data => {

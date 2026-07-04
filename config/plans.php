@@ -17,7 +17,14 @@ return [
     'plans' => [
         'starter' => [
             'name'  => 'Starter',
-            'price' => 199000,
+            'price' => 199000, // harga dasar (bulanan / 1 bulan)
+            // Pilihan durasi langganan. Harga per-bulan makin murah bila beli langsung
+            // beberapa bulan di muka (total = price_per_month * months).
+            'periods' => [
+                ['months' => 1,  'price_per_month' => 199000, 'label' => 'Bulanan'],
+                ['months' => 6,  'price_per_month' => 149000, 'label' => 'Promo 6 Bulan'],
+                ['months' => 12, 'price_per_month' => 129000, 'label' => 'Promo 12 Bulan'],
+            ],
             'tagline' => 'Semua yang dibutuhkan untuk mulai jualan dengan rapi & cepat.',
             'limits' => [
                 'outlets' => 1,

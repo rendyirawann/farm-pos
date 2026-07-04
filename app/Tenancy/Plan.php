@@ -27,6 +27,36 @@ class Plan
         return (int) (self::get($key)['price'] ?? 0);
     }
 
+    /**
+     * Daftar pilihan durasi langganan. Jika paket tidak mendefinisikan 'periods',
+     * fallback ke 1 bulan memakai harga dasar.
+     */
+    public static function periods(?string $key): array
+    {
+        $plan = self::get($key);
+        if (!$plan) {
+            return [];
+        }
+        if (!empty($plan['periods'])) {
+            return array_values($plan['periods']);
+        }
+        return [['months' => 1, 'price_per_month' => (int) ($plan['price'] ?? 0), 'label' => 'Bulanan']];
+    }
+
+    /**
+     * Total harga (server-side, anti-manipulasi) untuk durasi tertentu.
+     * Return null bila jumlah bulan tidak ditawarkan paket ini.
+     */
+    public static function periodAmount(?string $key, int $months): ?int
+    {
+        foreach (self::periods($key) as $p) {
+            if ((int) $p['months'] === $months) {
+                return (int) $p['price_per_month'] * $months;
+            }
+        }
+        return null;
+    }
+
     public static function name(?string $key): string
     {
         return self::get($key)['name'] ?? '-';

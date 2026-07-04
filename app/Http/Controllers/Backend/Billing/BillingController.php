@@ -43,7 +43,8 @@ class BillingController extends Controller
     public function checkout(Request $request)
     {
         $request->validate([
-            'plan' => ['required', 'string', 'in:' . implode(',', array_keys(Plan::all()))],
+            'plan'   => ['required', 'string', 'in:' . implode(',', array_keys(Plan::all()))],
+            'months' => ['nullable', 'integer', 'min:1', 'max:36'],
         ]);
 
         $tenant = Auth::user()->tenant;
@@ -61,17 +62,23 @@ class BillingController extends Controller
             ], 422);
         }
 
-        $amount  = Plan::price($planKey);
+        // Durasi langganan (default 1 bulan). Harga dihitung server-side dari config
+        // agar tidak bisa dimanipulasi dari front-end.
+        $months = (int) $request->input('months', 1);
+        $amount = Plan::periodAmount($planKey, $months);
+        if ($amount === null) {
+            return response()->json(['status' => 'error', 'message' => 'Durasi langganan tidak valid.'], 422);
+        }
 
         try {
-            $subscription = DB::transaction(function () use ($tenant, $planKey, $amount) {
+            $subscription = DB::transaction(function () use ($tenant, $planKey, $amount, $months) {
                 $orderId = 'DSP-SUB-' . strtoupper(Str::random(6)) . '-' . $tenant->id . '-' . substr((string) Str::uuid(), 0, 8);
 
                 return Subscription::create([
                     'tenant_id'         => $tenant->id,
                     'plan'              => $planKey,
                     'amount'            => $amount,
-                    'billing_period'    => 'monthly',
+                    'billing_period'    => (string) $months, // jumlah bulan (dipakai saat aktivasi)
                     'status'            => 'pending',
                     'midtrans_order_id' => $orderId,
                 ]);
@@ -88,7 +95,7 @@ class BillingController extends Controller
                     'id'       => 'plan-' . $planKey,
                     'price'    => (int) $amount,
                     'quantity' => 1,
-                    'name'     => 'Langganan ' . Plan::name($planKey) . ' (1 bulan)',
+                    'name'     => 'Langganan ' . Plan::name($planKey) . ' (' . $months . ' bulan)',
                 ]],
                 'customer_details' => [
                     'first_name' => Auth::user()->name,
@@ -161,7 +168,9 @@ class BillingController extends Controller
             $base = ($tenant->subscription_ends_at && $tenant->subscription_ends_at->isFuture())
                 ? $tenant->subscription_ends_at->copy()
                 : now();
-            $endsAt = $base->addMonthNoOverflow();
+            // Jumlah bulan sesuai durasi yang dibeli (billing_period menyimpan angka bulan).
+            $months = max(1, (int) $subscription->billing_period);
+            $endsAt = $base->addMonthsNoOverflow($months);
 
             $subscription->update([
                 'status'       => 'paid',
