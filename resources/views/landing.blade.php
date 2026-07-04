@@ -124,7 +124,9 @@
     <header class="fixed inset-x-0 top-0 z-50">
         <div class="relative mx-auto flex max-w-screen-2xl items-center justify-between px-5 py-4">
             <a href="{{ url('/') }}" class="flex items-center">
-                <img src="{{ asset('assets/media/logos/mooda-logo-white.png') }}" alt="Mooda" class="logo-outline h-10 w-auto" draggable="false">
+                {{-- Logo diganti otomatis: putih di slide gelap, gelap di slide terang (lihat script di bawah) --}}
+                <img id="nav-logo-white" src="{{ asset('assets/media/logos/mooda-logo-white.png') }}" alt="Mooda" class="logo-outline h-10 w-auto" draggable="false">
+                <img id="nav-logo-dark" src="{{ asset('assets/media/logos/mooda-logo.png') }}" alt="Mooda" class="hidden h-10 w-auto" draggable="false">
             </a>
 
             <nav class="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full bg-white/90 px-2 py-1.5 shadow-lg ring-1 ring-black/5 backdrop-blur md:flex">
@@ -135,7 +137,11 @@
 
             <div class="flex items-center gap-2">
                 <a href="{{ route('login') }}" class="hidden rounded-xl bg-white/95 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-black/5 backdrop-blur transition hover:bg-white sm:inline-block">Masuk</a>
-                <a href="{{ route('register') }}" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-700">Daftar</a>
+                @if (\App\Tenancy\Plan::maintenance())
+                    <span title="{{ \App\Tenancy\Plan::maintenanceText() }}" class="cursor-not-allowed select-none rounded-xl bg-slate-400 px-4 py-2 text-sm font-semibold text-white shadow-lg">Daftar</span>
+                @else
+                    <a href="{{ route('register') }}" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-700">Daftar</a>
+                @endif
                 <button id="lp-burger" type="button" aria-label="Menu" aria-expanded="false"
                     class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/90 text-slate-700 shadow-lg ring-1 ring-black/5 backdrop-blur md:hidden">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -149,7 +155,11 @@
                 <a href="#harga" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Harga</a>
                 <div class="my-1 h-px bg-slate-200"></div>
                 <a href="{{ route('login') }}" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Masuk</a>
-                <a href="{{ route('register') }}" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-50">Daftar</a>
+                @if (\App\Tenancy\Plan::maintenance())
+                    <span class="block cursor-not-allowed select-none rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-400">Daftar — {{ \App\Tenancy\Plan::maintenanceText() }}</span>
+                @else
+                    <a href="{{ route('register') }}" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-50">Daftar</a>
+                @endif
             </div>
         </div>
     </header>
@@ -159,7 +169,7 @@
         <div class="swiper-wrapper">
 
             {{-- SLIDE 0 — HERO --}}
-            <div class="swiper-slide lp-slide relative">
+            <div class="swiper-slide lp-slide relative" data-nav-dark>
                 <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ asset('assets/media/landing/hero.jpg') }}')"></div>
                 <div class="absolute inset-0 bg-gradient-to-br from-slate-950/85 via-slate-900/70 to-indigo-950/80"></div>
                 <div class="lp-content relative z-10 w-full max-w-3xl px-6 py-24 text-center text-white">
@@ -175,7 +185,11 @@
                         Satukan kasir, dapur, antrian, QR self-order, dan laporan keuangan dalam satu sistem. Untuk restoran, cafe & warung — bisa multi-outlet.
                     </p>
                     <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                        <a href="{{ route('register') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-indigo-900/40 transition hover:bg-indigo-700">Mulai Sekarang</a>
+                        @if (\App\Tenancy\Plan::maintenance())
+                            <span class="inline-flex cursor-not-allowed select-none items-center gap-2 rounded-xl bg-white/10 px-7 py-3.5 text-base font-semibold text-slate-300 ring-1 ring-white/20">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
+                        @else
+                            <a href="{{ route('register') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-indigo-900/40 transition hover:bg-indigo-700">Mulai Sekarang</a>
+                        @endif
                         <a href="{{ route('login') }}" class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-base font-semibold text-white backdrop-blur transition hover:bg-white/20">Masuk</a>
                     </div>
                     <div class="lp-scrollhint mt-7 inline-flex items-center gap-2 text-sm text-slate-300">
@@ -250,7 +264,7 @@
             </div>
 
             {{-- SLIDE 3 — CARA KERJA --}}
-            <div class="swiper-slide lp-slide relative">
+            <div class="swiper-slide lp-slide relative" data-nav-dark>
                 <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ asset('assets/media/landing/coffee.jpg') }}')"></div>
                 <div class="absolute inset-0 bg-slate-950/80"></div>
                 <div class="lp-content relative z-10 w-full max-w-5xl px-6 py-24 text-white">
@@ -293,10 +307,38 @@
                                 @if ($pop)<span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 px-4 py-1 text-xs font-bold text-white shadow">Paling Populer</span>@endif
                                 <h3 class="text-xl font-bold {{ $pop ? 'text-white' : 'text-slate-900' }}">{{ $plan['name'] }}</h3>
                                 <p class="mt-1.5 min-h-[40px] text-sm {{ $pop ? 'text-slate-300' : 'text-slate-500' }}">{{ $plan['tagline'] }}</p>
+                                @php
+                                    $periods = \App\Tenancy\Plan::periods($key);
+                                    $basePpm = $periods[0]['price_per_month'] ?? ($plan['price'] ?? 0);
+                                    $minPpm = collect($periods)->min('price_per_month') ?? ($plan['price'] ?? 0);
+                                @endphp
                                 <div class="mt-4 flex items-end gap-1">
-                                    <span class="text-4xl font-extrabold tracking-tight {{ $pop ? 'text-white' : 'text-slate-900' }}">Rp {{ number_format($plan['price'], 0, ',', '.') }}</span>
-                                    <span class="pb-1 text-sm {{ $pop ? 'text-slate-400' : 'text-slate-500' }}">/bulan</span>
+                                    @if (count($periods) > 1)<span class="pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">mulai</span>@endif
+                                    <span class="text-4xl font-extrabold tracking-tight text-slate-900">Rp {{ number_format($minPpm, 0, ',', '.') }}</span>
+                                    <span class="pb-1 text-sm text-slate-500">/bulan</span>
                                 </div>
+                                @if (count($periods) > 1)
+                                    <div class="mt-4 space-y-2 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                                        @foreach ($periods as $per)
+                                            @php
+                                                $ppm = (int) $per['price_per_month'];
+                                                $pm = (int) $per['months'];
+                                                $total = $ppm * $pm;
+                                                $disc = $basePpm > 0 ? (int) round((1 - $ppm / $basePpm) * 100) : 0;
+                                            @endphp
+                                            <div class="flex items-center justify-between gap-2">
+                                                <div class="text-sm">
+                                                    <span class="font-semibold text-slate-800">{{ $per['label'] ?? ($pm . ' Bulan') }}</span>
+                                                    @if ($disc > 0)<span class="ml-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">Hemat {{ $disc }}%</span>@endif
+                                                    <span class="block text-[11px] text-slate-400">{{ $pm == 1 ? 'Tanpa komitmen' : 'Bayar ' . $pm . ' bln di muka · total Rp ' . number_format($total, 0, ',', '.') }}</span>
+                                                </div>
+                                                <div class="whitespace-nowrap text-right">
+                                                    <span class="text-base font-extrabold text-slate-900">Rp {{ number_format($ppm, 0, ',', '.') }}</span><span class="text-xs text-slate-400">/bln</span>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
                                 <ul class="mt-5 flex-1 space-y-2.5">
                                     @foreach ($plan['features'] as $f)
                                         <li class="flex items-start gap-2.5 text-sm {{ $pop ? 'text-slate-200' : 'text-slate-700' }}">
@@ -305,7 +347,14 @@
                                         </li>
                                     @endforeach
                                 </ul>
-                                <a href="{{ route('register') }}" class="mt-7 inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition {{ $pop ? 'bg-white text-slate-900 hover:bg-slate-100' : 'bg-indigo-600 text-white hover:bg-indigo-700' }}">Pilih {{ $plan['name'] }}</a>
+                                @if (\App\Tenancy\Plan::maintenance())
+                                    <span title="{{ \App\Tenancy\Plan::maintenanceText() }}" class="mt-7 inline-flex w-full cursor-not-allowed select-none items-center justify-center gap-2 rounded-xl bg-slate-200 px-6 py-3 text-sm font-semibold text-slate-500">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+                                        {{ \App\Tenancy\Plan::maintenanceText() }}
+                                    </span>
+                                @else
+                                    <a href="{{ route('register') }}" class="mt-7 inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition bg-indigo-600 text-white hover:bg-indigo-700">Pilih {{ $plan['name'] }}</a>
+                                @endif
                             </div>
                         @endforeach
 
@@ -347,7 +396,7 @@
             </div>
 
             {{-- SLIDE 5 — CTA / FOOTER --}}
-            <div class="swiper-slide lp-slide relative">
+            <div class="swiper-slide lp-slide relative" data-nav-dark>
                 <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ asset('assets/media/landing/interior.jpg') }}')"></div>
                 <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/90 via-slate-950/85 to-emerald-950/85"></div>
                 <div class="lp-content relative z-10 w-full max-w-2xl px-6 py-24 text-center text-white">
@@ -355,7 +404,11 @@
                     <h2 class="text-balance text-3xl font-extrabold sm:text-5xl">Siap membuat restoran Anda lebih efisien?</h2>
                     <p class="mx-auto mt-5 max-w-lg text-lg text-slate-200">Bergabung dengan bisnis kuliner yang sudah beralih ke sistem digital modern.</p>
                     <div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                        <a href="{{ route('register') }}" class="rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-indigo-700 shadow-xl transition hover:bg-slate-100">Daftar Sekarang</a>
+                        @if (\App\Tenancy\Plan::maintenance())
+                            <span class="cursor-not-allowed select-none rounded-xl bg-white/15 px-8 py-3.5 text-base font-semibold text-slate-200 ring-1 ring-white/25">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
+                        @else
+                            <a href="{{ route('register') }}" class="rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-indigo-700 shadow-xl transition hover:bg-slate-100">Daftar Sekarang</a>
+                        @endif
                         <a href="{{ route('login') }}" class="rounded-xl border border-white/30 bg-white/10 px-8 py-3.5 text-base font-semibold text-white backdrop-blur transition hover:bg-white/20">Masuk ke Akun</a>
                     </div>
                     <p class="mt-12 text-sm text-slate-400">© {{ date('Y') }} Mooda. Seluruh hak cipta dilindungi.</p>
@@ -395,6 +448,31 @@
             <span class="lp-fab-txt">Contact Us</span>
         </a>
     </div>
+
+    {{-- Logo navbar adaptif: putih saat slide gelap (hero/cara kerja/CTA), gelap saat slide terang.
+         Pakai IntersectionObserver agar bekerja untuk mode swiper (desktop) & tumpukan vertikal (mobile). --}}
+    <script>
+        (function () {
+            var white = document.getElementById('nav-logo-white');
+            var dark = document.getElementById('nav-logo-dark');
+            if (!white || !dark) return;
+            var darkSlides = document.querySelectorAll('[data-nav-dark]');
+            if (!darkSlides.length || !('IntersectionObserver' in window)) return;
+            var active = new Set();
+            function apply() {
+                var overDark = active.size > 0;
+                white.classList.toggle('hidden', !overDark);
+                dark.classList.toggle('hidden', overDark);
+            }
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) {
+                    if (e.isIntersecting) { active.add(e.target); } else { active.delete(e.target); }
+                });
+                apply();
+            }, { root: null, rootMargin: '-16px 0px -88% 0px', threshold: 0 });
+            darkSlides.forEach(function (s) { io.observe(s); });
+        })();
+    </script>
 
 </body>
 

@@ -13,4 +13,10 @@ return [
     | `php artisan optimize` and `systemctl restart octane-stakko-pos`.
     */
     'purchase_enabled' => env('BILLING_PURCHASE_ENABLED', false),
+
+    /*
+    | Teks yang ditampilkan saat purchase_enabled = false (dipakai landing page
+    | pada tombol "Pilih Starter" & "Daftar" yang dinonaktifkan).
+    */
+    'maintenance_text' => env('BILLING_MAINTENANCE_TEXT', 'Available soon — Maintenance Midtrans Server'),
 ];

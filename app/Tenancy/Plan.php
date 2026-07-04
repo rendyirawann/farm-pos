@@ -85,6 +85,21 @@ class Plan
     }
 
     /**
+     * Mode maintenance = pembelian/pendaftaran paket dinonaktifkan sementara.
+     * Sumber tunggal: config('billing.purchase_enabled') (env BILLING_PURCHASE_ENABLED).
+     * Dipakai landing page untuk menonaktifkan tombol "Pilih Starter" & "Daftar".
+     */
+    public static function maintenance(): bool
+    {
+        return ! (bool) config('billing.purchase_enabled', false);
+    }
+
+    public static function maintenanceText(): string
+    {
+        return (string) config('billing.maintenance_text', 'Available soon — Maintenance Midtrans Server');
+    }
+
+    /**
      * Apakah paket tenant mengizinkan modul tertentu.
      * Superadmin (tenant null) selalu boleh.
      */
