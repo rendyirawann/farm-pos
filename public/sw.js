@@ -1,7 +1,7 @@
 // Mooda Service Worker — subfolder-aware.
 // BASE otomatis mengikuti lokasi sw.js: "/" di localhost, "/subfolder/" di server.
 const BASE = self.location.href.replace(/sw\.js.*$/, '');
-const CACHE_NAME = 'mooda-pos-cache-v1';
+const CACHE_NAME = 'mooda-pos-cache-v2';
 const ASSETS_TO_CACHE = [
   BASE + 'admin/kasir',
   BASE + 'assets/css/style.bundle.css',
@@ -36,17 +36,19 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const req = event.request;
 
-  // Jangan intercept API / sinkronisasi / non-GET
-  if (req.method !== 'GET' || req.url.includes('/api/') || req.url.includes('/sync-offline')) {
-    return;
-  }
+  // Hanya tangani GET http(s) SAME-ORIGIN. Abaikan chrome-extension://, data:, blob:,
+  // request lintas-origin (mis. Google Fonts), serta API/sinkronisasi.
+  if (req.method !== 'GET') return;
+  if (!req.url.startsWith('http')) return;                    // buang chrome-extension:// dll (Cache API tak dukung)
+  if (!req.url.startsWith(self.location.origin)) return;      // hanya aset domain sendiri
+  if (req.url.includes('/api/') || req.url.includes('/sync-offline')) return;
 
   event.respondWith(
     fetch(req)
       .then(response => {
         if (response && response.status === 200 && response.type === 'basic') {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+          caches.open(CACHE_NAME).then(cache => cache.put(req, clone).catch(() => {}));
         }
         return response;
       })

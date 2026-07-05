@@ -209,7 +209,7 @@
                                         </div>
                                     </div>
                                     <button type="button" class="btn btn-sm btn-{{ $color }} flex-shrink-0"
-                                        onclick="demoLogin('{{ $email }}', '{{ $pass }}')">Masuk</button>
+                                        onclick="if(typeof demoLogin==='function')demoLogin('{{ $email }}', '{{ $pass }}')">Masuk</button>
                                 </div>
                             @endforeach
                         </div>
@@ -224,12 +224,7 @@
         </div>
     </div>
 
-    <!-- Floating Button Version 2: FAB (Floating Action Button) -->
-    <div class="floating-manual-btn shadow-lg" data-bs-toggle="modal" data-bs-target="#modal_manual_book">
-        <div class="pulse-effect"></div>
-        <i class="ki-outline ki-book-open"></i>
-        <span class="btn-text">Manual Book</span>
-    </div>
+    {{-- Tombol "Manual Book" (FAB) dihapus dari halaman login sesuai permintaan. --}}
 
     <!-- Modal Selection -->
     <div class="modal fade" id="modal_manual_book" tabindex="-1" aria-hidden="true">
