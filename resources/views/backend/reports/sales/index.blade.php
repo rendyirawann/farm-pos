@@ -85,6 +85,7 @@
     </div>
 
     @push('scripts')
+    <script src="{{ asset('assets/plugins/custom/datatables/datatables.bundle.js') }}"></script>
         <script>
             $(document).ready(function() {
                 // 1. Inisialisasi DateRangePicker Metronic

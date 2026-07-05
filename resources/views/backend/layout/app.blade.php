@@ -181,8 +181,9 @@ License: Proprietary - Mooda System
     </script>
     <script src="{{ asset('assets/plugins/global/plugins.bundle.js') }}"></script>
     <script src="{{ asset('assets/js/scripts.bundle.js') }}"></script>
-    <script src="{{ asset('assets/plugins/custom/fullcalendar/fullcalendar.bundle.js') }}"></script>
-    <script src="{{ asset('assets/plugins/custom/datatables/datatables.bundle.js') }}"></script>
+    {{-- fullcalendar dihapus: tidak dipakai di halaman mana pun. --}}
+    {{-- datatables.bundle.js (2.4MB) kini di-load PER-HALAMAN via @push('scripts')
+         hanya di halaman tabel — Kasir/Dapur/Dashboard tak lagi memuatnya. --}}
     <script src="{{ asset('assets/js/widgets.bundle.js') }}"></script>
     <script src="{{ asset('assets/js/custom/widgets.js') }}"></script>
     <script src="{{ asset('assets/js/custom/apps/chat/chat.js') }}"></script>
