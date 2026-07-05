@@ -52,5 +52,10 @@ class DatabaseSeeder extends Seeder
             TenantSeeder::class,
             UserSeeder::class,
         ]);
+
+        // 4. Tenant "Terra Coffee" + akun (owner langganan 6 bln, admin, kasir pagi & sore)
+        $this->call([
+            TerraCoffeeSeeder::class,
+        ]);
     }
 }
