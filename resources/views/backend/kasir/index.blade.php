@@ -81,6 +81,8 @@
                                 <i class="ki-outline ki-magnifier fs-3x mb-3"></i>
                                 <div>Menu tidak ditemukan.</div>
                             </div>
+                            {{-- Pagination menu (client-side; tetap offline-ready) --}}
+                            <div id="menu-pagination" class="d-none justify-content-center align-items-center gap-3 mt-4"></div>
                         </div>
                     </div>
                 </div>
@@ -130,8 +132,13 @@
                             </div>
                         </div>
 
-                        {{-- Keranjang + Checkout --}}
-                        <div class="card card-flush shadow-sm">
+                        {{-- Keranjang + Checkout : mengambang (offcanvas) di layar kecil, inline di md+ --}}
+                        <div class="offcanvas-md offcanvas-end" tabindex="-1" id="cart-offcanvas" style="--bs-offcanvas-width: min(430px, 92vw);">
+                            <div class="offcanvas-header border-bottom d-flex justify-content-end py-2">
+                                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Tutup"></button>
+                            </div>
+                            <div class="offcanvas-body">
+                                <div class="card card-flush shadow-sm w-100">
                             <div class="card-header pt-4">
                                 <h3 class="card-title fw-bold"><i class="ki-outline ki-basket fs-2 me-2"></i>Keranjang</h3>
                                 <div class="card-toolbar">
@@ -194,12 +201,24 @@
                                     </button>
                                 </div>
                             </div>
-                        </div>
+                                </div>{{-- /card --}}
+                            </div>{{-- /offcanvas-body --}}
+                        </div>{{-- /offcanvas keranjang --}}
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- FAB Keranjang (hanya layar kecil): buka keranjang mengambang tanpa scroll ke bawah --}}
+    <button type="button" class="btn btn-primary d-md-none shadow-lg" id="cart-fab"
+        data-bs-toggle="offcanvas" data-bs-target="#cart-offcanvas"
+        style="position:fixed; left:50%; transform:translateX(-50%); bottom:16px; z-index:1030; border-radius:999px; padding:.7rem 1.15rem;">
+        <i class="ki-outline ki-basket fs-3 me-1"></i>
+        <span class="fw-bold" id="cart-fab-count">0</span> item
+        <span class="mx-1 opacity-50">·</span>
+        <span class="fw-bold" id="cart-fab-total">Rp 0</span>
+    </button>
 
     {{-- ===== Modal: Add-On saat menambah menu ===== --}}
     <div class="modal fade" id="modal-addon" tabindex="-1" aria-hidden="true">
@@ -314,6 +333,7 @@
 
         const rupiah = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
         const esc = s => $('<div>').text(s == null ? '' : s).html();
+        const escAttr = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const openPrint = url => window.open(url, '_blank');
 
         // ===== Cetak struk: bridge printer thermal (APK) atau window.print (browser) =====
@@ -326,15 +346,29 @@
             if (printUrl) openPrint(printUrl);
         }
 
-        // ================= RENDER MENU =================
-        function renderMenus() {
+        // ================= RENDER MENU (pagination client-side; tetap offline-ready) =================
+        let menuPage = 1;
+        const MENU_PAGE_SIZE = 8;
+
+        function filteredMenus() {
             const q = ($('#menu-search').val() || '').toLowerCase();
+            return MENUS.filter(m => {
+                if (currentCat !== 'all' && String(m.category_id) !== String(currentCat)) return false;
+                if (q && !m.name.toLowerCase().includes(q)) return false;
+                return true;
+            });
+        }
+
+        function renderMenus() {
+            const list = filteredMenus();
+            const totalPages = Math.max(1, Math.ceil(list.length / MENU_PAGE_SIZE));
+            if (menuPage > totalPages) menuPage = totalPages;
+            if (menuPage < 1) menuPage = 1;
+            const start = (menuPage - 1) * MENU_PAGE_SIZE;
+            const pageItems = list.slice(start, start + MENU_PAGE_SIZE);
+
             const grid = $('#menu-grid').empty();
-            let shown = 0;
-            MENUS.forEach(m => {
-                if (currentCat !== 'all' && String(m.category_id) !== String(currentCat)) return;
-                if (q && !m.name.toLowerCase().includes(q)) return;
-                shown++;
+            pageItems.forEach(m => {
                 const img = m.image
                     ? `<img src="${m.image}" class="pos-menu-img">`
                     : `<div class="pos-menu-img d-flex align-items-center justify-content-center"><i class="ki-outline ki-coffee fs-2x text-muted"></i></div>`;
@@ -351,7 +385,19 @@
                         </div>
                     </div>`);
             });
-            $('#menu-empty').toggleClass('d-none', shown > 0);
+            $('#menu-empty').toggleClass('d-none', list.length > 0);
+            renderMenuPagination(list.length, totalPages);
+        }
+
+        function renderMenuPagination(total, totalPages) {
+            const box = $('#menu-pagination');
+            if (!box.length) return;
+            if (total <= MENU_PAGE_SIZE) { box.removeClass('d-flex').addClass('d-none').empty(); return; }
+            box.removeClass('d-none').addClass('d-flex').html(`
+                <button type="button" class="btn btn-sm btn-icon btn-light" id="menu-prev" ${menuPage <= 1 ? 'disabled' : ''}>‹</button>
+                <span class="fs-8 text-muted fw-semibold">Hal ${menuPage}/${totalPages} · ${total} menu</span>
+                <button type="button" class="btn btn-sm btn-icon btn-light" id="menu-next" ${menuPage >= totalPages ? 'disabled' : ''}>›</button>
+            `);
         }
 
         // ================= CART =================
@@ -366,23 +412,26 @@
                 $('#cart-empty').addClass('d-none');
                 cart.forEach((it, idx) => {
                     const addonTxt = it.addons.length ? `<div class="fs-8 text-primary">+ ${it.addons.map(a => esc(a.name)).join(', ')}</div>` : '';
-                    const noteTxt = it.note ? `<div class="fs-8 text-muted fst-italic">“${esc(it.note)}”</div>` : '';
                     box.append(`
-                        <div class="cart-row d-flex align-items-start justify-content-between border-bottom py-2" data-idx="${idx}">
-                            <div class="me-2">
-                                <div class="fw-bold text-gray-800 fs-7">${esc(it.name)}</div>
-                                ${addonTxt}${noteTxt}
-                                <div class="text-muted fs-8">${rupiah(it.unit)}</div>
-                            </div>
-                            <div class="text-end">
-                                <div class="d-flex align-items-center justify-content-end mb-1">
-                                    <button class="btn btn-icon btn-xs btn-light-danger qty-dec"><i class="ki-outline ki-minus fs-6"></i></button>
-                                    <span class="mx-2 fw-bold">${it.qty}</span>
-                                    <button class="btn btn-icon btn-xs btn-light-primary qty-inc"><i class="ki-outline ki-plus fs-6"></i></button>
+                        <div class="cart-row border-bottom py-2" data-idx="${idx}">
+                            <div class="d-flex align-items-start justify-content-between">
+                                <div class="me-2">
+                                    <div class="fw-bold text-gray-800 fs-7">${esc(it.name)}</div>
+                                    ${addonTxt}
+                                    <div class="text-muted fs-8">${rupiah(it.unit)}</div>
                                 </div>
-                                <div class="fw-bold text-gray-800 fs-7">${rupiah(cartLineTotal(it))}</div>
-                                <button class="btn btn-xs btn-link text-danger cart-remove p-0">hapus</button>
+                                <div class="text-end">
+                                    <div class="d-flex align-items-center justify-content-end mb-1">
+                                        <button class="btn btn-icon btn-xs btn-light-danger qty-dec"><i class="ki-outline ki-minus fs-6"></i></button>
+                                        <span class="mx-2 fw-bold">${it.qty}</span>
+                                        <button class="btn btn-icon btn-xs btn-light-primary qty-inc"><i class="ki-outline ki-plus fs-6"></i></button>
+                                    </div>
+                                    <div class="fw-bold text-gray-800 fs-7">${rupiah(cartLineTotal(it))}</div>
+                                    <button class="btn btn-xs btn-link text-danger cart-remove p-0">hapus</button>
+                                </div>
                             </div>
+                            <input type="text" class="form-control form-control-sm form-control-solid mt-2 cart-note"
+                                data-idx="${idx}" value="${escAttr(it.note)}" placeholder="Catatan item (mis. tanpa gula, less ice)">
                         </div>`);
                 });
             }
@@ -407,6 +456,9 @@
             $('#sum-tax').text(rupiah(tax));
             $('#sum-total').text(rupiah(total));
             window.__grandTotal = total;
+            // Ringkasan di FAB keranjang (layar kecil)
+            $('#cart-fab-count').text(cart.reduce((s, it) => s + it.qty, 0));
+            $('#cart-fab-total').text(rupiah(total));
             updateChange();
             renderQuickCash(total);
         }
@@ -479,6 +531,15 @@
         $('#cart-items').on('click', '.cart-remove', function() { cart.splice($(this).closest('.cart-row').data('idx'), 1); renderCart(); });
         $('#btn-clear-cart').on('click', function() { if (cart.length) { cart = []; renderCart(); } });
         $('#promo-select').on('change', recalcTotals);
+        // Catatan per-item: update state tanpa re-render (agar fokus input tidak hilang).
+        $('#cart-items').on('input', '.cart-note', function() {
+            const i = $(this).closest('.cart-row').data('idx');
+            if (cart[i]) cart[i].note = this.value;
+        });
+
+        // ===== Pagination menu =====
+        $('#menu-pagination').on('click', '#menu-prev', function() { if (menuPage > 1) { menuPage--; renderMenus(); } });
+        $('#menu-pagination').on('click', '#menu-next', function() { menuPage++; renderMenus(); });
 
         // ================= PAYMENT METHOD (inline) =================
         $('input[name="pay_method"]').on('change', function() {
@@ -527,6 +588,8 @@
                 .done(res => {
                     if (res.success) {
                         cart = []; renderCart(); resetCheckout();
+                        // Tutup keranjang mengambang (mobile) setelah order tersimpan.
+                        try { const _oc = bootstrap.Offcanvas.getInstance(document.getElementById('cart-offcanvas')); if (_oc) _oc.hide(); } catch (e) {}
                         loadOrders();
                         afterOrder(res);
                     } else { Swal.fire('Gagal', res.error || 'Terjadi kesalahan', 'error'); }
@@ -809,9 +872,10 @@
             $('.cat-pill').removeClass('active btn-primary').addClass('btn-light');
             $(this).addClass('active btn-primary').removeClass('btn-light');
             currentCat = $(this).data('cat');
+            menuPage = 1;
             renderMenus();
         });
-        $('#menu-search').on('keyup', renderMenus);
+        $('#menu-search').on('keyup', function() { menuPage = 1; renderMenus(); });
 
         function cacheForOffline() {
             if (!window.posDB) return;
