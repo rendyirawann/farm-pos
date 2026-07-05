@@ -9,6 +9,7 @@ use App\Models\MenuAddon;
 use App\Models\Category;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class MenuController extends Controller
 {
@@ -181,5 +182,177 @@ class MenuController extends Controller
         }
         $menu->delete();
         return response()->json(['success' => 'Menu berhasil dihapus!']);
+    }
+
+    // ============================================================
+    // IMPORT MENU VIA CSV
+    // ============================================================
+
+    /** Unduh template CSV agar owner/admin tinggal mengisi lalu meng-upload. */
+    public function downloadTemplate()
+    {
+        abort_unless(auth()->user()->can('menu.create'), 403);
+
+        $rows = [
+            ['name', 'price', 'category', 'description', 'available'],
+            ['Kopi Susu Gula Aren', '18000', 'Beverages', 'Signature house blend', '1'],
+            ['Nasi Goreng Spesial', '25000', 'Main Course', 'Nasi goreng + telur & ayam', '1'],
+            ['Es Teh Manis', '8000', '', 'Kategori kosong = deteksi otomatis dari nama', '1'],
+        ];
+
+        // BOM UTF-8 agar rapi dibuka di Excel.
+        $csv = "\xEF\xBB\xBF";
+        foreach ($rows as $r) {
+            $csv .= implode(',', array_map(fn($v) => '"' . str_replace('"', '""', (string) $v) . '"', $r)) . "\r\n";
+        }
+
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="template-menu-mooda.csv"',
+        ]);
+    }
+
+    /** Import massal menu dari file CSV yang di-upload. */
+    public function importCsv(Request $request)
+    {
+        abort_unless(auth()->user()->can('menu.create'), 403);
+
+        $request->validate(['file' => 'required|file|max:4096']);
+        $file = $request->file('file');
+        $ext = strtolower($file->getClientOriginalExtension());
+        if (!in_array($ext, ['csv', 'txt'], true)) {
+            return back()->with('import_error', 'File harus berformat .csv. Unduh template untuk contoh yang benar.');
+        }
+
+        $content = (string) file_get_contents($file->getRealPath());
+        $content = preg_replace('/^\xEF\xBB\xBF/', '', $content); // buang BOM
+        $lines = preg_split('/\r\n|\r|\n/', trim($content));
+        if (!$lines || count($lines) < 2) {
+            return back()->with('import_error', 'File CSV kosong atau tidak ada baris data.');
+        }
+
+        // Deteksi pemisah (koma atau titik-koma — Excel Indonesia sering pakai ";").
+        $delim = (substr_count($lines[0], ';') > substr_count($lines[0], ',')) ? ';' : ',';
+
+        // Petakan kolom dari header (fleksibel: dukung alias Indonesia).
+        $map = [];
+        foreach (str_getcsv($lines[0], $delim) as $i => $h) {
+            $key = strtolower(trim($h));
+            if (in_array($key, ['name', 'nama', 'menu', 'nama menu'], true)) $map['name'] = $i;
+            elseif (in_array($key, ['price', 'harga'], true)) $map['price'] = $i;
+            elseif (in_array($key, ['category', 'kategori', 'kategory'], true)) $map['category'] = $i;
+            elseif (in_array($key, ['description', 'deskripsi', 'desc', 'keterangan'], true)) $map['description'] = $i;
+            elseif (in_array($key, ['available', 'tersedia', 'status', 'aktif'], true)) $map['available'] = $i;
+        }
+
+        if (!isset($map['name']) || !isset($map['price'])) {
+            return back()->with('import_error', 'Header CSV wajib memuat kolom "name" dan "price". Silakan unduh & pakai template.');
+        }
+
+        $created = 0;
+        $skipped = 0;
+        $errors = [];
+        $maxRows = 1000;
+
+        for ($ln = 1; $ln < count($lines); $ln++) {
+            if ($ln > $maxRows) {
+                $errors[] = "Dihentikan di baris $maxRows (batas maksimum per import).";
+                break;
+            }
+            $raw = trim($lines[$ln]);
+            if ($raw === '') continue;
+
+            $cols = str_getcsv($raw, $delim);
+            $name = trim($cols[$map['name']] ?? '');
+            if ($name === '') continue;
+
+            $price = $this->parsePrice($cols[$map['price']] ?? '');
+            if ($price === null) {
+                $skipped++;
+                $errors[] = "Baris " . ($ln + 1) . ": harga tidak valid untuk '$name', dilewati.";
+                continue;
+            }
+
+            // Hindari duplikat: lewati bila nama menu sudah ada (ter-scope per tenant).
+            if (Menu::where('name', $name)->exists()) {
+                $skipped++;
+                $errors[] = "Baris " . ($ln + 1) . ": menu '$name' sudah ada, dilewati.";
+                continue;
+            }
+
+            $catName = isset($map['category']) ? trim($cols[$map['category']] ?? '') : '';
+            if ($catName === '') {
+                $catName = $this->detectCategory($name);
+            }
+            $category = $this->findOrCreateCategory($catName);
+
+            $available = isset($map['available']) ? $this->parseBool($cols[$map['available']] ?? '1') : true;
+            $desc = isset($map['description']) ? trim($cols[$map['description']] ?? '') : '';
+
+            try {
+                Menu::create([
+                    'category_id'  => $category->id,
+                    'name'         => $name,
+                    'description'  => $desc !== '' ? $desc : null,
+                    'price'        => $price,
+                    'is_available' => $available,
+                ]);
+                $created++;
+            } catch (\Throwable $e) {
+                $skipped++;
+                $errors[] = "Baris " . ($ln + 1) . ": gagal menyimpan '$name'.";
+            }
+        }
+
+        if ($created === 0 && $skipped === 0) {
+            return back()->with('import_error', 'Tidak ada baris data yang terbaca. Periksa isi file CSV.');
+        }
+
+        $summary = "$created menu berhasil ditambahkan" . ($skipped > 0 ? ", $skipped baris dilewati." : ".");
+        return back()->with('import_summary', $summary)->with('import_errors', array_slice($errors, 0, 25));
+    }
+
+    /** "Rp 18.000" / "18000" / "18,000" -> 18000 (integer). Null bila tak ada angka. */
+    private function parsePrice($raw): ?int
+    {
+        $digits = preg_replace('/[^0-9]/', '', (string) $raw);
+        return $digits === '' ? null : (int) $digits;
+    }
+
+    /** Nilai kosong dianggap tersedia; hanya nilai falsy eksplisit -> false. */
+    private function parseBool($raw): bool
+    {
+        $v = strtolower(trim((string) $raw));
+        return !in_array($v, ['0', 'no', 'tidak', 'habis', 'false', 'n', 'off', 'nonaktif'], true);
+    }
+
+    /** Tebak kategori dari nama menu: minuman (Beverages) vs makanan (Main Course). */
+    private function detectCategory(string $name): string
+    {
+        $n = strtolower($name);
+        $beverages = [
+            'kopi', 'coffee', 'teh', ' tea', 'es ', 'ice', 'juice', 'jus', 'susu', 'milk', 'latte',
+            'americano', 'cappu', 'espresso', 'macchiato', 'mocha', 'matcha', 'soda', 'cola', 'coke',
+            'sprite', 'fanta', 'air ', 'mineral', 'lemon', 'lime', 'mojito', 'mocktail', 'smoothie',
+            'frappe', 'frapp', 'boba', 'shake', 'wedang', 'jahe', 'coklat', 'cokelat', 'chocolate',
+            'choco', 'yakult', 'float', 'squash', 'sparkling', 'tonic', 'minuman', 'drink', 'beer', 'bir',
+        ];
+        foreach ($beverages as $kw) {
+            if (strpos($n, $kw) !== false) return 'Beverages';
+        }
+        return 'Main Course';
+    }
+
+    /** Cari kategori (case-insensitive, per tenant) atau buat baru bila belum ada. */
+    private function findOrCreateCategory(string $name): Category
+    {
+        $name = trim($name) ?: 'Lainnya';
+        $existing = Category::whereRaw('LOWER(name) = ?', [strtolower($name)])->first();
+        if ($existing) return $existing;
+
+        return Category::create([
+            'name' => $name,
+            'slug' => Str::slug($name) . '-' . Str::lower(Str::random(4)),
+        ]);
     }
 }

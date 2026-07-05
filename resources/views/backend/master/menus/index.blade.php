@@ -21,7 +21,13 @@
                                 placeholder="Cari Menu..." />
                         </div>
                     </div>
-                    <div class="card-toolbar">
+                    <div class="card-toolbar d-flex flex-wrap gap-2">
+                        @can('menu.create')
+                            <button type="button" class="btn btn-sm btn-light-success" data-bs-toggle="modal"
+                                data-bs-target="#Modal_Import_Menu">
+                                <i class="ki-outline ki-file-up fs-3"></i> Import CSV
+                            </button>
+                        @endcan
                         <button type="button" class="btn btn-sm btn-primary" id="btn_tambah_data">
                             <i class="ki-outline ki-plus fs-2"></i> Tambah Menu
                         </button>
@@ -167,6 +173,72 @@
             </div>
         </div>
     </div>
+
+    {{-- ===== Modal Import Menu via CSV ===== --}}
+    <div class="modal fade" id="Modal_Import_Menu" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered mw-600px">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="fw-bold">Import Menu dari CSV</h2>
+                    <div class="btn btn-icon btn-sm btn-active-icon-primary" data-bs-dismiss="modal"><i
+                            class="ki-outline ki-cross fs-1"></i></div>
+                </div>
+                <div class="modal-body mx-5 my-7">
+                    <div class="alert alert-primary d-flex align-items-start">
+                        <i class="ki-outline ki-information-5 fs-2x text-primary me-3 mt-1"></i>
+                        <div class="fs-7 text-gray-700">
+                            <div class="fw-bold mb-1">Cara pakai:</div>
+                            1) Unduh template &rarr; 2) Isi di Excel/Google Sheets &rarr; 3) Simpan sebagai <b>.csv</b>
+                            &rarr; 4) Upload di sini.
+                            <div class="mt-2">Kolom: <b>name</b>, <b>price</b> (wajib), lalu <b>category</b>,
+                                <b>description</b>, <b>available</b> (opsional). Kategori kosong akan
+                                <b>dideteksi otomatis</b> (minuman/makanan) dari nama. Menu dengan nama yang sudah ada
+                                akan dilewati.
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{{ route('menus.template') }}" class="btn btn-light-primary mb-6">
+                        <i class="ki-outline ki-cloud-download fs-3"></i> Unduh Template CSV
+                    </a>
+                    <form action="{{ route('menus.import') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <label class="required fw-semibold fs-6 mb-2">File CSV</label>
+                        <input type="file" name="file" accept=".csv,text/csv,text/plain" class="form-control mb-2"
+                            required>
+                        <div class="text-muted fs-8 mb-6">Maksimal 4 MB. Pemisah koma atau titik-koma didukung.</div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-primary"><i class="ki-outline ki-file-up fs-3"></i>
+                                Upload &amp; Import</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Notifikasi hasil import --}}
+    @push('scripts')
+        <script>
+            (function () {
+                if (typeof Swal === 'undefined') return;
+                @if (session('import_summary'))
+                    var _errs = @json(session('import_errors', []));
+                    Swal.fire({
+                        icon: {!! empty(session('import_errors')) ? "'success'" : "'warning'" !!},
+                        title: 'Import selesai',
+                        html: '<div class="fw-semibold">{{ session('import_summary') }}</div>' +
+                            (_errs.length ? '<div class="text-start text-muted fs-8 mt-3" style="max-height:180px;overflow:auto">• ' +
+                                _errs.map(function (e) { return String(e).replace(/&/g,'&amp;').replace(/</g, '&lt;'); }).join('<br>• ') + '</div>' : ''),
+                        confirmButtonText: 'OK'
+                    });
+                @endif
+                @if (session('import_error'))
+                    Swal.fire({ icon: 'error', title: 'Import gagal', text: @json(session('import_error')) });
+                @endif
+            })();
+        </script>
+    @endpush
 
     @push('stylesheets')
         <meta name="csrf-token" content="{{ csrf_token() }}" />

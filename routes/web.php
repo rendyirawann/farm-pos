@@ -139,6 +139,11 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         Route::resource('/admin/categories', CategoriesController::class);
         Route::get('/admin/get-datacategories', [CategoriesController::class, 'getDataCategories'])->name('get-datacategories');
 
+        // Import menu via CSV (template + upload) — didefinisikan SEBELUM resource
+        // agar '/menus/template' & '/menus/import' tidak bentrok dgn '/menus/{menu}'.
+        Route::get('/admin/menus/template', [MenuController::class, 'downloadTemplate'])->name('menus.template');
+        Route::post('/admin/menus/import', [MenuController::class, 'importCsv'])->name('menus.import');
+
         Route::resource('/admin/menus', MenuController::class);
         Route::get('/admin/get-datamenus', [MenuController::class, 'getDataMenus'])->name('get-datamenus');
         // Add-ons per menu (untuk form kelola & untuk kasir)
