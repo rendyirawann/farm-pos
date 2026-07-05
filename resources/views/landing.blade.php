@@ -267,7 +267,7 @@
                     <div class="grid auto-rows-[140px] grid-cols-2 gap-4 sm:auto-rows-[160px] lg:grid-cols-4">
                         @foreach ($gallery as [$img, $t, $d, $span])
                             <div class="group relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-black/5 {{ $span }}">
-                                <img src="{{ asset('assets/media/landing/' . $img) }}" alt="{{ $t }}" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" draggable="false">
+                                <img src="{{ asset('assets/media/landing/' . $img) }}" alt="{{ $t }}" loading="lazy" decoding="async" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" draggable="false">
                                 <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent"></div>
                                 <div class="absolute inset-x-0 bottom-0 p-4 text-white">
                                     <h3 class="text-base font-bold sm:text-lg">{{ $t }}</h3>
