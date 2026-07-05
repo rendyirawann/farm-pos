@@ -14,6 +14,15 @@ window.MoodaPrint = (function () {
     const BLE_SERVICE = 0x18f0;
     const BLE_SERVICE_UUID = '000018f0-0000-1000-8000-00805f9b34fb';
     const BLE_WRITE_CHAR = 0x2af1;
+    // Service BLE umum printer thermal (EcoPrint & sejenisnya). WAJIB dideklarasikan di
+    // optionalServices agar getPrimaryServices() bisa mengaksesnya setelah connect.
+    const BLE_PRINTER_SERVICES = [
+        BLE_SERVICE, BLE_SERVICE_UUID,                          // 0x18F0 — paling umum (EcoPrint dll.)
+        0xff00, '0000ff00-0000-1000-8000-00805f9b34fb',
+        0xffe0, '0000ffe0-0000-1000-8000-00805f9b34fb',        // modul serial BLE (HM-10 style)
+        0xfee7, '0000fee7-0000-1000-8000-00805f9b34fb',
+        '49535343-fe7d-4ae5-8fa9-9fafd205e455',                // ISSC/Microchip transparent UART
+    ];
 
     const ESC = 0x1b, GS = 0x1d;
     const cols = () => (Number(CFG.paper_width) >= 80 ? 48 : 32);
@@ -245,7 +254,7 @@ window.MoodaPrint = (function () {
         if (!navigator.bluetooth) throw new Error('Browser ini tidak mendukung Web Bluetooth (pakai Chrome/Edge).');
         const dev = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
-            optionalServices: [BLE_SERVICE, BLE_SERVICE_UUID],
+            optionalServices: BLE_PRINTER_SERVICES,
         });
         bleDevice = dev;
         bindDisconnect(dev);
