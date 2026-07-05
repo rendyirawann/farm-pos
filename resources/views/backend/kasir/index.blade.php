@@ -890,6 +890,8 @@
             if (window.MoodaPrint && window.MoodaPrint.needsButton()) {
                 $('#btn-printer').removeClass('d-none');
                 $('#printer-label').text(window.MoodaPrint.buttonLabel());
+                // Pulihkan koneksi printer BT yg sudah pernah diizinkan, tanpa dialog pemilihan.
+                if (window.MoodaPrint.restoreBle) window.MoodaPrint.restoreBle();
             }
         }
         $('#btn-printer').on('click', function() {

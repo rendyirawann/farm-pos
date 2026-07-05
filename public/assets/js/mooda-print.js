@@ -175,8 +175,9 @@ window.MoodaPrint = (function () {
         await qz.print(cfg, data);
     }
 
-    // -------- Web Bluetooth --------
-    let bleChar = null, bleDevice = null;
+    // -------- Web Bluetooth (auto-reconnect tahan-banting) --------
+    let bleChar = null, bleDevice = null, bleReconnecting = false;
+
     async function discoverWritable(server) {
         const svcs = await server.getPrimaryServices();
         for (const s of svcs) {
@@ -185,32 +186,103 @@ window.MoodaPrint = (function () {
         }
         throw new Error('Karakteristik tulis tidak ditemukan di printer ini.');
     }
-    async function connectBle() {
-        if (!navigator.bluetooth) throw new Error('Browser ini tidak mendukung Web Bluetooth (pakai Chrome/Edge).');
-        const dev = await navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: [BLE_SERVICE, BLE_SERVICE_UUID],
-        });
-        const server = await dev.gatt.connect();
-        let char;
-        try { const svc = await server.getPrimaryService(BLE_SERVICE); char = await svc.getCharacteristic(BLE_WRITE_CHAR); }
-        catch (e) { char = await discoverWritable(server); }
-        bleChar = char; bleDevice = dev;
-        dev.addEventListener('gattserverdisconnected', () => { bleChar = null; });
-        return dev.name || 'Printer BT';
+
+    // Ambil karakteristik tulis: coba service printer standar (0x18F0/0x2AF1), fallback scan.
+    async function acquireChar(server) {
+        try { const svc = await server.getPrimaryService(BLE_SERVICE); return await svc.getCharacteristic(BLE_WRITE_CHAR); }
+        catch (e) { return await discoverWritable(server); }
     }
-    async function printBle(r) {
-        if (!bleChar) {
-            if (bleDevice) { const s = await bleDevice.gatt.connect(); bleChar = await discoverWritable(s).catch(() => null); }
-            if (!bleChar) throw new Error('Printer Bluetooth belum terhubung. Klik "Hubungkan Printer BT" dulu.');
+
+    // Sambungkan GATT dengan beberapa percobaan (printer thermal sering lambat bangun dari mode hemat daya).
+    async function connectGatt(dev, tries = 4) {
+        let err;
+        for (let i = 0; i < tries; i++) {
+            try {
+                if (dev.gatt.connected) return dev.gatt;
+                return await dev.gatt.connect();
+            } catch (e) { err = e; await sleep(350 * (i + 1)); }
         }
-        const bytes = bytesFromReceipt(r);
+        throw err || new Error('Gagal menyambung ke printer Bluetooth.');
+    }
+
+    function bindDisconnect(dev) {
+        try { dev.removeEventListener('gattserverdisconnected', onBleDisconnect); } catch (e) {}
+        dev.addEventListener('gattserverdisconnected', onBleDisconnect);
+    }
+
+    // Saat printer memutus (mis. hemat daya), sambung ulang otomatis di latar belakang
+    // agar tidak perlu klik "Hubungkan" lagi saat mau cetak.
+    async function onBleDisconnect() {
+        bleChar = null;
+        if (bleReconnecting || !bleDevice) return;
+        bleReconnecting = true;
+        try {
+            const server = await connectGatt(bleDevice, 3);
+            bleChar = await acquireChar(server);
+        } catch (e) { /* biarkan; dicoba lagi saat cetak */ }
+        finally { bleReconnecting = false; }
+    }
+
+    // Pastikan terhubung + karakteristik siap sebelum menulis.
+    async function ensureBle() {
+        if (bleChar && bleDevice && bleDevice.gatt && bleDevice.gatt.connected) return bleChar;
+        if (!bleDevice) throw new Error('Printer Bluetooth belum dipilih. Klik "Hubungkan Printer BT" dulu.');
+        const server = await connectGatt(bleDevice);
+        bleChar = await acquireChar(server);
+        return bleChar;
+    }
+
+    async function writeChunks(bytes) {
         for (let i = 0; i < bytes.length; i += 180) {
             const chunk = bytes.slice(i, i + 180);
             if (bleChar.writeValueWithoutResponse) await bleChar.writeValueWithoutResponse(chunk);
             else await bleChar.writeValue(chunk);
             await sleep(20);
         }
+    }
+
+    async function connectBle() {
+        if (!navigator.bluetooth) throw new Error('Browser ini tidak mendukung Web Bluetooth (pakai Chrome/Edge).');
+        const dev = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [BLE_SERVICE, BLE_SERVICE_UUID],
+        });
+        bleDevice = dev;
+        bindDisconnect(dev);
+        const server = await connectGatt(dev);
+        bleChar = await acquireChar(server);
+        return dev.name || 'Printer BT';
+    }
+
+    async function printBle(r) {
+        const bytes = bytesFromReceipt(r);
+        // Tulis; jika putus di tengah, sambung ulang sekali lalu ulangi sebelum menyerah.
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                await ensureBle();
+                await writeChunks(bytes);
+                return;
+            } catch (e) {
+                bleChar = null;
+                if (attempt === 1) throw e;
+                await sleep(300);
+            }
+        }
+    }
+
+    // Pulihkan printer yang sudah pernah diizinkan tanpa dialog pemilihan (Chrome getDevices()),
+    // agar reconnect mulus setelah pindah halaman. Aman dipanggil kapan saja (no-op bila tak didukung).
+    async function restoreBle() {
+        try {
+            if (!navigator.bluetooth || !navigator.bluetooth.getDevices) return false;
+            if (bleDevice) return true;
+            const devs = await navigator.bluetooth.getDevices();
+            if (!devs || !devs.length) return false;
+            bleDevice = devs[0];
+            bindDisconnect(bleDevice);
+            connectGatt(bleDevice, 2).then(s => acquireChar(s)).then(c => { bleChar = c; }).catch(() => {});
+            return true;
+        } catch (e) { return false; }
     }
 
     // -------- RawBT (Android) --------
@@ -307,5 +379,5 @@ window.MoodaPrint = (function () {
         print(sample, null);
     }
 
-    return { print, quickConnect, needsButton, buttonLabel, test, preview, cols, resolveMethod, hasNative, connectBle };
+    return { print, quickConnect, needsButton, buttonLabel, test, preview, cols, resolveMethod, hasNative, connectBle, restoreBle };
 })();
