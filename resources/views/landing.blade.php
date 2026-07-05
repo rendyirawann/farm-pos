@@ -8,6 +8,9 @@
     <title>Mooda — Sistem Kasir & Manajemen Restoran Modern</title>
     <meta name="description"
         content="Mooda: aplikasi kasir, kitchen display, antrian, QR self-order, dan laporan untuk restoran, cafe, dan warung.">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('assets/media/logos/mooda-mark-192.png') }}">
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('assets/media/logos/mooda-mark-512.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('assets/media/logos/mooda-mark-192.png') }}">
     <link rel="icon" href="{{ asset('assets/media/logos/favicon.ico') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
