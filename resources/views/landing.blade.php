@@ -32,6 +32,17 @@
                 drop-shadow(0 1px 3px rgba(0,0,0,.3));
         }
 
+        /* Teks gradien dgn fallback: browser lama (tanpa background-clip:text) tetap terlihat,
+           bukan jadi transparan/hilang. */
+        .lp-gradient-text { color: #c4b5fd; }
+        @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+            .lp-gradient-text {
+                background-image: linear-gradient(to right, #a5b4fc, #c4b5fd, #6ee7b7);
+                -webkit-background-clip: text; background-clip: text;
+                -webkit-text-fill-color: transparent; color: transparent;
+            }
+        }
+
         /* ===== Swiper + centering anti-ketimpa ===== */
         /* 100dvh = tinggi viewport dinamis (akurat di HP dgn bilah alamat) */
         #landing-swiper, .swiper-wrapper, .swiper-slide { height: 100vh; height: 100dvh; }
@@ -195,7 +206,7 @@
                     </span>
                     <h1 class="mt-6 text-balance text-4xl font-extrabold leading-[1.07] tracking-tight sm:text-6xl">
                         Kelola restoran lebih
-                        <span class="bg-gradient-to-r from-indigo-300 via-violet-300 to-emerald-300 bg-clip-text text-transparent">cepat, rapi & cuan</span>
+                        <span class="lp-gradient-text">cepat, rapi &amp; cuan</span>
                     </h1>
                     <p class="mx-auto mt-5 max-w-xl text-balance text-lg text-slate-200">
                         Satukan kasir, dapur, antrian, QR self-order, dan laporan keuangan dalam satu sistem. Untuk restoran, cafe & warung — bisa multi-outlet.
