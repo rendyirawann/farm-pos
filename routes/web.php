@@ -43,6 +43,20 @@ Route::get('/', function () {
     return view('landing');
 })->name('landing');
 
+// SEO: sitemap.xml (dinamis — domain mengikuti APP_URL). Dirujuk di robots.txt.
+Route::get('/sitemap.xml', function () {
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
+        . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n"
+        . '  <url>' . "\n"
+        . '    <loc>' . e(url('/')) . '</loc>' . "\n"
+        . '    <lastmod>' . now()->toDateString() . '</lastmod>' . "\n"
+        . '    <changefreq>weekly</changefreq>' . "\n"
+        . '    <priority>1.0</priority>' . "\n"
+        . '  </url>' . "\n"
+        . '</urlset>';
+    return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+})->name('sitemap');
+
 // Group Middleware untuk User yang sudah Login (+ blokir user yang di-ban)
 Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
 

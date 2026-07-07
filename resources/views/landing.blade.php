@@ -5,13 +5,88 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0f172a">
-    <title>Mooda — Sistem Kasir & Manajemen Restoran Modern</title>
-    <meta name="description"
-        content="Mooda: aplikasi kasir, kitchen display, antrian, QR self-order, dan laporan untuk restoran, cafe, dan warung.">
+    @php
+        $seoTitle = 'Mooda — Aplikasi Kasir & POS Restoran, Cafe & Warung';
+        $seoDesc = 'Mooda: aplikasi kasir & POS satu layar untuk restoran, cafe, dan warung. Kelola pesanan, kitchen display, add-on menu, nomor antrian di struk, laporan penjualan, hingga multi-outlet. Bayar Tunai & QRIS.';
+        $seoUrl = url('/');
+        $seoImage = asset('assets/media/og-mooda.jpg');
+        $gVerify = config('services.google_site_verification');
+    @endphp
+    <title>{{ $seoTitle }}</title>
+    <meta name="description" content="{{ $seoDesc }}">
+    <meta name="keywords" content="aplikasi kasir, POS restoran, kasir cafe, kasir warung, kitchen display, aplikasi kasir online, point of sale, kasir QRIS, sistem kasir, Mooda">
+    <meta name="author" content="Mooda">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+    <link rel="canonical" href="{{ $seoUrl }}">
+    @if ($gVerify)
+        <meta name="google-site-verification" content="{{ $gVerify }}">
+    @endif
+
+    {{-- Favicon (Mooda) --}}
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/media/logos/favicon-32.png') }}">
     <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('assets/media/logos/mooda-mark-192.png') }}">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('assets/media/logos/mooda-mark-512.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('assets/media/logos/mooda-mark-192.png') }}">
-    <link rel="icon" href="{{ asset('assets/media/logos/favicon.ico') }}">
+
+    {{-- Open Graph (WhatsApp / Facebook / LinkedIn) --}}
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Mooda">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:title" content="{{ $seoTitle }}">
+    <meta property="og:description" content="{{ $seoDesc }}">
+    <meta property="og:url" content="{{ $seoUrl }}">
+    <meta property="og:image" content="{{ $seoImage }}">
+    <meta property="og:image:secure_url" content="{{ $seoImage }}">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Mooda — Sistem Kasir & POS Restoran">
+
+    {{-- Twitter Card --}}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $seoTitle }}">
+    <meta name="twitter:description" content="{{ $seoDesc }}">
+    <meta name="twitter:image" content="{{ $seoImage }}">
+
+    {{-- Data terstruktur (JSON-LD) untuk hasil pencarian Google --}}
+    <script type="application/ld+json">
+        @php
+            echo json_encode([
+                '@context' => 'https://schema.org',
+                '@graph' => [
+                    [
+                        '@type' => 'Organization',
+                        '@id' => $seoUrl . '#organization',
+                        'name' => 'Mooda',
+                        'url' => $seoUrl,
+                        'logo' => asset('assets/media/logos/mooda-mark-512.png'),
+                    ],
+                    [
+                        '@type' => 'WebSite',
+                        '@id' => $seoUrl . '#website',
+                        'name' => 'Mooda',
+                        'url' => $seoUrl,
+                        'publisher' => ['@id' => $seoUrl . '#organization'],
+                        'inLanguage' => 'id-ID',
+                    ],
+                    [
+                        '@type' => 'SoftwareApplication',
+                        'name' => 'Mooda',
+                        'applicationCategory' => 'BusinessApplication',
+                        'operatingSystem' => 'Web, Android',
+                        'url' => $seoUrl,
+                        'description' => $seoDesc,
+                        'offers' => [
+                            '@type' => 'Offer',
+                            'price' => '129000',
+                            'priceCurrency' => 'IDR',
+                        ],
+                    ],
+                ],
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        @endphp
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -209,7 +284,7 @@
                         <span class="lp-gradient-text">cepat, rapi &amp; cuan</span>
                     </h1>
                     <p class="mx-auto mt-5 max-w-xl text-balance text-lg text-slate-200">
-                        Satukan kasir, dapur, antrian, QR self-order, dan laporan keuangan dalam satu sistem. Untuk restoran, cafe & warung — bisa multi-outlet.
+                        Satukan kasir, dapur (kitchen display), nomor antrian, dan laporan penjualan dalam satu sistem. Untuk restoran, cafe & warung — bisa multi-outlet.
                     </p>
                     <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
                         @if (\App\Tenancy\Plan::maintenance())

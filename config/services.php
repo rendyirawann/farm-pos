@@ -53,4 +53,8 @@ return [
         'scheme' => env('REVERB_SCHEME', 'https'),
     ],
 
+    // Kode verifikasi Google Search Console (isi via .env: GOOGLE_SITE_VERIFICATION=...).
+    // Bila diisi, tag <meta name="google-site-verification"> otomatis muncul di landing.
+    'google_site_verification' => env('GOOGLE_SITE_VERIFICATION'),
+
 ];
