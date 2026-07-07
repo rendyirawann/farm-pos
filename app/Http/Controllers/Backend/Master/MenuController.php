@@ -194,16 +194,22 @@ class MenuController extends Controller
         abort_unless(auth()->user()->can('menu.create'), 403);
 
         $rows = [
-            ['name', 'price', 'category', 'description', 'available'],
-            ['Kopi Susu Gula Aren', '18000', 'Beverages', 'Signature house blend', '1'],
-            ['Nasi Goreng Spesial', '25000', 'Main Course', 'Nasi goreng + telur & ayam', '1'],
-            ['Es Teh Manis', '8000', '', 'Kategori kosong = deteksi otomatis dari nama', '1'],
+            ['nama', 'harga', 'kategori', 'deskripsi', 'tersedia'],
+            ['Kopi Susu Gula Aren', '18000', 'Beverages', 'Signature house blend', 'Ya'],
+            ['Nasi Goreng Spesial', '25000', 'Main Course', 'Nasi goreng spesial pakai telur', 'Ya'],
+            ['Es Teh Manis', '8000', '', 'Kosongkan kategori = terdeteksi otomatis', 'Ya'],
         ];
 
-        // BOM UTF-8 agar rapi dibuka di Excel.
-        $csv = "\xEF\xBB\xBF";
+        // Kutip HANYA bila perlu (ada koma/kutip/newline) supaya terlihat bersih bagi user awam.
+        $cell = function ($v) {
+            $v = (string) $v;
+            return preg_match('/[",\r\n]/', $v) ? '"' . str_replace('"', '""', $v) . '"' : $v;
+        };
+
+        // BOM UTF-8 + baris "sep=," = petunjuk agar Excel (semua locale) langsung membagi ke kolom.
+        $csv = "\xEF\xBB\xBF" . "sep=,\r\n";
         foreach ($rows as $r) {
-            $csv .= implode(',', array_map(fn($v) => '"' . str_replace('"', '""', (string) $v) . '"', $r)) . "\r\n";
+            $csv .= implode(',', array_map($cell, $r)) . "\r\n";
         }
 
         return response($csv, 200, [
@@ -227,16 +233,20 @@ class MenuController extends Controller
         $content = (string) file_get_contents($file->getRealPath());
         $content = preg_replace('/^\xEF\xBB\xBF/', '', $content); // buang BOM
         $lines = preg_split('/\r\n|\r|\n/', trim($content));
-        if (!$lines || count($lines) < 2) {
+
+        // Lewati baris petunjuk Excel "sep=," bila ada (baris pertama template).
+        $headerIdx = (isset($lines[0]) && stripos(trim($lines[0]), 'sep=') === 0) ? 1 : 0;
+        if (!$lines || count($lines) < $headerIdx + 2) {
             return back()->with('import_error', 'File CSV kosong atau tidak ada baris data.');
         }
 
-        // Deteksi pemisah (koma atau titik-koma — Excel Indonesia sering pakai ";").
-        $delim = (substr_count($lines[0], ';') > substr_count($lines[0], ',')) ? ';' : ',';
+        // Deteksi pemisah dari baris header (koma atau titik-koma — Excel Indonesia sering pakai ";").
+        $headerLine = $lines[$headerIdx];
+        $delim = (substr_count($headerLine, ';') > substr_count($headerLine, ',')) ? ';' : ',';
 
         // Petakan kolom dari header (fleksibel: dukung alias Indonesia).
         $map = [];
-        foreach (str_getcsv($lines[0], $delim) as $i => $h) {
+        foreach (str_getcsv($headerLine, $delim) as $i => $h) {
             $key = strtolower(trim($h));
             if (in_array($key, ['name', 'nama', 'menu', 'nama menu'], true)) $map['name'] = $i;
             elseif (in_array($key, ['price', 'harga'], true)) $map['price'] = $i;
@@ -254,7 +264,7 @@ class MenuController extends Controller
         $errors = [];
         $maxRows = 1000;
 
-        for ($ln = 1; $ln < count($lines); $ln++) {
+        for ($ln = $headerIdx + 1; $ln < count($lines); $ln++) {
             if ($ln > $maxRows) {
                 $errors[] = "Dihentikan di baris $maxRows (batas maksimum per import).";
                 break;

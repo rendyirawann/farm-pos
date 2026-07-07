@@ -190,10 +190,14 @@
                             <div class="fw-bold mb-1">Cara pakai:</div>
                             1) Unduh template &rarr; 2) Isi di Excel/Google Sheets &rarr; 3) Simpan sebagai <b>.csv</b>
                             &rarr; 4) Upload di sini.
-                            <div class="mt-2">Kolom: <b>name</b>, <b>price</b> (wajib), lalu <b>category</b>,
-                                <b>description</b>, <b>available</b> (opsional). Kategori kosong akan
-                                <b>dideteksi otomatis</b> (minuman/makanan) dari nama. Menu dengan nama yang sudah ada
-                                akan dilewati.
+                            <div class="mt-2">Kolom: <b>nama</b>, <b>harga</b> (wajib), lalu <b>kategori</b>,
+                                <b>deskripsi</b>, <b>tersedia</b> (opsional).
+                                <ul class="mt-2 mb-0 ps-4">
+                                    <li><b>harga</b>: angka saja (mis. 18000).</li>
+                                    <li><b>kategori</b>: kosongkan &rarr; <b>terdeteksi otomatis</b> (minuman/makanan) dari nama.</li>
+                                    <li><b>tersedia</b>: isi <b>Ya</b> atau <b>Tidak</b>.</li>
+                                    <li>Nama menu yang sudah ada akan dilewati (tidak dobel).</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
