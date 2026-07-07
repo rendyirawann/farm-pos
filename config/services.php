@@ -57,4 +57,11 @@ return [
     // Bila diisi, tag <meta name="google-site-verification"> otomatis muncul di landing.
     'google_site_verification' => env('GOOGLE_SITE_VERIFICATION'),
 
+    // ID Aplikasi Facebook (opsional). Bila diisi, tag <meta property="fb:app_id"> muncul di
+    // landing untuk menghilangkan warning di Facebook Sharing Debugger. Preview link tetap
+    // berfungsi tanpa ini — jadi boleh dibiarkan kosong.
+    'facebook' => [
+        'app_id' => env('FACEBOOK_APP_ID'),
+    ],
+
 ];

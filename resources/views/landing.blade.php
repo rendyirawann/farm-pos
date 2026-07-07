@@ -11,6 +11,7 @@
         $seoUrl = url('/');
         $seoImage = asset('assets/media/og-mooda.jpg');
         $gVerify = config('services.google_site_verification');
+        $fbAppId = config('services.facebook.app_id');
     @endphp
     <title>{{ $seoTitle }}</title>
     <meta name="description" content="{{ $seoDesc }}">
@@ -42,6 +43,9 @@
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="Mooda — Sistem Kasir & POS Restoran">
+    @if ($fbAppId)
+        <meta property="fb:app_id" content="{{ $fbAppId }}">
+    @endif
 
     {{-- Twitter Card --}}
     <meta name="twitter:card" content="summary_large_image">
