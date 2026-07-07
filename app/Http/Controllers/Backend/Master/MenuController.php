@@ -188,66 +188,89 @@ class MenuController extends Controller
     // IMPORT MENU VIA CSV
     // ============================================================
 
-    /** Unduh template CSV agar owner/admin tinggal mengisi lalu meng-upload. */
+    /** Unduh template Excel (.xlsx) — kolom rapi + header + dropdown, tinggal diisi lalu di-upload. */
     public function downloadTemplate()
     {
         abort_unless(auth()->user()->can('menu.create'), 403);
 
-        $rows = [
-            ['nama', 'harga', 'kategori', 'deskripsi', 'tersedia'],
-            ['Kopi Susu Gula Aren', '18000', 'Beverages', 'Signature house blend', 'Ya'],
-            ['Nasi Goreng Spesial', '25000', 'Main Course', 'Nasi goreng spesial pakai telur', 'Ya'],
-            ['Es Teh Manis', '8000', '', 'Kosongkan kategori = terdeteksi otomatis', 'Ya'],
-        ];
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Menu');
 
-        // Kutip HANYA bila perlu (ada koma/kutip/newline) supaya terlihat bersih bagi user awam.
-        $cell = function ($v) {
-            $v = (string) $v;
-            return preg_match('/[",\r\n]/', $v) ? '"' . str_replace('"', '""', $v) . '"' : $v;
-        };
+        // Header + contoh isi (per kolom).
+        $sheet->fromArray(['Nama', 'Harga', 'Kategori', 'Deskripsi', 'Tersedia'], null, 'A1');
+        $sheet->fromArray([
+            ['Kopi Susu Gula Aren', 18000, 'Beverages', 'Signature house blend', 'Ya'],
+            ['Nasi Goreng Spesial', 25000, 'Main Course', 'Nasi goreng spesial pakai telur', 'Ya'],
+            ['Es Teh Manis', 8000, '', 'Kosongkan Kategori = terdeteksi otomatis dari nama', 'Ya'],
+        ], null, 'A2');
 
-        // BOM UTF-8 + baris "sep=," = petunjuk agar Excel (semua locale) langsung membagi ke kolom.
-        $csv = "\xEF\xBB\xBF" . "sep=,\r\n";
-        foreach ($rows as $r) {
-            $csv .= implode(',', array_map($cell, $r)) . "\r\n";
+        // Lebar kolom agar enak diisi.
+        foreach (['A' => 32, 'B' => 12, 'C' => 18, 'D' => 42, 'E' => 12] as $col => $w) {
+            $sheet->getColumnDimension($col)->setWidth($w);
         }
 
-        return response($csv, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="template-menu-mooda.csv"',
-        ]);
+        // Header tebal, latar indigo, teks putih, freeze baris header.
+        $sheet->getStyle('A1:E1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+        $sheet->getStyle('A1:E1')->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF4B49E4');
+        $sheet->getRowDimension(1)->setRowHeight(22);
+        $sheet->freezePane('A2');
+
+        // Harga sebagai angka (rata kanan, ribuan).
+        $sheet->getStyle('B2:B1000')->getNumberFormat()->setFormatCode('#,##0');
+
+        // Dropdown "Ya/Tidak" pada kolom Tersedia (E2:E200) agar user tinggal pilih.
+        for ($r = 2; $r <= 200; $r++) {
+            $dv = $sheet->getCell('E' . $r)->getDataValidation();
+            $dv->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+            $dv->setAllowBlank(true);
+            $dv->setShowDropDown(true);
+            $dv->setShowInputMessage(true);
+            $dv->setPromptTitle('Tersedia?');
+            $dv->setPrompt('Pilih Ya atau Tidak.');
+            $dv->setFormula1('"Ya,Tidak"');
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $tmp = tempnam(sys_get_temp_dir(), 'tplmenu') . '.xlsx';
+        $writer->save($tmp);
+
+        return response()->download($tmp, 'template-menu-mooda.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
     }
 
-    /** Import massal menu dari file CSV yang di-upload. */
+    /** Import massal menu dari file Excel (.xlsx) atau CSV yang di-upload. */
     public function importCsv(Request $request)
     {
         abort_unless(auth()->user()->can('menu.create'), 403);
 
-        $request->validate(['file' => 'required|file|max:4096']);
+        $request->validate(['file' => 'required|file|max:8192']);
         $file = $request->file('file');
         $ext = strtolower($file->getClientOriginalExtension());
-        if (!in_array($ext, ['csv', 'txt'], true)) {
-            return back()->with('import_error', 'File harus berformat .csv. Unduh template untuk contoh yang benar.');
+        if (!in_array($ext, ['xlsx', 'xls', 'csv', 'txt'], true)) {
+            return back()->with('import_error', 'Format harus .xlsx (Excel) atau .csv. Unduh template untuk contoh.');
         }
 
-        $content = (string) file_get_contents($file->getRealPath());
-        $content = preg_replace('/^\xEF\xBB\xBF/', '', $content); // buang BOM
-        $lines = preg_split('/\r\n|\r|\n/', trim($content));
-
-        // Lewati baris petunjuk Excel "sep=," bila ada (baris pertama template).
-        $headerIdx = (isset($lines[0]) && stripos(trim($lines[0]), 'sep=') === 0) ? 1 : 0;
-        if (!$lines || count($lines) < $headerIdx + 2) {
-            return back()->with('import_error', 'File CSV kosong atau tidak ada baris data.');
+        // Baca ke array baris 2D (kolom 0-indexed), apa pun formatnya.
+        try {
+            $rows = in_array($ext, ['xlsx', 'xls'], true)
+                ? $this->readSpreadsheetRows($file->getRealPath())
+                : $this->readCsvRows($file->getRealPath());
+        } catch (\Throwable $e) {
+            return back()->with('import_error', 'Gagal membaca file. Pastikan formatnya sesuai template.');
         }
 
-        // Deteksi pemisah dari baris header (koma atau titik-koma — Excel Indonesia sering pakai ";").
-        $headerLine = $lines[$headerIdx];
-        $delim = (substr_count($headerLine, ';') > substr_count($headerLine, ',')) ? ';' : ',';
+        if (count($rows) < 2) {
+            return back()->with('import_error', 'File kosong atau tidak ada baris data.');
+        }
 
-        // Petakan kolom dari header (fleksibel: dukung alias Indonesia).
+        // Petakan kolom dari header (case-insensitive; dukung alias Indonesia & Inggris).
         $map = [];
-        foreach (str_getcsv($headerLine, $delim) as $i => $h) {
-            $key = strtolower(trim($h));
+        foreach ($rows[0] as $i => $h) {
+            $key = strtolower(trim((string) $h));
             if (in_array($key, ['name', 'nama', 'menu', 'nama menu'], true)) $map['name'] = $i;
             elseif (in_array($key, ['price', 'harga'], true)) $map['price'] = $i;
             elseif (in_array($key, ['category', 'kategori', 'kategory'], true)) $map['category'] = $i;
@@ -256,7 +279,7 @@ class MenuController extends Controller
         }
 
         if (!isset($map['name']) || !isset($map['price'])) {
-            return back()->with('import_error', 'Header CSV wajib memuat kolom "name" dan "price". Silakan unduh & pakai template.');
+            return back()->with('import_error', 'Header wajib memuat kolom "Nama" dan "Harga". Silakan pakai template.');
         }
 
         $created = 0;
@@ -264,40 +287,37 @@ class MenuController extends Controller
         $errors = [];
         $maxRows = 1000;
 
-        for ($ln = $headerIdx + 1; $ln < count($lines); $ln++) {
+        for ($ln = 1; $ln < count($rows); $ln++) {
             if ($ln > $maxRows) {
                 $errors[] = "Dihentikan di baris $maxRows (batas maksimum per import).";
                 break;
             }
-            $raw = trim($lines[$ln]);
-            if ($raw === '') continue;
-
-            $cols = str_getcsv($raw, $delim);
-            $name = trim($cols[$map['name']] ?? '');
+            $row = $rows[$ln];
+            $name = trim((string) ($row[$map['name']] ?? ''));
             if ($name === '') continue;
 
-            $price = $this->parsePrice($cols[$map['price']] ?? '');
+            $price = $this->parsePrice($row[$map['price']] ?? '');
             if ($price === null) {
                 $skipped++;
                 $errors[] = "Baris " . ($ln + 1) . ": harga tidak valid untuk '$name', dilewati.";
                 continue;
             }
 
-            // Hindari duplikat: lewati bila nama menu sudah ada (ter-scope per tenant).
-            if (Menu::where('name', $name)->exists()) {
+            // Hindari duplikat: lewati bila nama menu sudah ada (ter-scope per tenant, case-insensitive).
+            if (Menu::whereRaw('LOWER(name) = ?', [strtolower($name)])->exists()) {
                 $skipped++;
                 $errors[] = "Baris " . ($ln + 1) . ": menu '$name' sudah ada, dilewati.";
                 continue;
             }
 
-            $catName = isset($map['category']) ? trim($cols[$map['category']] ?? '') : '';
+            $catName = isset($map['category']) ? trim((string) ($row[$map['category']] ?? '')) : '';
             if ($catName === '') {
                 $catName = $this->detectCategory($name);
             }
             $category = $this->findOrCreateCategory($catName);
 
-            $available = isset($map['available']) ? $this->parseBool($cols[$map['available']] ?? '1') : true;
-            $desc = isset($map['description']) ? trim($cols[$map['description']] ?? '') : '';
+            $available = isset($map['available']) ? $this->parseBool($row[$map['available']] ?? '1') : true;
+            $desc = isset($map['description']) ? trim((string) ($row[$map['description']] ?? '')) : '';
 
             try {
                 Menu::create([
@@ -315,11 +335,40 @@ class MenuController extends Controller
         }
 
         if ($created === 0 && $skipped === 0) {
-            return back()->with('import_error', 'Tidak ada baris data yang terbaca. Periksa isi file CSV.');
+            return back()->with('import_error', 'Tidak ada baris data yang terbaca. Periksa isi file.');
         }
 
         $summary = "$created menu berhasil ditambahkan" . ($skipped > 0 ? ", $skipped baris dilewati." : ".");
         return back()->with('import_summary', $summary)->with('import_errors', array_slice($errors, 0, 25));
+    }
+
+    /** Baca Excel (.xlsx/.xls) menjadi array baris (kolom 0-indexed). */
+    private function readSpreadsheetRows(string $path): array
+    {
+        $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path)->getActiveSheet();
+        return $sheet->toArray(null, true, false, false);
+    }
+
+    /** Baca CSV menjadi array baris; lewati hint "sep=", deteksi pemisah , atau ; */
+    private function readCsvRows(string $path): array
+    {
+        $content = (string) file_get_contents($path);
+        $content = preg_replace('/^\xEF\xBB\xBF/', '', $content); // buang BOM
+        $lines = preg_split('/\r\n|\r|\n/', trim($content));
+        if (!$lines) return [];
+
+        if (stripos(trim($lines[0]), 'sep=') === 0) {
+            array_shift($lines); // buang baris petunjuk Excel "sep=,"
+        }
+        if (!$lines) return [];
+
+        $delim = (substr_count($lines[0], ';') > substr_count($lines[0], ',')) ? ';' : ',';
+        $rows = [];
+        foreach ($lines as $line) {
+            if (trim($line) === '') continue;
+            $rows[] = str_getcsv($line, $delim);
+        }
+        return $rows;
     }
 
     /** "Rp 18.000" / "18000" / "18,000" -> 18000 (integer). Null bila tak ada angka. */

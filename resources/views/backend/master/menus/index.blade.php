@@ -188,28 +188,30 @@
                         <i class="ki-outline ki-information-5 fs-2x text-primary me-3 mt-1"></i>
                         <div class="fs-7 text-gray-700">
                             <div class="fw-bold mb-1">Cara pakai:</div>
-                            1) Unduh template &rarr; 2) Isi di Excel/Google Sheets &rarr; 3) Simpan sebagai <b>.csv</b>
-                            &rarr; 4) Upload di sini.
-                            <div class="mt-2">Kolom: <b>nama</b>, <b>harga</b> (wajib), lalu <b>kategori</b>,
-                                <b>deskripsi</b>, <b>tersedia</b> (opsional).
+                            1) Unduh template &rarr; 2) Isi tiap kolom di Excel/Google Sheets &rarr; 3) Simpan
+                            &rarr; 4) Upload di sini (<b>.xlsx</b> atau <b>.csv</b>).
+                            <div class="mt-2">Kolom: <b>Nama</b>, <b>Harga</b> (wajib), lalu <b>Kategori</b>,
+                                <b>Deskripsi</b>, <b>Tersedia</b> (opsional).
                                 <ul class="mt-2 mb-0 ps-4">
-                                    <li><b>harga</b>: angka saja (mis. 18000).</li>
-                                    <li><b>kategori</b>: kosongkan &rarr; <b>terdeteksi otomatis</b> (minuman/makanan) dari nama.</li>
-                                    <li><b>tersedia</b>: isi <b>Ya</b> atau <b>Tidak</b>.</li>
-                                    <li>Nama menu yang sudah ada akan dilewati (tidak dobel).</li>
+                                    <li><b>Harga</b>: angka saja (mis. 18000).</li>
+                                    <li><b>Kategori</b>: kosongkan &rarr; <b>terdeteksi otomatis</b> (minuman/makanan) dari nama.</li>
+                                    <li><b>Tersedia</b>: pilih <b>Ya</b> / <b>Tidak</b> (sudah ada dropdown di template).</li>
+                                    <li>Huruf besar/kecil <b>tidak berpengaruh</b> (mis. "ya" = "Ya").</li>
+                                    <li>Menu dengan nama yang sudah ada akan dilewati (tidak dobel).</li>
                                 </ul>
                             </div>
                         </div>
                     </div>
                     <a href="{{ route('menus.template') }}" class="btn btn-light-primary mb-6">
-                        <i class="ki-outline ki-cloud-download fs-3"></i> Unduh Template CSV
+                        <i class="ki-outline ki-cloud-download fs-3"></i> Unduh Template Excel (.xlsx)
                     </a>
                     <form action="{{ route('menus.import') }}" method="POST" enctype="multipart/form-data">
                         @csrf
-                        <label class="required fw-semibold fs-6 mb-2">File CSV</label>
-                        <input type="file" name="file" accept=".csv,text/csv,text/plain" class="form-control mb-2"
-                            required>
-                        <div class="text-muted fs-8 mb-6">Maksimal 4 MB. Pemisah koma atau titik-koma didukung.</div>
+                        <label class="required fw-semibold fs-6 mb-2">File Excel / CSV</label>
+                        <input type="file" name="file"
+                            accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                            class="form-control mb-2" required>
+                        <div class="text-muted fs-8 mb-6">Maksimal 8 MB. Disarankan <b>.xlsx</b> (kolom sudah rapi); <b>.csv</b> juga didukung.</div>
                         <div class="d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
                             <button type="submit" class="btn btn-primary"><i class="ki-outline ki-file-up fs-3"></i>
