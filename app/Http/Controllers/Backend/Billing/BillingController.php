@@ -71,6 +71,19 @@ class BillingController extends Controller
             ], 422);
         }
 
+        // Perpanjangan paket yang SAMA hanya dibuka H-7 sebelum masa aktif habis
+        // (mencegah bypass tombol UI "Plan Saat Ini"). Upgrade ke paket lain / paket
+        // yang sudah habis tetap boleh kapan saja.
+        if ($tenant->plan === $planKey && $tenant->hasActiveAccess()) {
+            $until = $tenant->subscription_status === 'trial' ? $tenant->trial_ends_at : $tenant->subscription_ends_at;
+            if ($until && $until->gt(now()->addDays(7))) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Paket masih aktif. Perpanjangan tersedia mulai H-7 sebelum masa aktif habis (' . $until->translatedFormat('d M Y') . ').',
+                ], 422);
+            }
+        }
+
         // Durasi langganan (default 1 bulan). Harga dihitung server-side dari config
         // agar tidak bisa dimanipulasi dari front-end.
         $months = (int) $request->input('months', 1);

@@ -68,6 +68,10 @@
                         $basePpm = $periods[0]['price_per_month'] ?? ($plan['price'] ?? 0);
                         $minPpm  = collect($periods)->min('price_per_month') ?? ($plan['price'] ?? 0);
                         $firstTotal = isset($periods[0]) ? $periods[0]['price_per_month'] * $periods[0]['months'] : ($plan['price'] ?? 0);
+                        // Perpanjangan paket AKTIF hanya dibuka H-7 sebelum masa aktif habis.
+                        // Bukan paket current (langganan baru/beda paket) => selalu boleh.
+                        $until = $tenant->subscription_status === 'trial' ? $tenant->trial_ends_at : $tenant->subscription_ends_at;
+                        $canRenew = ! $isCurrent ? true : ($until ? $until->lte(now()->addDays(7)) : true);
                     @endphp
                     <div class="col-md-6 col-lg-5">
                         <div class="card card-flush h-100 border border-2 {{ $isCurrent ? 'border-success' : ($isContact ? 'border-primary' : 'border-gray-200') }}">
@@ -122,52 +126,65 @@
                                         </a>
                                     @endif
                                 @else
-                                    {{-- Pilihan durasi langganan (bisa di-scroll) --}}
-                                    <div class="mb-4 mt-auto">
-                                        <label class="fw-semibold fs-7 text-muted mb-2 d-block">Pilih durasi langganan</label>
-                                        <div class="pe-1" style="max-height: 232px; overflow-y: auto;">
-                                            @foreach ($periods as $i => $per)
-                                                @php
-                                                    $ppm = (int) $per['price_per_month'];
-                                                    $pm = (int) $per['months'];
-                                                    $ptotal = $ppm * $pm;
-                                                    $disc = $basePpm > 0 ? (int) round((1 - $ppm / $basePpm) * 100) : 0;
-                                                @endphp
-                                                <label class="d-flex align-items-center justify-content-between border border-gray-300 rounded p-3 mb-2 cursor-pointer">
-                                                    <span class="d-flex align-items-start">
-                                                        <input class="form-check-input mt-1 me-3 plan-period" type="radio"
-                                                            name="period-{{ $key }}" value="{{ $pm }}" data-total="{{ $ptotal }}"
-                                                            {{ $i === 0 ? 'checked' : '' }}>
-                                                        <span>
-                                                            <span class="fw-bold text-gray-900">{{ $per['label'] ?? ($pm . ' Bulan') }}</span>
-                                                            @if ($disc > 0)
-                                                                <span class="badge badge-light-success ms-2">Hemat {{ $disc }}%</span>
-                                                            @endif
-                                                            <span class="d-block fs-8 text-muted">{{ $pm == 1 ? 'Tanpa komitmen' : 'Bayar ' . $pm . ' bulan di muka' }}</span>
-                                                        </span>
-                                                    </span>
-                                                    <span class="text-end text-nowrap ps-2">
-                                                        <span class="fw-bolder text-gray-900">Rp {{ number_format($ppm, 0, ',', '.') }}</span><span class="fs-8 text-muted">/bln</span>
-                                                        <span class="d-block fs-8 text-muted">Total Rp {{ number_format($ptotal, 0, ',', '.') }}</span>
-                                                    </span>
-                                                </label>
-                                            @endforeach
+                                    @if (! config('billing.purchase_enabled', false))
+                                        {{-- Pembelian paket dinonaktifkan sementara (Midtrans belum siap) --}}
+                                        <button type="button" class="btn btn-light-secondary w-100 mt-auto" disabled>
+                                            <i class="ki-outline ki-time fs-3 me-1"></i>
+                                            <span>Segera Hadir</span>
+                                        </button>
+                                    @elseif ($isCurrent && ! $canRenew)
+                                        {{-- Paket masih aktif & belum H-7: belum bisa perpanjang, sembunyikan pilihan durasi --}}
+                                        <div class="mt-auto">
+                                            <button type="button" class="btn btn-light-success w-100" disabled>
+                                                <i class="ki-outline ki-check-circle fs-3 me-1"></i>
+                                                <span>Plan Saat Ini</span>
+                                            </button>
+                                            @if ($until)
+                                                <div class="text-center fs-8 text-muted mt-2">
+                                                    Aktif s/d {{ $until->translatedFormat('d M Y') }} — tombol perpanjang muncul H-7
+                                                </div>
+                                            @endif
                                         </div>
-                                    </div>
+                                    @else
+                                        {{-- Pilihan durasi langganan (bisa di-scroll) — hanya saat boleh langganan/perpanjang --}}
+                                        <div class="mb-4 mt-auto">
+                                            <label class="fw-semibold fs-7 text-muted mb-2 d-block">Pilih durasi langganan</label>
+                                            <div class="pe-1" style="max-height: 232px; overflow-y: auto;">
+                                                @foreach ($periods as $i => $per)
+                                                    @php
+                                                        $ppm = (int) $per['price_per_month'];
+                                                        $pm = (int) $per['months'];
+                                                        $ptotal = $ppm * $pm;
+                                                        $disc = $basePpm > 0 ? (int) round((1 - $ppm / $basePpm) * 100) : 0;
+                                                    @endphp
+                                                    <label class="d-flex align-items-center justify-content-between border border-gray-300 rounded p-3 mb-2 cursor-pointer">
+                                                        <span class="d-flex align-items-start">
+                                                            <input class="form-check-input mt-1 me-3 plan-period" type="radio"
+                                                                name="period-{{ $key }}" value="{{ $pm }}" data-total="{{ $ptotal }}"
+                                                                {{ $i === 0 ? 'checked' : '' }}>
+                                                            <span>
+                                                                <span class="fw-bold text-gray-900">{{ $per['label'] ?? ($pm . ' Bulan') }}</span>
+                                                                @if ($disc > 0)
+                                                                    <span class="badge badge-light-success ms-2">Hemat {{ $disc }}%</span>
+                                                                @endif
+                                                                <span class="d-block fs-8 text-muted">{{ $pm == 1 ? 'Tanpa komitmen' : 'Bayar ' . $pm . ' bulan di muka' }}</span>
+                                                            </span>
+                                                        </span>
+                                                        <span class="text-end text-nowrap ps-2">
+                                                            <span class="fw-bolder text-gray-900">Rp {{ number_format($ppm, 0, ',', '.') }}</span><span class="fs-8 text-muted">/bln</span>
+                                                            <span class="d-block fs-8 text-muted">Total Rp {{ number_format($ptotal, 0, ',', '.') }}</span>
+                                                        </span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        </div>
 
-                                    @if (config('billing.purchase_enabled', false))
                                         @php $prefix = ($isCurrent ? 'Perpanjang ' : 'Berlangganan ') . $plan['name']; @endphp
                                         <button type="button"
                                             class="btn {{ $isCurrent ? 'btn-success' : 'btn-light-primary' }} btn-subscribe"
                                             data-plan="{{ $key }}" data-group="period-{{ $key }}" data-prefix="{{ $prefix }}">
                                             @if ($isCurrent)<i class="ki-outline ki-arrows-circle fs-3 me-1"></i>@endif
                                             <span class="btn-subscribe-label">{{ $prefix }} — Rp {{ number_format($firstTotal, 0, ',', '.') }}</span>
-                                        </button>
-                                    @else
-                                        {{-- Pembelian paket dinonaktifkan sementara (Midtrans belum siap) --}}
-                                        <button type="button" class="btn btn-light-secondary w-100" disabled>
-                                            <i class="ki-outline ki-time fs-3 me-1"></i>
-                                            <span>Segera Hadir</span>
                                         </button>
                                     @endif
                                 @endif
