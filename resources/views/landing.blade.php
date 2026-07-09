@@ -169,6 +169,11 @@
         .mooda-soon-btn.w-full { width: 100%; }
         .mooda-soon-chip { display: inline-block; border-radius: 12px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: not-allowed; user-select: none; background: #e2e8f0; color: #64748b; border: 1px solid #cbd5e1; }
 
+        /* Grid harga 4 kartu (pakai CSS inline: kelas grid Tailwind baru tak ada di bundle terkompilasi) */
+        .mooda-price-grid { display: grid; gap: 24px; grid-template-columns: 1fr; max-width: 1280px; margin-left: auto; margin-right: auto; }
+        @media (min-width: 768px) { .mooda-price-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1280px) { .mooda-price-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
         /* ===== MODE MOBILE/TABLET: scroll VERTIKAL (bukan swiper horizontal) ===== */
         html.lp-mobile, html.lp-mobile body { height: auto; overflow-x: hidden; overflow-y: auto; }
         html.lp-mobile { scroll-padding-top: 72px; scroll-behavior: smooth; }
@@ -403,100 +408,152 @@
                     <div class="mx-auto max-w-2xl text-center">
                         <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">Harga</span>
                         <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Paket sederhana & transparan</h2>
-                        <p class="mt-3 text-lg text-slate-600">Tanpa biaya tersembunyi. Bayar bulanan, batalkan kapan saja.</p>
+                        <p class="mt-3 text-lg text-slate-600">Pilih sesuai skala bisnis — dari deposit bayar-sesuai-pakai hingga enterprise. Tanpa biaya tersembunyi.</p>
                     </div>
-                    <div class="mx-auto mt-6 grid max-w-4xl grid-cols-1 gap-6 sm:grid-cols-2">
-                        @foreach (config('plans.plans') as $key => $plan)
-                            @continue(!empty($plan['contact']))
-                            @php $pop = false; @endphp
-                            <div class="relative flex flex-col rounded-3xl p-8 {{ $pop ? 'bg-slate-900 text-white shadow-2xl shadow-slate-400/40 ring-2 ring-indigo-500' : 'border border-slate-200 bg-white' }}">
-                                @if ($pop)<span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 px-4 py-1 text-xs font-bold text-white shadow">Paling Populer</span>@endif
-                                <h3 class="text-xl font-bold {{ $pop ? 'text-white' : 'text-slate-900' }}">{{ $plan['name'] }}</h3>
-                                <p class="mt-1.5 min-h-[40px] text-sm {{ $pop ? 'text-slate-300' : 'text-slate-500' }}">{{ $plan['tagline'] }}</p>
-                                @php
-                                    $periods = \App\Tenancy\Plan::periods($key);
-                                    $basePpm = $periods[0]['price_per_month'] ?? ($plan['price'] ?? 0);
-                                    // Default = durasi termurah (per-bulan terendah) sebagai hook.
-                                    $defIdx = 0; $lowest = PHP_INT_MAX;
-                                    foreach ($periods as $i => $p) { if ($p['price_per_month'] < $lowest) { $lowest = $p['price_per_month']; $defIdx = $i; } }
-                                    $def = $periods[$defIdx];
-                                    $defMonths = (int) $def['months'];
-                                    $defTotal = (int) $def['price_per_month'] * $defMonths;
-                                    $defDisc = $basePpm > 0 ? (int) round((1 - $def['price_per_month'] / $basePpm) * 100) : 0;
-                                    $defNote = $defMonths <= 1 ? 'Tanpa komitmen'
-                                        : 'Bayar ' . $defMonths . ' bln di muka · total Rp ' . number_format($defTotal, 0, ',', '.') . ($defDisc > 0 ? ' · Hemat ' . $defDisc . '%' : '');
-                                @endphp
+                    <div class="mooda-price-grid mt-6">
+                        @php
+                            $check = '<svg class="mt-0.5 h-5 w-5 flex-none text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 0 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg>';
+                            $soonSvg = '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>';
+                            $maint = \App\Tenancy\Plan::maintenance();
+                            $maintText = \App\Tenancy\Plan::maintenanceText();
+                            $core = [
+                                'Kasir / POS satu layar (Tunai & QRIS)',
+                                'Kitchen Display (layar dapur)',
+                                'Add-on menu & nomor antrian di struk',
+                                'Laporan penjualan',
+                                'Data master menu & kategori',
+                            ];
+                            $starterFeatures = array_merge($core, [
+                                'Maks 2 User (tambah user Rp 10.000/user)',
+                                'Penyimpanan Database Pelanggan (3.000 Data)',
+                            ]);
+                            $monthlyPlans = [
+                                [
+                                    'name' => 'Basic', 'pop' => false,
+                                    'tagline' => 'Semua yang dibutuhkan untuk mulai jualan dengan rapi & cepat.',
+                                    'periods' => \App\Tenancy\Plan::periods('starter'),
+                                    'features' => array_merge($core, [
+                                        'Maks 3 User (tambah user Rp 10.000/user)',
+                                        'Penyimpanan Database Pelanggan (12.000 Data)',
+                                    ]),
+                                ],
+                                [
+                                    'name' => 'Enterprise', 'pop' => true,
+                                    'tagline' => 'Untuk bisnis berkembang dengan manajemen yang lebih lengkap.',
+                                    'periods' => [
+                                        ['months' => 1, 'price_per_month' => 399000],
+                                        ['months' => 6, 'price_per_month' => 349000],
+                                        ['months' => 12, 'price_per_month' => 329000],
+                                    ],
+                                    'features' => [
+                                        'Semua fitur paket Basic',
+                                        'Manajemen Pengaturan Meja',
+                                        'Menu HPP',
+                                        'Laporan Keuangan',
+                                        'Maks 5 User (tambah user Rp 10.000/user)',
+                                        'Penyimpanan Database Pelanggan (50.000 Data)',
+                                    ],
+                                ],
+                            ];
+                            $waCustom = 'https://wa.me/6282362211676?text=' . rawurlencode('Halo, saya tertarik dengan paket Customize Mooda (kontrak 2 tahun). Boleh info fitur & harga rekomendasinya?');
+                            $customFeatures = [
+                                'Semua fitur Enterprise & Basic',
+                                'Tanpa batasan jumlah user',
+                                'Penyimpanan Database Pelanggan (Tidak Terbatas)',
+                                'VPS & domain sendiri',
+                                'QR Menu & Self Order pelanggan',
+                                'Payment Gateway + Setting Payment',
+                                'Tambah fitur / menu khusus (maks 3; lebih dari itu kena charge tambahan)',
+                                'Harga rekomendasi sesuai pilihan fitur',
+                                'Konsultasi & support prioritas',
+                            ];
+                        @endphp
+
+                        {{-- 1) STARTER — akun Deposit (bayar sesuai pemakaian) --}}
+                        <div class="relative flex flex-col rounded-3xl border border-slate-200 bg-white p-8">
+                            <h3 class="text-xl font-bold text-slate-900">Starter</h3>
+                            <p class="mt-1.5 min-h-[40px] text-sm text-slate-500">Bayar sesuai pemakaian (deposit saldo) — cocok untuk baru mulai / musiman.</p>
+                            <div class="mt-4">
+                                <div class="flex items-end gap-1">
+                                    <span class="text-4xl font-extrabold tracking-tight text-slate-900">Deposit</span>
+                                    <span class="pb-1 text-sm text-slate-500">/isi saldo</span>
+                                </div>
+                                <div class="mt-1 text-sm text-slate-500">Top-up mulai Rp 25.000 · potong Rp 169 / transaksi</div>
+                            </div>
+                            <ul class="mt-5 flex-1 space-y-2.5">
+                                @foreach ($starterFeatures as $f)
+                                    <li class="flex items-start gap-2.5 text-sm text-slate-700">{!! $check !!}<span>{{ $f }}</span></li>
+                                @endforeach
+                            </ul>
+                            @if ($maint)
+                                <span title="{{ $maintText }}" class="mooda-soon-btn w-full mt-7">{!! $soonSvg !!} {{ $maintText }}</span>
+                            @else
+                                <a href="{{ route('register') }}" class="mt-7 inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition bg-indigo-600 text-white hover:bg-indigo-700">Mulai Deposit</a>
+                            @endif
+                        </div>
+
+                        {{-- 2) BASIC & 3) ENTERPRISE — langganan bulanan (pill durasi) --}}
+                        @foreach ($monthlyPlans as $mp)
+                            @php
+                                $periods = $mp['periods'];
+                                $basePpm = $periods[0]['price_per_month'] ?? 0;
+                                $defIdx = 0; $lowest = PHP_INT_MAX;
+                                foreach ($periods as $i => $p) { if ($p['price_per_month'] < $lowest) { $lowest = $p['price_per_month']; $defIdx = $i; } }
+                                $def = $periods[$defIdx];
+                                $defMonths = (int) $def['months'];
+                                $defTotal = (int) $def['price_per_month'] * $defMonths;
+                                $defDisc = $basePpm > 0 ? (int) round((1 - $def['price_per_month'] / $basePpm) * 100) : 0;
+                                $defNote = $defMonths <= 1 ? 'Tanpa komitmen'
+                                    : 'Bayar ' . $defMonths . ' bln di muka · total Rp ' . number_format($defTotal, 0, ',', '.') . ($defDisc > 0 ? ' · Hemat ' . $defDisc . '%' : '');
+                            @endphp
+                            <div class="relative flex flex-col rounded-3xl border bg-white p-8 {{ $mp['pop'] ? 'border-slate-200 ring-2 ring-indigo-500 shadow-xl' : 'border-slate-200' }}">
+                                @if ($mp['pop'])<span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 px-4 py-1 text-xs font-bold text-white shadow">Populer</span>@endif
+                                <h3 class="text-xl font-bold text-slate-900">{{ $mp['name'] }}</h3>
+                                <p class="mt-1.5 min-h-[40px] text-sm text-slate-500">{{ $mp['tagline'] }}</p>
                                 <div class="mt-4" data-plan-pricing>
                                     <div class="flex items-end gap-1">
                                         <span class="text-4xl font-extrabold tracking-tight text-slate-900" data-price-display>Rp {{ number_format($def['price_per_month'], 0, ',', '.') }}</span>
                                         <span class="pb-1 text-sm text-slate-500">/bulan</span>
                                     </div>
                                     <div class="mt-1 text-sm text-slate-500" data-price-note>{{ $defNote }}</div>
-
-                                    @if (count($periods) > 1)
-                                        {{-- Pilih durasi: klik pill -> angka harga berubah (tanpa kotak scroll) --}}
-                                        <div class="plan-dur-wrap mt-4" role="tablist" aria-label="Pilih durasi langganan">
-                                            @foreach ($periods as $i => $per)
-                                                @php
-                                                    $ppm = (int) $per['price_per_month'];
-                                                    $pm = (int) $per['months'];
-                                                    $total = $ppm * $pm;
-                                                    $disc = $basePpm > 0 ? (int) round((1 - $ppm / $basePpm) * 100) : 0;
-                                                    $short = $pm == 1 ? 'Bulanan' : $pm . ' Bulan';
-                                                @endphp
-                                                <button type="button" class="plan-dur-btn {{ $i === $defIdx ? 'is-active' : '' }}"
-                                                    data-ppm="{{ $ppm }}" data-total="{{ $total }}" data-months="{{ $pm }}" data-disc="{{ $disc }}">
-                                                    {{ $short }}@if ($disc > 0)<span class="disc">-{{ $disc }}%</span>@endif
-                                                </button>
-                                            @endforeach
-                                        </div>
-                                    @endif
+                                    <div class="plan-dur-wrap mt-4" role="tablist" aria-label="Pilih durasi langganan">
+                                        @foreach ($periods as $i => $per)
+                                            @php
+                                                $ppm = (int) $per['price_per_month']; $pm = (int) $per['months'];
+                                                $total = $ppm * $pm;
+                                                $disc = $basePpm > 0 ? (int) round((1 - $ppm / $basePpm) * 100) : 0;
+                                                $short = $pm == 1 ? 'Bulanan' : $pm . ' Bulan';
+                                            @endphp
+                                            <button type="button" class="plan-dur-btn {{ $i === $defIdx ? 'is-active' : '' }}"
+                                                data-ppm="{{ $ppm }}" data-total="{{ $total }}" data-months="{{ $pm }}" data-disc="{{ $disc }}">{{ $short }}@if ($disc > 0)<span class="disc">-{{ $disc }}%</span>@endif</button>
+                                        @endforeach
+                                    </div>
                                 </div>
                                 <ul class="mt-5 flex-1 space-y-2.5">
-                                    @foreach ($plan['features'] as $f)
-                                        <li class="flex items-start gap-2.5 text-sm {{ $pop ? 'text-slate-200' : 'text-slate-700' }}">
-                                            <svg class="mt-0.5 h-5 w-5 flex-none {{ $pop ? 'text-emerald-400' : 'text-emerald-500' }}" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 0 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg>
-                                            <span>{{ $f }}</span>
-                                        </li>
+                                    @foreach ($mp['features'] as $f)
+                                        <li class="flex items-start gap-2.5 text-sm text-slate-700">{!! $check !!}<span>{{ $f }}</span></li>
                                     @endforeach
                                 </ul>
-                                @if (\App\Tenancy\Plan::maintenance())
-                                    <span title="{{ \App\Tenancy\Plan::maintenanceText() }}" class="mooda-soon-btn w-full mt-7">
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
-                                        {{ \App\Tenancy\Plan::maintenanceText() }}
-                                    </span>
+                                @if ($maint)
+                                    <span title="{{ $maintText }}" class="mooda-soon-btn w-full mt-7">{!! $soonSvg !!} {{ $maintText }}</span>
                                 @else
-                                    <a href="{{ route('register') }}" class="mt-7 inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition bg-indigo-600 text-white hover:bg-indigo-700">Pilih {{ $plan['name'] }}</a>
+                                    <a href="{{ route('register') }}" class="mt-7 inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition {{ $mp['pop'] ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-slate-900 text-white hover:opacity-90' }}">Pilih {{ $mp['name'] }}</a>
                                 @endif
                             </div>
                         @endforeach
 
-                        {{-- Kartu CUSTOMIZE (harga fleksibel -> WhatsApp) --}}
-                        @php
-                            $waCustom = 'https://wa.me/6282362211676?text=' . rawurlencode('Halo, saya tertarik dengan paket Customize Mooda. Boleh info fitur & harga rekomendasinya?');
-                            $customFeatures = [
-                                'Semua fitur paket Starter',
-                                'Pilih & atur modul sesuai kebutuhan',
-                                'Tambah fitur / menu khusus (custom)',
-                                'Jumlah staf fleksibel',
-                                'Harga rekomendasi sesuai pilihan fitur',
-                                'Konsultasi & support prioritas',
-                            ];
-                        @endphp
+                        {{-- 4) CUSTOMIZE — kontrak 2 tahun, konsultasi WhatsApp --}}
                         <div class="relative flex flex-col rounded-3xl border-2 border-emerald-400 bg-white p-8 shadow-xl shadow-emerald-100">
                             <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 px-4 py-1 text-xs font-bold text-white shadow">Fleksibel</span>
                             <h3 class="text-xl font-bold text-slate-900">Customize</h3>
-                            <p class="mt-1.5 min-h-[40px] text-sm text-slate-500">Rakit paketmu sendiri — pilih fitur & tambah sesuai kebutuhan bisnis.</p>
+                            <p class="mt-1.5 min-h-[40px] text-sm text-slate-500">Rakit paketmu sendiri — kontrak 2 tahun, fitur menyesuaikan bisnis.</p>
                             <div class="mt-4 flex items-end gap-1">
                                 <span class="text-4xl font-extrabold tracking-tight text-slate-900">Custom</span>
-                                <span class="pb-1 text-sm text-slate-500">/sesuai fitur</span>
+                                <span class="pb-1 text-sm text-slate-500">/per 2 tahun</span>
                             </div>
                             <ul class="mt-5 flex-1 space-y-2.5">
                                 @foreach ($customFeatures as $f)
-                                    <li class="flex items-start gap-2.5 text-sm text-slate-700">
-                                        <svg class="mt-0.5 h-5 w-5 flex-none text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 0 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg>
-                                        <span>{{ $f }}</span>
-                                    </li>
+                                    <li class="flex items-start gap-2.5 text-sm text-slate-700">{!! $check !!}<span>{{ $f }}</span></li>
                                 @endforeach
                             </ul>
                             <a href="{{ $waCustom }}" target="_blank" rel="noopener" class="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90">
