@@ -117,6 +117,7 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         // Setelan Plan Deposit (platform-wide, Superadmin)
         Route::get('/admin/deposit-settings', [DepositSettingController::class, 'index'])->name('deposit-settings.index');
         Route::post('/admin/deposit-settings', [DepositSettingController::class, 'update'])->name('deposit-settings.update');
+        Route::post('/admin/deposit-settings/manual-topup', [DepositSettingController::class, 'manualTopup'])->name('deposit-settings.manual-topup');
     });
 
     // ====================================================

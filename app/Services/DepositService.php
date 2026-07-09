@@ -30,11 +30,11 @@ class DepositService
             /** @var Tenant $t */
             $t = Tenant::whereKey($tenant->getKey())->lockForUpdate()->firstOrFail();
 
-            $max = DepositConfig::maxPoints();
+            $max = DepositConfig::maxPoints(); // null = tanpa batas
             $newBalance = (float) $t->deposit_points + $points;
             // Cap ditegakkan saat CHECKOUT (sebelum bayar). Saat settlement webhook
             // ($enforceCap=false) poin tetap dikreditkan karena pembayaran sudah terjadi.
-            if ($enforceCap && $newBalance > $max) {
+            if ($enforceCap && $max !== null && $newBalance > $max) {
                 throw new \RuntimeException(
                     'Top-up ditolak: saldo akan menjadi Rp' . number_format($newBalance, 0, ',', '.') .
                     ', melebihi batas maksimum poin Rp' . number_format($max, 0, ',', '.') . '.'
@@ -184,10 +184,42 @@ class DepositService
         return true;
     }
 
-    /** Apakah top-up nominal ini muat tanpa melewati batas maksimum. */
+    /** Apakah top-up nominal ini muat tanpa melewati batas maksimum (true bila tanpa batas). */
     public function canTopUp(Tenant $tenant, int $tierPoints): bool
     {
-        return ((float) $tenant->deposit_points + $tierPoints) <= DepositConfig::maxPoints();
+        $max = DepositConfig::maxPoints();
+        if ($max === null) {
+            return true;
+        }
+
+        return ((float) $tenant->deposit_points + $tierPoints) <= $max;
+    }
+
+    /**
+     * Akun deposit yang BELUM pernah top-up sukses -> wajib top-up awal Rp{initial}.
+     * Akun demo (punya ledger topup dari seeder) otomatis dikecualikan.
+     */
+    public function needsInitialTopup(Tenant $tenant): bool
+    {
+        if (! $tenant->isDepositMode()) {
+            return false;
+        }
+
+        return ! DepositTransaction::where('tenant_id', $tenant->id)
+            ->whereIn('type', ['topup', 'adjustment'])
+            ->where('points', '>', 0)
+            ->exists();
+    }
+
+    /**
+     * Top-up manual oleh Superadmin (mis. transfer bank + konfirmasi WA). Karena
+     * pembayaran sudah diterima di luar sistem, batas maksimum TIDAK ditegakkan.
+     */
+    public function manualCredit(Tenant $tenant, int $points, ?int $cashAmount, ?string $adminUserId, string $note = ''): Tenant
+    {
+        $desc = 'Top-up manual (transfer bank) oleh Superadmin' . ($note !== '' ? ' — ' . $note : '');
+
+        return $this->credit($tenant, $points, $cashAmount, 'manual', $adminUserId, $desc, false);
     }
 
     /**
@@ -202,7 +234,7 @@ class DepositService
         $recommended = null;
         foreach (DepositConfig::tiers() as $tier) {
             $resulting = $balance + $tier->points;
-            $fits      = $resulting <= $max;
+            $fits      = $max === null ? true : ($resulting <= $max);
             $options[] = [
                 'amount'            => $tier->amount,
                 'points'            => $tier->points,

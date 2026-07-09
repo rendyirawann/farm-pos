@@ -55,12 +55,15 @@ class LogActivityController extends Controller implements HasMiddleware
             ->select('activity_log.*')
             ->orderBy('created_at', 'desc');
 
-        // --- TAMBAHAN LOGIC DI SINI ---
-        // Jika user BUKAN 'Superadmin', hanya tampilkan activity milik user tersebut
+        // --- SCOPING PER-TENANT ---
+        // Superadmin: lihat SEMUA activity (lintas tenant).
+        // Selain itu: lihat activity SELURUH user dalam tenant yang sama (bukan hanya diri sendiri),
+        // sehingga owner/admin dapat memantau aktivitas seluruh akun di tenant tsb.
         if (!$user->hasRole('Superadmin')) {
-            $postsQuery->where('causer_id', $user->id);
+            $tenantUserIds = \App\Models\User::where('tenant_id', $user->tenant_id)->pluck('id');
+            $postsQuery->whereIn('causer_id', $tenantUserIds);
         }
-        // -----------------------------
+        // --------------------------
 
         // Pencarian Manual
         if (!empty($searchValue)) {

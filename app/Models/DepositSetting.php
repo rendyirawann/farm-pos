@@ -14,12 +14,16 @@ class DepositSetting extends Model
         'fee_per_transaction',
         'expiry_days',
         'min_deposit',
+        'initial_topup',
+        'manual_wa',
+        'manual_bank',
     ];
 
     protected $casts = [
-        'max_points'          => 'integer',
+        'max_points'          => 'integer', // null diperbolehkan (unlimited); cast tidak mengubah null
         'fee_per_transaction' => 'integer',
         'expiry_days'         => 'integer',
         'min_deposit'         => 'integer',
+        'initial_topup'       => 'integer',
     ];
 }

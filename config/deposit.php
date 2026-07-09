@@ -20,6 +20,7 @@ return [
 
     // Batas maksimum SALDO poin. Top-up yang membuat saldo melewati ini ditolak.
     // 70.000 agar tier terbesar (bayar 50.000 => 62.500 poin) tetap muat dari saldo nol.
+    // Bila null/0 (dikosongkan di Superadmin) => tanpa batas (unlimited).
     'max_points' => 70000,
 
     // Potongan poin per transaksi (pesanan diselesaikan). Bisa diubah Superadmin.
@@ -28,8 +29,17 @@ return [
     // Poin hangus bila tidak ada aktivitas (top-up/pemakaian) selama sekian hari.
     'expiry_days' => 60,
 
-    // Minimal nominal 1x deposit.
+    // Minimal nominal top-up LANJUTAN (setelah aktivasi). Nominal bebas di atas ini.
     'min_deposit' => 5000,
+
+    // Nominal top-up WAJIB pertama kali untuk mengaktifkan plan deposit (akun baru).
+    // Dapat 62.500 poin (dari tier 50.000). Akun demo yang sudah punya saldo dikecualikan.
+    'initial_topup' => 50000,
+
+    // Info top-up manual (bila pembayaran otomatis bermasalah): transfer bank + chat WA,
+    // lalu Superadmin kreditkan poin. Bisa diubah Superadmin.
+    'manual_wa'   => env('DEPOSIT_MANUAL_WA', '6282362211676'),
+    'manual_bank' => env('DEPOSIT_MANUAL_BANK', ''),
 
     // Tier top-up default: nominal (Rupiah dibayar) => poin diterima (sudah termasuk bonus).
     'tiers' => [

@@ -46,6 +46,12 @@ class DepositController extends Controller
             'clientKey'        => config('services.midtrans.client_key'),
             'isProduction'     => (bool) config('services.midtrans.is_production', false),
             'monthlyActive'    => $tenant->monthlyActive(),
+            'needsInitial'     => $this->deposit->needsInitialTopup($tenant),
+            'initialTopup'     => DepositConfig::initialTopup(),
+            'initialPoints'    => (int) DepositConfig::pointsForTopup(DepositConfig::initialTopup()),
+            'minTopup'         => DepositConfig::minDeposit(),
+            'manualWa'         => DepositConfig::manualWa(),
+            'manualBank'       => DepositConfig::manualBank(),
         ]);
     }
 
@@ -64,14 +70,37 @@ class DepositController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Tenant tidak ditemukan.'], 404);
         }
 
-        // Nominal harus salah satu tier aktif; poin dihitung server-side (anti-manipulasi).
         $amount = (int) $request->input('amount', 0);
-        $points = DepositConfig::pointsFor($amount);
+
+        // Aktivasi: akun deposit baru WAJIB top-up awal sebesar initialTopup (mis. 50.000).
+        // Setelah aktif, boleh top-up nominal bebas (>= minimal).
+        if ($this->deposit->needsInitialTopup($tenant)) {
+            $initial = DepositConfig::initialTopup();
+            if ($amount !== $initial) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Aktivasi plan deposit mewajibkan top-up awal Rp' . number_format($initial, 0, ',', '.')
+                        . ' (dapat ' . number_format((int) DepositConfig::pointsForTopup($initial), 0, ',', '.') . ' poin). Silakan pilih nominal tersebut.',
+                ], 422);
+            }
+        } else {
+            $min = DepositConfig::minDeposit();
+            if ($amount < $min) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Minimal top-up Rp' . number_format($min, 0, ',', '.') . '.',
+                ], 422);
+            }
+        }
+
+        // Poin dihitung server-side (anti-manipulasi): cocok tier -> poin tier (bonus);
+        // selain itu -> 1:1 (poin = nominal).
+        $points = DepositConfig::pointsForTopup($amount);
         if ($points === null) {
             return response()->json(['status' => 'error', 'message' => 'Nominal top-up tidak valid.'], 422);
         }
 
-        // Cek batas maksimum saldo poin.
+        // Cek batas maksimum saldo poin (null = tanpa batas -> selalu lolos).
         if (! $this->deposit->canTopUp($tenant, $points)) {
             $opt = $this->deposit->tierOptions($tenant);
             $msg = $opt['any_fits']

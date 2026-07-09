@@ -21,8 +21,8 @@
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Maksimum Saldo Poin (Rp)</label>
                                 <input type="number" name="max_points" min="0" class="form-control"
-                                    value="{{ old('max_points', $settings->max_points) }}" required>
-                                <div class="form-text">Top-up yang melewati batas ini ditolak.</div>
+                                    value="{{ old('max_points', $settings->max_points) }}" placeholder="Kosongkan = tanpa batas">
+                                <div class="form-text">Kosong / 0 = <b>tanpa batas</b> (unlimited).</div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Potongan / Transaksi (Rp)</label>
@@ -37,18 +37,36 @@
                                 <div class="form-text">Poin hangus bila tak dipakai sekian hari.</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-semibold">Minimal Deposit (Rp)</label>
+                                <label class="form-label fw-semibold">Top-up Awal / Aktivasi (Rp)</label>
+                                <input type="number" name="initial_topup" min="1" class="form-control"
+                                    value="{{ old('initial_topup', $settings->initial_topup) }}" required>
+                                <div class="form-text">Wajib untuk akun deposit baru.</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Min. Top-up Lanjutan (Rp)</label>
                                 <input type="number" name="min_deposit" min="0" class="form-control"
                                     value="{{ old('min_deposit', $settings->min_deposit) }}" required>
+                                <div class="form-text">Nominal bebas di atas ini (setelah aktif).</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">WhatsApp Admin (top-up manual)</label>
+                                <input type="text" name="manual_wa" class="form-control"
+                                    value="{{ old('manual_wa', $settings->manual_wa) }}" placeholder="mis. 6282362211676">
+                                <div class="form-text">Format 62xxx. Untuk tombol chat di halaman tenant.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Info Rekening Bank (top-up manual)</label>
+                                <input type="text" name="manual_bank" class="form-control"
+                                    value="{{ old('manual_bank', $settings->manual_bank) }}" placeholder="mis. BCA 1234567890 a.n. Mooda">
                             </div>
                         </div>
 
                         <div class="alert alert-info d-flex align-items-center mt-6 mb-0">
                             <i class="ki-outline ki-information-5 fs-2x text-info me-4"></i>
                             <div class="text-gray-700 fs-7">
-                                Catatan: bila bonus membuat poin sebuah tier melebihi <b>Maksimum Saldo Poin</b>, tier itu
-                                akan otomatis <b>ter-nonaktif dari sisi tenant</b> (tidak muat) walau di sini masih aktif.
-                                Contoh: maks 50.000 + tier bayar 50.000 → 62.500 poin ⇒ tak akan pernah muat. Naikkan maks
+                                Catatan: bila ada <b>batas maksimum</b> dan bonus membuat poin sebuah tier melebihi batas, tier itu
+                                otomatis <b>ter-nonaktif dari sisi tenant</b> (tidak muat) walau di sini masih aktif.
+                                Contoh: maks 50.000 + tier bayar 50.000 → 62.500 poin ⇒ tak akan pernah muat. Naikkan/kosongkan batas
                                 bila ingin tier besar tetap bisa dipakai.
                             </div>
                         </div>
@@ -108,6 +126,86 @@
                 </div>
 
             </form>
+
+            {{-- ====== TOP-UP MANUAL KE TENANT ====== --}}
+            <div class="card card-flush mt-8">
+                <div class="card-header pt-5">
+                    <h3 class="card-title fw-bold text-gray-800 fs-3">Top-up Manual ke Tenant</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info d-flex align-items-center mb-5">
+                        <i class="ki-outline ki-information-5 fs-2x text-info me-4"></i>
+                        <div class="text-gray-700 fs-7">Gunakan setelah tenant transfer ke bank & konfirmasi via WhatsApp. Poin langsung masuk ke saldo tenant dan tercatat di Riwayat Poin mereka + activity log. Batas maksimum tidak berlaku untuk top-up manual.</div>
+                    </div>
+                    <form action="{{ route('deposit-settings.manual-topup') }}" method="POST">
+                        @csrf
+                        <div class="row g-5 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Tenant (mode deposit)</label>
+                                <select name="tenant_id" class="form-select" required>
+                                    <option value="">— pilih tenant —</option>
+                                    @foreach ($tenants as $t)
+                                        <option value="{{ $t->id }}">{{ $t->name }} — saldo Rp{{ number_format($t->deposit_points, 0, ',', '.') }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-semibold">Nominal Transfer (Rp)</label>
+                                <input type="number" name="amount" id="manual-amount" min="0" class="form-control" placeholder="opsional">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label fw-semibold">Poin Dikreditkan</label>
+                                <input type="number" name="points" id="manual-points" min="1" class="form-control" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Catatan (mis. ref transfer)</label>
+                                <input type="text" name="note" class="form-control" maxlength="255" placeholder="BCA ref 12345">
+                            </div>
+                            <div class="col-md-1">
+                                <button type="submit" class="btn btn-success w-100">Kredit</button>
+                            </div>
+                        </div>
+                    </form>
+                    @if ($tenants->isEmpty())
+                        <div class="text-muted fs-7 mt-3">Belum ada tenant yang memakai plan deposit.</div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- ====== RIWAYAT TOP-UP MANUAL ====== --}}
+            <div class="card card-flush mt-8">
+                <div class="card-header pt-5">
+                    <h3 class="card-title fw-bold text-gray-800 fs-3">Riwayat Top-up Manual Terbaru</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-row-dashed align-middle gs-0 gy-3">
+                            <thead>
+                                <tr class="fw-bold text-muted fs-7 text-uppercase">
+                                    <th>Waktu</th>
+                                    <th>Tenant</th>
+                                    <th class="text-end">Poin</th>
+                                    <th class="text-end">Nominal</th>
+                                    <th>Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($recentManual as $row)
+                                    <tr>
+                                        <td class="text-gray-700">{{ $row->created_at->translatedFormat('d M Y H:i') }}</td>
+                                        <td class="fw-semibold">{{ $row->tenant->name ?? '—' }}</td>
+                                        <td class="text-end text-success fw-bold">+Rp{{ number_format($row->points, 0, ',', '.') }}</td>
+                                        <td class="text-end text-gray-700">{{ $row->cash_amount ? 'Rp' . number_format($row->cash_amount, 0, ',', '.') : '—' }}</td>
+                                        <td class="text-gray-600 fs-7">{{ $row->description }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="5" class="text-center text-muted py-6">Belum ada top-up manual.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -157,6 +255,13 @@
             document.getElementById('tier-rows').appendChild(tr);
             bindRow(tr);
         });
+
+        // Top-up manual: auto-isi poin = nominal transfer (1:1); admin bisa ubah.
+        var mAmount = document.getElementById('manual-amount');
+        var mPoints = document.getElementById('manual-points');
+        if (mAmount && mPoints) {
+            mAmount.addEventListener('input', function () { mPoints.value = mAmount.value; });
+        }
 
         @if (session('success'))
             Swal.fire({ icon: 'success', title: 'Berhasil!', text: @json(session('success')), timer: 3000 });
