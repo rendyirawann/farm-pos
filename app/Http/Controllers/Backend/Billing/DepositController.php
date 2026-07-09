@@ -72,32 +72,24 @@ class DepositController extends Controller
 
         $amount = (int) $request->input('amount', 0);
 
-        // Aktivasi: akun deposit baru WAJIB top-up awal sebesar initialTopup (mis. 50.000).
-        // Setelah aktif, boleh top-up nominal bebas (>= minimal).
+        // Aktivasi: akun deposit baru WAJIB memilih paket top-up awal (mis. Rp50.000).
         if ($this->deposit->needsInitialTopup($tenant)) {
             $initial = DepositConfig::initialTopup();
             if ($amount !== $initial) {
                 return response()->json([
                     'status'  => 'error',
                     'message' => 'Aktivasi plan deposit mewajibkan top-up awal Rp' . number_format($initial, 0, ',', '.')
-                        . ' (dapat ' . number_format((int) DepositConfig::pointsForTopup($initial), 0, ',', '.') . ' poin). Silakan pilih nominal tersebut.',
+                        . ' (dapat ' . number_format((int) DepositConfig::pointsForTopup($initial), 0, ',', '.') . ' poin). Silakan pilih paket tersebut.',
                 ], 422);
             }
+            $points = DepositConfig::pointsForTopup($amount);
         } else {
-            $min = DepositConfig::minDeposit();
-            if ($amount < $min) {
-                return response()->json([
-                    'status'  => 'error',
-                    'message' => 'Minimal top-up Rp' . number_format($min, 0, ',', '.') . '.',
-                ], 422);
-            }
+            // Hanya nominal paket/tier aktif yang diterima (tidak ada nominal bebas).
+            $points = DepositConfig::pointsFor($amount);
         }
 
-        // Poin dihitung server-side (anti-manipulasi): cocok tier -> poin tier (bonus);
-        // selain itu -> 1:1 (poin = nominal).
-        $points = DepositConfig::pointsForTopup($amount);
         if ($points === null) {
-            return response()->json(['status' => 'error', 'message' => 'Nominal top-up tidak valid.'], 422);
+            return response()->json(['status' => 'error', 'message' => 'Nominal top-up tidak valid. Silakan pilih paket yang tersedia.'], 422);
         }
 
         // Cek batas maksimum saldo poin (null = tanpa batas -> selalu lolos).

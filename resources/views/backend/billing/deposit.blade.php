@@ -128,8 +128,7 @@
                             </div>
                         @endunless
 
-                        <div class="fs-7 fw-bold text-muted text-uppercase mb-3">Paket bonus</div>
-                        <div class="row g-5 mb-8">
+                        <div class="row g-5">
                             @foreach ($tiers['options'] as $opt)
                                 @php $recommended = $tiers['recommended'] === $opt['amount']; @endphp
                                 <div class="col-6 col-md-3">
@@ -153,22 +152,6 @@
                                     </div>
                                 </div>
                             @endforeach
-                        </div>
-
-                        <div class="fs-7 fw-bold text-muted text-uppercase mb-3">Nominal bebas (1:1, tanpa bonus)</div>
-                        <div class="row g-3 align-items-end">
-                            <div class="col-sm-5">
-                                <label class="form-label fs-7 text-muted">Masukkan nominal (min Rp{{ number_format($minTopup, 0, ',', '.') }})</label>
-                                <input type="number" id="custom-amount" class="form-control" min="{{ $minTopup }}" step="1000" placeholder="mis. 17000" {{ $purchaseEnabled ? '' : 'disabled' }}>
-                                <div class="fs-8 text-muted mt-1" id="custom-points-hint">Poin didapat = nominal (1 poin = Rp1).</div>
-                            </div>
-                            <div class="col-sm-3">
-                                @if ($purchaseEnabled)
-                                    <button class="btn btn-primary w-100" id="btn-topup-custom">Top Up</button>
-                                @else
-                                    <button class="btn btn-light w-100" disabled>Segera Hadir</button>
-                                @endif
-                            </div>
                         </div>
                     @endif
                 </div>
@@ -205,8 +188,8 @@
                 </div>
                 <div class="card-body">
                     <ul class="text-gray-700 fs-6 lh-lg mb-0">
-                        <li><b>Aktivasi:</b> akun baru wajib top-up awal <b>Rp{{ number_format($initialTopup, 0, ',', '.') }}</b> (dapat {{ number_format($initialPoints, 0, ',', '.') }} poin). Setelah aktif, top-up lanjutan bebas nominal (min Rp{{ number_format($minTopup, 0, ',', '.') }}).</li>
-                        <li>Poin bernilai Rupiah (1 poin = Rp1). <b>Paket preset</b> dapat bonus; <b>nominal bebas</b> dihitung 1:1 (tanpa bonus).</li>
+                        <li><b>Aktivasi:</b> akun baru wajib top-up awal <b>Rp{{ number_format($initialTopup, 0, ',', '.') }}</b> (dapat {{ number_format($initialPoints, 0, ',', '.') }} poin). Top-up selanjutnya memilih paket yang tersedia.</li>
+                        <li>Poin bernilai Rupiah (1 poin = Rp1) dan sudah termasuk bonus tiap paket.</li>
                         <li>Saldo poin {!! $maxPoints ? 'maksimum <b>Rp' . number_format($maxPoints, 0, ',', '.') . '</b> — top-up yang melebihi batas ditolak (sistem menyarankan nominal yang muat)' : '<b>tanpa batas</b>' !!}.</li>
                         <li>Tiap transaksi (pesanan diselesaikan) dipotong <b>Rp{{ number_format($fee, 0, ',', '.') }}</b>. Bila poin tidak cukup, transaksi tidak bisa diselesaikan sampai Anda top-up lagi.</li>
                         <li>Untuk mencegah kecurangan: bila masih ada pesanan menggantung/belum dibayar, Anda <b>tidak bisa menutup atau membuka shift</b> sampai pesanan diselesaikan.</li>
@@ -329,28 +312,6 @@
                 topupRequest(parseInt(btn.dataset.amount, 10), btn);
             });
         });
-
-        // Nominal bebas (1:1)
-        var customBtn = document.getElementById('btn-topup-custom');
-        var customInput = document.getElementById('custom-amount');
-        if (customBtn && customInput) {
-            customBtn.addEventListener('click', function () {
-                var amount = parseInt(customInput.value, 10);
-                var min = parseInt(customInput.min, 10) || 0;
-                if (!amount || amount < min) {
-                    Swal.fire('Nominal tidak valid', 'Masukkan nominal minimal Rp' + min.toLocaleString('id-ID') + '.', 'warning');
-                    return;
-                }
-                topupRequest(amount, customBtn);
-            });
-            customInput.addEventListener('input', function () {
-                var v = parseInt(customInput.value, 10) || 0;
-                var hint = document.getElementById('custom-points-hint');
-                if (hint) hint.textContent = v > 0
-                    ? ('Dapat ' + v.toLocaleString('id-ID') + ' poin (1:1).')
-                    : 'Poin didapat = nominal (1 poin = Rp1).';
-            });
-        }
 
         // Flash messages
         @if (session('success'))
