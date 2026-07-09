@@ -42,6 +42,10 @@ window.MoodaPrint = (function () {
                 'Gunakan Chrome/Edge & akses lewat HTTPS, atau aktifkan "Web Bluetooth" di pengaturan browser.';
         }
         if (/cancel|dismiss|no devices|chooser|user gesture/i.test(msg)) return null; // user batal/tak pilih
+        if (/gatt|disconnect|network error|operation failed|unreachable|no such/i.test(msg)) {
+            return 'Printer Bluetooth sempat terputus. Sistem menyambung ulang otomatis — tunggu beberapa detik lalu coba cetak lagi. ' +
+                'Pastikan printer menyala & dekat. (Cetak Bluetooth tidak butuh internet.)';
+        }
         return msg;
     }
 
@@ -186,6 +190,7 @@ window.MoodaPrint = (function () {
 
     // -------- Web Bluetooth (auto-reconnect tahan-banting) --------
     let bleChar = null, bleDevice = null, bleReconnecting = false;
+    let bleWatchdog = null, bleWantConnected = false;
 
     async function discoverWritable(server) {
         const svcs = await server.getPrimaryServices();
@@ -223,13 +228,24 @@ window.MoodaPrint = (function () {
     // agar tidak perlu klik "Hubungkan" lagi saat mau cetak.
     async function onBleDisconnect() {
         bleChar = null;
-        if (bleReconnecting || !bleDevice) return;
+        if (bleReconnecting || !bleDevice || !bleWantConnected) return;
         bleReconnecting = true;
         try {
             const server = await connectGatt(bleDevice, 3);
             bleChar = await acquireChar(server);
-        } catch (e) { /* biarkan; dicoba lagi saat cetak */ }
+        } catch (e) { /* gagal; watchdog akan mencoba lagi otomatis */ }
         finally { bleReconnecting = false; }
+    }
+
+    // Watchdog: cek berkala & sambung ulang otomatis bila printer terputus saat idle,
+    // supaya koneksi "diingat" dan tetap siap cetak tanpa perlu klik Hubungkan lagi.
+    function startBleWatchdog() {
+        if (bleWatchdog) return;
+        bleWatchdog = setInterval(function () {
+            if (!bleWantConnected || !bleDevice || bleReconnecting) return;
+            const connected = bleDevice.gatt && bleDevice.gatt.connected;
+            if (!connected) { onBleDisconnect(); }
+        }, 15000);
     }
 
     // Pastikan terhubung + karakteristik siap sebelum menulis.
@@ -257,7 +273,9 @@ window.MoodaPrint = (function () {
             optionalServices: BLE_PRINTER_SERVICES,
         });
         bleDevice = dev;
+        bleWantConnected = true;
         bindDisconnect(dev);
+        startBleWatchdog();
         const server = await connectGatt(dev);
         bleChar = await acquireChar(server);
         return dev.name || 'Printer BT';
@@ -265,16 +283,16 @@ window.MoodaPrint = (function () {
 
     async function printBle(r) {
         const bytes = bytesFromReceipt(r);
-        // Tulis; jika putus di tengah, sambung ulang sekali lalu ulangi sebelum menyerah.
-        for (let attempt = 0; attempt < 2; attempt++) {
+        // Tulis; jika putus di tengah, sambung ulang lalu ulangi (beberapa kali) sebelum menyerah.
+        for (let attempt = 0; attempt < 3; attempt++) {
             try {
                 await ensureBle();
                 await writeChunks(bytes);
                 return;
             } catch (e) {
                 bleChar = null;
-                if (attempt === 1) throw e;
-                await sleep(300);
+                if (attempt === 2) throw e;
+                await sleep(400 * (attempt + 1));
             }
         }
     }
@@ -288,7 +306,9 @@ window.MoodaPrint = (function () {
             const devs = await navigator.bluetooth.getDevices();
             if (!devs || !devs.length) return false;
             bleDevice = devs[0];
+            bleWantConnected = true;
             bindDisconnect(bleDevice);
+            startBleWatchdog();
             connectGatt(bleDevice, 2).then(s => acquireChar(s)).then(c => { bleChar = c; }).catch(() => {});
             return true;
         } catch (e) { return false; }

@@ -198,20 +198,21 @@
                 </div>
             </div>
 
-            {{-- Plan Deposit: sisa poin (hanya untuk tenant mode deposit) --}}
+            {{-- Plan Deposit: sisa saldo (hanya untuk tenant mode deposit) --}}
             @if (!empty($depositMode))
+                @php $depLow = ($depositPoints ?? 0) <= ($depositWarningThreshold ?? 10000); @endphp
                 <div class="px-1 mb-6">
-                    <div class="border border-{{ ($depositPoints ?? 0) < ($depositFee ?? 150) ? 'danger' : 'warning' }} border-dashed bg-light-{{ ($depositPoints ?? 0) < ($depositFee ?? 150) ? 'danger' : 'warning' }} rounded w-100 py-3 px-4">
+                    <div class="border border-{{ $depLow ? 'danger' : 'success' }} border-dashed bg-light-{{ $depLow ? 'danger' : 'success' }} rounded w-100 py-3 px-4">
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="fs-6 text-{{ ($depositPoints ?? 0) < ($depositFee ?? 150) ? 'danger' : 'warning' }} fw-bold">Sisa Poin Deposit</span>
+                            <span class="fs-6 text-{{ $depLow ? 'danger' : 'success' }} fw-bold">Sisa Saldo Deposit</span>
                             @can('view_billing')
                                 <a href="{{ route('deposit.index') }}" class="badge badge-light-primary">Top Up</a>
                             @endcan
                         </div>
-                        <div id="sb-deposit-points" class="fs-2 fw-bold text-gray-800">Rp {{ number_format($depositPoints ?? 0, 0, ',', '.') }}</div>
-                        <div class="fs-8 text-muted">Potongan Rp{{ number_format($depositFee ?? 150, 0, ',', '.') }} / transaksi</div>
-                        @if (($depositPoints ?? 0) < ($depositFee ?? 150))
-                            <div class="fs-8 text-danger fw-semibold mt-1">Poin habis — top up untuk transaksi.</div>
+                        <div id="sb-deposit-points" class="fs-2 fw-bold {{ $depLow ? 'text-danger' : 'text-gray-800' }}">Rp {{ number_format($depositPoints ?? 0, 0, ',', '.') }}</div>
+                        <div class="fs-8 text-muted">Potongan Rp{{ number_format($depositFee ?? 169, 0, ',', '.') }} / transaksi</div>
+                        @if ($depLow)
+                            <div class="fs-8 text-danger fw-bold mt-1">Saldo menipis — segera top up!</div>
                         @elseif (!empty($depositExpiringSoon) && !empty($depositExpiresAt))
                             <div class="fs-8 text-danger fw-semibold mt-1">Hangus {{ \Carbon\Carbon::parse($depositExpiresAt)->translatedFormat('d M Y') }} bila tak dipakai.</div>
                         @endif

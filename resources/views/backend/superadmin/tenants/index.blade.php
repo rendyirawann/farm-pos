@@ -99,6 +99,37 @@
                         error: function () { alert('Gagal mengubah status tenant.'); }
                     });
                 });
+
+                // Hapus tenant (tombol hanya muncul untuk tenant yang di-suspend)
+                $(document).on('click', '.btn-delete-tenant', function () {
+                    const id = $(this).data('id');
+                    const name = $(this).data('name');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Hapus tenant?',
+                        html: 'Tenant <b>' + $('<div>').text(name).html() + '</b> beserta seluruh akun & datanya akan <b>dihapus permanen</b>. Tindakan ini tidak bisa dibatalkan.',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, hapus permanen',
+                        cancelButtonText: 'Batal',
+                        buttonsStyling: false,
+                        customClass: { confirmButton: 'btn btn-danger', cancelButton: 'btn btn-light' },
+                    }).then((r) => {
+                        if (!r.isConfirmed) return;
+                        $.ajax({
+                            url: "{{ url('admin/tenants') }}/" + id,
+                            method: 'POST',
+                            data: { _method: 'DELETE', _token: '{{ csrf_token() }}' },
+                            success: function (res) {
+                                table.ajax.reload(null, false);
+                                Swal.fire({ icon: 'success', title: 'Terhapus', text: (res && res.message) || 'Tenant berhasil dihapus.', timer: 2500, showConfirmButton: false });
+                            },
+                            error: function (xhr) {
+                                const msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Gagal menghapus tenant.';
+                                Swal.fire('Gagal', msg, 'error');
+                            }
+                        });
+                    });
+                });
             });
         </script>
     @endpush

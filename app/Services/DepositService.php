@@ -37,7 +37,7 @@ class DepositService
             if ($enforceCap && $max !== null && $newBalance > $max) {
                 throw new \RuntimeException(
                     'Top-up ditolak: saldo akan menjadi Rp' . number_format($newBalance, 0, ',', '.') .
-                    ', melebihi batas maksimum poin Rp' . number_format($max, 0, ',', '.') . '.'
+                    ', melebihi batas maksimum saldo Rp' . number_format($max, 0, ',', '.') . '.'
                 );
             }
 
@@ -81,7 +81,7 @@ class DepositService
 
             if ((float) $t->deposit_points < $points) {
                 throw new \RuntimeException(
-                    'Poin deposit tidak cukup (sisa Rp' . number_format($t->deposit_points, 0, ',', '.') . ').'
+                    'Saldo deposit tidak cukup (sisa Rp' . number_format($t->deposit_points, 0, ',', '.') . ').'
                 );
             }
 
@@ -125,7 +125,7 @@ class DepositService
                 'type'          => 'expiry',
                 'points'        => -1 * $balance,
                 'balance_after' => 0,
-                'description'   => 'Poin hangus (lebih dari ' . DepositConfig::expiryDays() . ' hari tidak dipakai)',
+                'description'   => 'Saldo hangus (lebih dari ' . DepositConfig::expiryDays() . ' hari tidak dipakai)',
             ]);
 
             return $t;

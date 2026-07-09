@@ -164,16 +164,16 @@ License: Proprietary - Mooda System
                             </div>
                         @endif
 
-                        {{-- Banner plan deposit: poin habis / akan hangus --}}
+                        {{-- Banner plan deposit: saldo menipis / akan hangus --}}
                         @if (isset($currentTenant) && $currentTenant && $currentTenant->isDepositMode() && $currentTenant->hasActiveAccess())
-                            @if (($depositPoints ?? 0) < ($depositFee ?? 150))
+                            @if (($depositPoints ?? 0) <= ($depositWarningThreshold ?? 10000))
                                 <div class="app-container container-xxl mt-4">
                                     <div class="alert alert-danger d-flex flex-column flex-sm-row align-items-sm-center justify-content-between mb-0">
                                         <div class="d-flex align-items-center">
                                             <i class="ki-outline ki-wallet fs-2x text-danger me-3"></i>
                                             <div>
-                                                <h5 class="mb-1">Poin deposit habis</h5>
-                                                <span class="text-gray-700">Sisa poin Rp{{ number_format($depositPoints ?? 0, 0, ',', '.') }}. Transaksi tidak bisa diselesaikan sebelum top up (potongan Rp{{ number_format($depositFee ?? 150, 0, ',', '.') }}/transaksi).</span>
+                                                <h5 class="mb-1">Saldo deposit menipis</h5>
+                                                <span class="text-gray-700">Sisa saldo Rp{{ number_format($depositPoints ?? 0, 0, ',', '.') }}. Segera top up (potongan Rp{{ number_format($depositFee ?? 169, 0, ',', '.') }}/transaksi). Bila saldo habis, transaksi tidak bisa diselesaikan.</span>
                                             </div>
                                         </div>
                                         @can('view_billing')
@@ -187,8 +187,8 @@ License: Proprietary - Mooda System
                                         <div class="d-flex align-items-center">
                                             <i class="ki-outline ki-time fs-2x text-warning me-3"></i>
                                             <div>
-                                                <h5 class="mb-1">Poin akan hangus</h5>
-                                                <span class="text-gray-700">Sisa poin Rp{{ number_format($depositPoints ?? 0, 0, ',', '.') }} akan hangus pada {{ \Carbon\Carbon::parse($depositExpiresAt)->translatedFormat('d F Y') }} bila tidak ada transaksi/top-up. Poin hangus setelah {{ \App\Tenancy\DepositConfig::expiryDays() }} hari tidak dipakai.</span>
+                                                <h5 class="mb-1">Saldo akan hangus</h5>
+                                                <span class="text-gray-700">Sisa saldo Rp{{ number_format($depositPoints ?? 0, 0, ',', '.') }} akan hangus pada {{ \Carbon\Carbon::parse($depositExpiresAt)->translatedFormat('d F Y') }} bila tidak ada transaksi/top-up. Saldo hangus setelah {{ \App\Tenancy\DepositConfig::expiryDays() }} hari tidak dipakai.</span>
                                             </div>
                                         </div>
                                         @can('view_billing')

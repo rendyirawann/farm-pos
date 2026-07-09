@@ -14,6 +14,7 @@ class DepositSetting extends Model
         'fee_per_transaction',
         'expiry_days',
         'min_deposit',
+        'warning_threshold',
         'initial_topup',
         'manual_wa',
         'manual_bank',
@@ -24,6 +25,7 @@ class DepositSetting extends Model
         'fee_per_transaction' => 'integer',
         'expiry_days'         => 'integer',
         'min_deposit'         => 'integer',
+        'warning_threshold'   => 'integer',
         'initial_topup'       => 'integer',
     ];
 }

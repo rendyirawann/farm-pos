@@ -104,6 +104,11 @@
                                             data-bs-toggle="tab" href="#tab-completed">Selesai
                                             <span class="badge badge-success ms-1" id="count-completed">0</span></a>
                                     </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link btn btn-sm btn-color-muted btn-active-light-warning fw-bold"
+                                            data-bs-toggle="tab" href="#tab-offline">Offline
+                                            <span class="badge badge-warning ms-1" id="count-offline">0</span></a>
+                                    </li>
                                     <li class="nav-item ms-auto d-flex align-items-center gap-1">
                                         @can('sales.target')
                                             <button class="btn btn-sm btn-icon btn-light-primary" id="btn-set-target"
@@ -127,6 +132,9 @@
                                     </div>
                                     <div class="tab-pane fade pos-orders-scroll" id="tab-completed">
                                         <div id="list-completed"></div>
+                                    </div>
+                                    <div class="tab-pane fade pos-orders-scroll" id="tab-offline">
+                                        <div id="list-offline"></div>
                                     </div>
                                 </div>
                             </div>
@@ -620,7 +628,40 @@
             recalcTotals();
         }
 
-        // Offline fallback: simpan ke Dexie utk disync engine di layout
+        // Bangun struk siap-cetak dari keranjang saat ini (dipakai mode offline, tanpa jaringan).
+        function buildReceiptFromCart(payload, invoiceNo) {
+            const subtotal = cart.reduce((s, it) => s + ((it.unit || 0) * it.qty), 0);
+            let discount = 0;
+            const opt = $('#promo-select').find(':selected');
+            if (opt.val()) {
+                discount = opt.data('type') === 'percentage'
+                    ? Math.round(subtotal * (Number(opt.data('value')) / 100))
+                    : Number(opt.data('value'));
+            }
+            let net = subtotal - discount; if (net < 0) net = 0;
+            const tax = Math.round(net * (TAX_RATE / 100));
+            const total = net + tax;
+            const paid = !!payload.payment_method;
+            const cash = (paid && payload.payment_method === 'cash') ? (payload.cash_received || 0) : null;
+            return {
+                store_name: STORE_NAME,
+                invoice_no: invoiceNo,
+                queue_number: 'OFF',
+                customer_name: payload.customer_name || 'Pelanggan',
+                datetime: new Date().toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                items: cart.map(it => ({
+                    name: it.name, qty: it.qty, price: it.unit || 0, subtotal: (it.unit || 0) * it.qty,
+                    addons: (it.addons || []).map(a => a.name), notes: it.note || null,
+                })),
+                subtotal: subtotal, discount_amount: discount, tax: tax, grand_total: total,
+                payment_method: payload.payment_method || null,
+                payment_status: paid ? 'paid' : 'unpaid',
+                cash_received: cash,
+                change_amount: (cash !== null) ? Math.max(0, cash - total) : null,
+            };
+        }
+
+        // Offline fallback: simpan ke Dexie + tampilkan di tab Offline (bisa langsung dicetak).
         function handleOfflineOrder(xhr, payload) {
             if (navigator.onLine && xhr.status !== 0) {
                 const msg = (xhr.responseJSON && xhr.responseJSON.error) || 'Gagal menyimpan pesanan.';
@@ -628,13 +669,58 @@
                 return;
             }
             if (!window.posDB) { Swal.fire('Offline', 'Tidak ada koneksi & penyimpanan offline tidak tersedia.', 'error'); return; }
-            const uuid = 'off-' + Date.now() + '-' + Math.floor(Math.random() * 100000);
-            const offline = Object.assign({}, payload, { uuid, invoice_no: 'OFF-' + Date.now(), status: 'pending_sync' });
+            const ts = Date.now();
+            const uuid = 'off-' + ts + '-' + Math.floor(Math.random() * 100000);
+            const receipt = buildReceiptFromCart(payload, 'OFF-' + ts);
+            const offline = Object.assign({}, payload, {
+                uuid, invoice_no: 'OFF-' + ts, status: 'pending_sync',
+                receipt: receipt, grand_total: receipt.grand_total, items_count: (receipt.items || []).length,
+            });
             delete offline._token;
             window.posDB.offline_orders.put(offline).then(() => {
                 cart = []; renderCart(); resetCheckout();
                 if (window.updateConnectionStatus) window.updateConnectionStatus();
-                Swal.fire('Tersimpan Offline', 'Pesanan disimpan lokal & akan otomatis tersinkron saat online.', 'info');
+                loadOfflineOrders();
+                try { const t = document.querySelector('a[href="#tab-offline"]'); if (t) new bootstrap.Tab(t).show(); } catch (e) {}
+                try { const _oc = bootstrap.Offcanvas.getInstance(document.getElementById('cart-offcanvas')); if (_oc) _oc.hide(); } catch (e) {}
+                Swal.fire({ icon: 'info', title: 'Tersimpan Offline', text: 'Pesanan masuk ke tab Offline & bisa dicetak sekarang. Otomatis tersinkron saat online.', timer: 3000, showConfirmButton: false });
+            });
+        }
+
+        // ===== Daftar pesanan OFFLINE (dari Dexie, dirender lokal) =====
+        window.__offlineRows = {};
+        function offlineCard(o) {
+            const r = o.receipt || {};
+            const paid = r.payment_status === 'paid';
+            const payBadge = paid ? '<span class="badge badge-light-success">Lunas</span>' : '<span class="badge badge-light-warning">Belum Lunas</span>';
+            const n = (r.items || []).length;
+            return `
+                <div class="d-flex flex-column border border-warning border-dashed rounded p-3 mb-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="fw-bold fs-5 text-gray-800">${esc(r.customer_name || 'Pelanggan')}</span>
+                            <div class="fs-8 text-muted"><span class="badge badge-light-warning">OFFLINE</span> ${n} item • ${r.datetime || ''}</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold text-gray-800">${rupiah(r.grand_total || 0)}</div>
+                            ${payBadge}
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-2">
+                        <button class="btn btn-sm btn-light flex-fill btn-view-offline" data-uuid="${o.uuid}"><i class="ki-outline ki-eye fs-5"></i> Lihat</button>
+                        <button class="btn btn-sm btn-light-primary flex-fill btn-print-offline" data-uuid="${o.uuid}"><i class="ki-outline ki-printer fs-5"></i> Cetak Struk</button>
+                    </div>
+                </div>`;
+        }
+        function loadOfflineOrders() {
+            if (!window.posDB) return;
+            window.posDB.offline_orders.where('status').equals('pending_sync').toArray().then(rows => {
+                rows.reverse(); // terbaru di atas
+                window.__offlineRows = {};
+                rows.forEach(r => { window.__offlineRows[r.uuid] = r; });
+                $('#count-offline').text(rows.length);
+                $('#list-offline').html(rows.length ? rows.map(offlineCard).join('') :
+                    '<div class="text-center text-muted py-6">Tidak ada pesanan offline.</div>');
             });
         }
 
@@ -805,7 +891,42 @@
                     <div class="d-flex justify-content-between"><span class="text-muted">Pajak</span><span>${rupiah(o.tax)}</span></div>
                     <div class="d-flex justify-content-between fw-bold fs-4"><span>Total</span><span class="text-success">${rupiah(o.grand_total)}</span></div>
                     <div class="text-end mt-4"><button type="button" class="btn btn-sm btn-light-primary" onclick="doPrintReceipt(window.__lastDetail, '${ROUTES.print}/${o.id}')"><i class="ki-outline ki-printer"></i> Cetak Struk</button></div>`);
+            }).fail(function () {
+                $('#detail-body').html('<div class="text-center text-danger py-6">Gagal memuat detail — mungkin sedang offline. Untuk pesanan yang dibuat offline, buka tab <b>Offline</b> lalu tekan tombol <b>Cetak Struk</b>.</div>');
             });
+        });
+
+        // Cetak struk pesanan OFFLINE — langsung dari data lokal, tanpa jaringan.
+        $('body').on('click', '.btn-print-offline', function () {
+            const rec = (window.__offlineRows || {})[$(this).data('uuid')];
+            if (rec && rec.receipt) doPrintReceipt(rec.receipt, null);
+            else Swal.fire('Info', 'Data struk offline tidak ditemukan.', 'info');
+        });
+
+        // Lihat detail pesanan OFFLINE — dibangun dari data lokal (tidak fetch, tidak loading).
+        $('body').on('click', '.btn-view-offline', function () {
+            const rec = (window.__offlineRows || {})[$(this).data('uuid')];
+            if (!rec || !rec.receipt) return;
+            const r = rec.receipt; window.__lastDetail = r;
+            const rows = (r.items || []).map(it => {
+                const ad = (it.addons && it.addons.length) ? `<div class="fs-8 text-primary">+ ${it.addons.map(a => esc(a)).join(', ')}</div>` : '';
+                const nt = it.notes ? `<div class="fs-8 text-muted fst-italic">“${esc(it.notes)}”</div>` : '';
+                return `<div class="d-flex justify-content-between border-bottom py-2"><div><span class="fw-bold">${it.qty}x</span> ${esc(it.name)}${ad}${nt}</div><div class="fw-bold">${rupiah(it.subtotal)}</div></div>`;
+            }).join('');
+            $('#detail-body').html(`
+                <div class="alert alert-warning py-2 fs-8 mb-3">Pesanan <b>OFFLINE</b> — belum tersinkron ke server. Bisa dicetak sekarang; otomatis terkirim saat online.</div>
+                <div class="mb-3">
+                    <div class="fs-2 fw-bold text-warning">OFFLINE</div>
+                    <div class="text-muted">${esc(r.customer_name || '')} • ${r.datetime || ''}</div>
+                    <div>${r.payment_status === 'paid' ? '<span class="badge badge-success">Lunas</span>' : '<span class="badge badge-danger">Belum Lunas</span>'} <span class="badge badge-light-info text-uppercase">${r.payment_method || '-'}</span></div>
+                </div>
+                ${rows}
+                <div class="d-flex justify-content-between mt-3"><span class="text-muted">Subtotal</span><span>${rupiah(r.subtotal)}</span></div>
+                ${Number(r.discount_amount) > 0 ? `<div class="d-flex justify-content-between"><span class="text-muted">Diskon</span><span class="text-danger">- ${rupiah(r.discount_amount)}</span></div>` : ''}
+                <div class="d-flex justify-content-between"><span class="text-muted">Pajak</span><span>${rupiah(r.tax)}</span></div>
+                <div class="d-flex justify-content-between fw-bold fs-4"><span>Total</span><span class="text-success">${rupiah(r.grand_total)}</span></div>
+                <div class="text-end mt-4"><button type="button" class="btn btn-sm btn-light-primary" onclick="doPrintReceipt(window.__lastDetail, null)"><i class="ki-outline ki-printer"></i> Cetak Struk</button></div>`);
+            $('#modal-detail').modal('show');
         });
 
         // Selesai
@@ -915,6 +1036,7 @@
             if (window.triggerManualSync) { await window.triggerManualSync(); }
             await updateSyncBadge();
             loadOrders();
+            loadOfflineOrders();
             Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Sinkronisasi dijalankan', showConfirmButton: false, timer: 2000 });
         });
         window.addEventListener('online', updateSyncBadge);
@@ -924,6 +1046,7 @@
             renderMenus();
             renderCart();
             loadOrders();
+            loadOfflineOrders();
             cacheForOffline();
             initPrinterButton();
             updateSyncBadge();

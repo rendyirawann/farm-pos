@@ -95,7 +95,7 @@
                 <div class="col-6 col-md-3">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body p-6">
-                            <div class="fs-6 fw-semibold text-gray-500 mb-2">Poin Deposit Beredar</div>
+                            <div class="fs-6 fw-semibold text-gray-500 mb-2">Saldo Deposit Beredar</div>
                             <div class="fs-2x fw-bold text-warning">Rp {{ number_format($stats['deposit_outstanding'], 0, ',', '.') }}</div>
                         </div>
                     </div>
@@ -179,7 +179,7 @@
                                                     @if (!$t->is_active)
                                                         <span class="badge badge-light-dark">Nonaktif</span>
                                                     @elseif ($t->billing_mode === 'deposit')
-                                                        <span class="badge badge-light-success">Aktif · Rp{{ number_format($t->deposit_points, 0, ',', '.') }} poin</span>
+                                                        <span class="badge badge-light-success">Aktif · Rp{{ number_format($t->deposit_points, 0, ',', '.') }} saldo</span>
                                                     @elseif ($t->monthlyActive())
                                                         <span class="badge badge-light-success">Aktif</span>
                                                     @else

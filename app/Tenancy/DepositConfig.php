@@ -25,8 +25,9 @@ class DepositConfig
         return DepositSetting::query()->first() ?? new DepositSetting([
             'max_points'          => (int) config('deposit.max_points', 70000),
             'fee_per_transaction' => (int) config('deposit.fee_per_transaction', 169),
-            'expiry_days'         => (int) config('deposit.expiry_days', 60),
-            'min_deposit'         => (int) config('deposit.min_deposit', 5000),
+            'expiry_days'         => (int) config('deposit.expiry_days', 10),
+            'min_deposit'         => (int) config('deposit.min_deposit', 25000),
+            'warning_threshold'   => (int) config('deposit.warning_threshold', 10000),
             'initial_topup'       => (int) config('deposit.initial_topup', 50000),
             'manual_wa'           => config('deposit.manual_wa'),
             'manual_bank'         => config('deposit.manual_bank'),
@@ -74,6 +75,12 @@ class DepositConfig
     public static function minDeposit(): int
     {
         return (int) self::settings()->min_deposit;
+    }
+
+    /** Ambang peringatan saldo rendah (saldo <= ini => peringatan merah). */
+    public static function warningThreshold(): int
+    {
+        return (int) self::settings()->warning_threshold;
     }
 
     /**

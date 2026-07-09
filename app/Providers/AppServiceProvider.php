@@ -52,8 +52,9 @@ class AppServiceProvider extends ServiceProvider
                 'depositMode'         => $tenant ? $tenant->isDepositMode() : false,
                 'depositPoints'       => $tenant ? (float) $tenant->deposit_points : 0,
                 'depositExpiresAt'    => $tenant ? $tenant->deposit_expires_at : null,
-                'depositExpiringSoon' => $tenant ? $tenant->depositExpiringSoon(7) : false,
+                'depositExpiringSoon' => $tenant ? $tenant->depositExpiringSoon(5) : false,
                 'depositFee'          => \App\Tenancy\DepositConfig::feePerTransaction(),
+                'depositWarningThreshold' => \App\Tenancy\DepositConfig::warningThreshold(),
             ]);
         });
 

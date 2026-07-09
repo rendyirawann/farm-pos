@@ -19,7 +19,7 @@
                     <div class="card-body">
                         <div class="row g-6">
                             <div class="col-md-3">
-                                <label class="form-label fw-semibold">Maksimum Saldo Poin (Rp)</label>
+                                <label class="form-label fw-semibold">Maksimum Saldo (Rp)</label>
                                 <input type="number" name="max_points" min="0" class="form-control"
                                     value="{{ old('max_points', $settings->max_points) }}" placeholder="Kosongkan = tanpa batas">
                                 <div class="form-text">Kosong / 0 = <b>tanpa batas</b> (unlimited).</div>
@@ -31,10 +31,10 @@
                                 <div class="form-text">Dipotong saat pesanan diselesaikan.</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-semibold">Masa Aktif Poin (hari)</label>
+                                <label class="form-label fw-semibold">Masa Aktif Saldo (hari)</label>
                                 <input type="number" name="expiry_days" min="1" max="3650" class="form-control"
                                     value="{{ old('expiry_days', $settings->expiry_days) }}" required>
-                                <div class="form-text">Poin hangus bila tak dipakai sekian hari.</div>
+                                <div class="form-text">Saldo hangus bila tak dipakai sekian hari berturut-turut.</div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Top-up Awal / Aktivasi (Rp)</label>
@@ -43,10 +43,16 @@
                                 <div class="form-text">Wajib untuk akun deposit baru.</div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-semibold">Min. Top-up Lanjutan (Rp)</label>
+                                <label class="form-label fw-semibold">Min. Top-up (Rp)</label>
                                 <input type="number" name="min_deposit" min="0" class="form-control"
                                     value="{{ old('min_deposit', $settings->min_deposit) }}" required>
-                                <div class="form-text">Nominal bebas di atas ini (setelah aktif).</div>
+                                <div class="form-text">Paket terkecil.</div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Batas Peringatan Saldo (Rp)</label>
+                                <input type="number" name="warning_threshold" min="0" class="form-control"
+                                    value="{{ old('warning_threshold', $settings->warning_threshold) }}" required>
+                                <div class="form-text">Saldo ≤ nilai ini → peringatan merah "segera top up".</div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">WhatsApp Admin (top-up manual)</label>
@@ -64,10 +70,9 @@
                         <div class="alert alert-info d-flex align-items-center mt-6 mb-0">
                             <i class="ki-outline ki-information-5 fs-2x text-info me-4"></i>
                             <div class="text-gray-700 fs-7">
-                                Catatan: bila ada <b>batas maksimum</b> dan bonus membuat poin sebuah tier melebihi batas, tier itu
+                                Catatan: bila ada <b>batas maksimum</b> dan bonus membuat saldo sebuah paket melebihi batas, paket itu
                                 otomatis <b>ter-nonaktif dari sisi tenant</b> (tidak muat) walau di sini masih aktif.
-                                Contoh: maks 50.000 + tier bayar 50.000 → 62.500 poin ⇒ tak akan pernah muat. Naikkan/kosongkan batas
-                                bila ingin tier besar tetap bisa dipakai.
+                                Naikkan/kosongkan batas bila ingin paket besar tetap bisa dipakai.
                             </div>
                         </div>
                     </div>
@@ -87,7 +92,7 @@
                                 <thead>
                                     <tr class="fw-bold text-muted fs-7 text-uppercase">
                                         <th style="width:30%">Nominal Bayar (Rp)</th>
-                                        <th style="width:30%">Poin Diterima (Rp)</th>
+                                        <th style="width:30%">Saldo Diterima (Rp)</th>
                                         <th style="width:20%">Bonus</th>
                                         <th style="width:10%">Aktif</th>
                                         <th style="width:10%"></th>
@@ -135,7 +140,7 @@
                 <div class="card-body">
                     <div class="alert alert-info d-flex align-items-center mb-5">
                         <i class="ki-outline ki-information-5 fs-2x text-info me-4"></i>
-                        <div class="text-gray-700 fs-7">Gunakan setelah tenant transfer ke bank & konfirmasi via WhatsApp. Poin langsung masuk ke saldo tenant dan tercatat di Riwayat Poin mereka + activity log. Batas maksimum tidak berlaku untuk top-up manual.</div>
+                        <div class="text-gray-700 fs-7">Gunakan setelah tenant transfer ke bank & konfirmasi via WhatsApp. Saldo langsung masuk ke tenant dan tercatat di Riwayat Saldo mereka + activity log. Batas maksimum tidak berlaku untuk top-up manual.</div>
                     </div>
                     <form action="{{ route('deposit-settings.manual-topup') }}" method="POST">
                         @csrf
@@ -154,7 +159,7 @@
                                 <select name="amount" class="form-select" required>
                                     <option value="">— pilih paket —</option>
                                     @foreach ($activeTiers as $tier)
-                                        <option value="{{ $tier->amount }}">Rp{{ number_format($tier->amount, 0, ',', '.') }} → {{ number_format($tier->points, 0, ',', '.') }} poin</option>
+                                        <option value="{{ $tier->amount }}">Rp{{ number_format($tier->amount, 0, ',', '.') }} → {{ number_format($tier->points, 0, ',', '.') }} saldo</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -185,7 +190,7 @@
                                 <tr class="fw-bold text-muted fs-7 text-uppercase">
                                     <th>Waktu</th>
                                     <th>Tenant</th>
-                                    <th class="text-end">Poin</th>
+                                    <th class="text-end">Saldo</th>
                                     <th class="text-end">Nominal</th>
                                     <th>Keterangan</th>
                                 </tr>

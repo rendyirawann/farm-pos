@@ -238,7 +238,7 @@ class KasirController extends Controller
                     return response()->json([
                         'success'    => false,
                         'need_topup' => true,
-                        'error'      => 'Poin deposit tidak cukup (sisa Rp' . number_format($tenant->deposit_points, 0, ',', '.')
+                        'error'      => 'Saldo deposit tidak cukup (sisa Rp' . number_format($tenant->deposit_points, 0, ',', '.')
                             . '). Silakan top up untuk menyelesaikan transaksi.',
                     ], 422);
                 }

@@ -57,10 +57,14 @@ class TenantController extends Controller
                 ->addColumn('action', function ($row) {
                     $toggleLabel = $row->is_active ? 'Suspend' : 'Aktifkan';
                     $toggleColor = $row->is_active ? 'warning' : 'success';
-                    return '<div class="d-flex gap-2">'
+                    $html = '<div class="d-flex gap-2">'
                         . '<a href="' . route('tenants.show', $row->id) . '" class="btn btn-sm btn-light-primary">Detail</a>'
-                        . '<button class="btn btn-sm btn-light-' . $toggleColor . ' btn-toggle-active" data-id="' . $row->id . '">' . $toggleLabel . '</button>'
-                        . '</div>';
+                        . '<button class="btn btn-sm btn-light-' . $toggleColor . ' btn-toggle-active" data-id="' . $row->id . '">' . $toggleLabel . '</button>';
+                    // Hapus hanya untuk tenant yang di-suspend (nonaktif).
+                    if (! $row->is_active) {
+                        $html .= '<button class="btn btn-sm btn-light-danger btn-delete-tenant" data-id="' . $row->id . '" data-name="' . e($row->name) . '">Hapus</button>';
+                    }
+                    return $html . '</div>';
                 })
                 ->rawColumns(['business', 'plan', 'status', 'action'])
                 ->make(true);
@@ -115,6 +119,15 @@ class TenantController extends Controller
     public function destroy($id)
     {
         $tenant = Tenant::findOrFail($id);
+
+        // Guard: hanya tenant yang di-suspend (nonaktif) yang boleh dihapus.
+        if ($tenant->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tenant yang masih aktif tidak bisa dihapus. Suspend dulu tenant ini sebelum menghapusnya.',
+            ], 422);
+        }
+
         $name = $tenant->name;
 
         DB::transaction(function () use ($tenant) {

@@ -79,7 +79,7 @@ class DepositController extends Controller
                 return response()->json([
                     'status'  => 'error',
                     'message' => 'Aktivasi plan deposit mewajibkan top-up awal Rp' . number_format($initial, 0, ',', '.')
-                        . ' (dapat ' . number_format((int) DepositConfig::pointsForTopup($initial), 0, ',', '.') . ' poin). Silakan pilih paket tersebut.',
+                        . ' (dapat ' . number_format((int) DepositConfig::pointsForTopup($initial), 0, ',', '.') . ' saldo). Silakan pilih paket tersebut.',
                 ], 422);
             }
             $points = DepositConfig::pointsForTopup($amount);
@@ -96,10 +96,10 @@ class DepositController extends Controller
         if (! $this->deposit->canTopUp($tenant, $points)) {
             $opt = $this->deposit->tierOptions($tenant);
             $msg = $opt['any_fits']
-                ? 'Top-up ini akan melebihi batas maksimum poin (Rp' . number_format($opt['max'], 0, ',', '.')
-                    . '). Pilih nominal lebih kecil (maks yang muat: Rp' . number_format($opt['recommended'], 0, ',', '.') . ').'
-                : 'Saldo poin Anda sudah mendekati batas maksimum (Rp' . number_format($opt['max'], 0, ',', '.')
-                    . '). Tidak ada nominal top-up yang muat saat ini. Pakai poin dulu, lalu top-up lagi.';
+                ? 'Top-up ini akan melebihi batas maksimum saldo (Rp' . number_format($opt['max'], 0, ',', '.')
+                    . '). Pilih paket lebih kecil (maks yang muat: Rp' . number_format($opt['recommended'], 0, ',', '.') . ').'
+                : 'Saldo Anda sudah mendekati batas maksimum (Rp' . number_format($opt['max'], 0, ',', '.')
+                    . '). Tidak ada paket yang muat saat ini. Pakai saldo dulu, lalu top-up lagi.';
             return response()->json(['status' => 'error', 'message' => $msg], 422);
         }
 
@@ -127,7 +127,7 @@ class DepositController extends Controller
                     'id'       => 'deposit-' . $amount,
                     'price'    => $amount,
                     'quantity' => 1,
-                    'name'     => 'Top-up Deposit (' . number_format($points, 0, ',', '.') . ' poin)',
+                    'name'     => 'Top-up Deposit (' . number_format($points, 0, ',', '.') . ' saldo)',
                 ]],
                 'customer_details' => [
                     'first_name' => Auth::user()->name,
@@ -169,7 +169,7 @@ class DepositController extends Controller
 
         $this->deposit->switchToDeposit($tenant);
 
-        return redirect()->route('deposit.index')->with('success', 'Berhasil beralih ke plan deposit. Poin Anda kini aktif kembali. Langganan bulanan (jika ada) telah dihentikan.');
+        return redirect()->route('deposit.index')->with('success', 'Berhasil beralih ke plan deposit. Saldo Anda kini aktif kembali. Langganan bulanan (jika ada) telah dihentikan.');
     }
 
     private function configureMidtrans(): void

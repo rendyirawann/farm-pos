@@ -61,6 +61,7 @@ class DepositSettingController extends Controller
             'fee_per_transaction' => ['required', 'integer', 'min:0'],
             'expiry_days'         => ['required', 'integer', 'min:1', 'max:3650'],
             'min_deposit'         => ['required', 'integer', 'min:0'],
+            'warning_threshold'   => ['required', 'integer', 'min:0'],
             'initial_topup'       => ['required', 'integer', 'min:1'],
             'manual_wa'           => ['nullable', 'string', 'max:32'],
             'manual_bank'         => ['nullable', 'string', 'max:255'],
@@ -79,6 +80,7 @@ class DepositSettingController extends Controller
                 'fee_per_transaction' => $data['fee_per_transaction'],
                 'expiry_days'         => $data['expiry_days'],
                 'min_deposit'         => $data['min_deposit'],
+                'warning_threshold'   => $data['warning_threshold'],
                 'initial_topup'       => $data['initial_topup'],
                 'manual_wa'           => $data['manual_wa'] ?? null,
                 'manual_bank'         => $data['manual_bank'] ?? null,
@@ -131,7 +133,7 @@ class DepositSettingController extends Controller
 
         return redirect()->route('deposit-settings.index')->with(
             'success',
-            'Top-up manual berhasil: +' . number_format($points, 0, ',', '.') . ' poin (paket Rp'
+            'Top-up manual berhasil: +' . number_format($points, 0, ',', '.') . ' saldo (paket Rp'
                 . number_format($data['amount'], 0, ',', '.') . ') ke ' . $tenant->name . '.'
         );
     }
