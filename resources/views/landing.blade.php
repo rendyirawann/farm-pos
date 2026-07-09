@@ -169,27 +169,46 @@
         .mooda-soon-btn.w-full { width: 100%; }
         .mooda-soon-chip { display: inline-block; border-radius: 12px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: not-allowed; user-select: none; background: #e2e8f0; color: #64748b; border: 1px solid #cbd5e1; }
 
-        /* Grid harga 4 kartu (pakai CSS inline: kelas grid Tailwind baru tak ada di bundle terkompilasi) */
-        .mooda-price-grid { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 1120px; margin-left: auto; margin-right: auto; }
-        @media (min-width: 768px) { .mooda-price-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @media (min-width: 1280px) { .mooda-price-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        /* ===== Harga: CAROUSEL bersarang (2 kartu/tampilan + tombol geser) ===== */
+        .mooda-price-shell { position: relative; max-width: 940px; margin-left: auto; margin-right: auto; padding: 0 48px; }
+        .mooda-price-carousel { overflow: hidden; padding: 22px 8px 10px; }
+        .mooda-price-carousel .swiper-wrapper { align-items: stretch; }
+        .mooda-price-carousel .swiper-slide { height: auto; }   /* semua kartu setinggi kartu tertinggi */
 
-        /* ===== Kartu harga versi RINGKAS: kecilkan padding & ukuran teks (override utility hanya di dalam grid) ===== */
-        .mooda-price-grid .p-8 { padding: 1.3rem 1.35rem 1.45rem !important; }
-        .mooda-price-grid .rounded-3xl { border-radius: 1.15rem !important; }
-        .mooda-price-grid h3 { font-size: 1.02rem !important; line-height: 1.2 !important; }          /* nama paket */
-        .mooda-price-grid .text-4xl { font-size: 1.55rem !important; line-height: 1.1 !important; }    /* angka harga besar */
-        .mooda-price-grid .text-sm { font-size: .78rem !important; line-height: 1.35 !important; }     /* tagline, /bulan, note, fitur */
-        .mooda-price-grid .min-h-\[40px\] { min-height: 30px !important; }
-        .mooda-price-grid .mt-4 { margin-top: .7rem !important; }
-        .mooda-price-grid .mt-5 { margin-top: .8rem !important; }
-        .mooda-price-grid .mt-7 { margin-top: .95rem !important; }
-        .mooda-price-grid .space-y-2\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: .34rem !important; }
-        .mooda-price-grid ul svg { width: 1rem !important; height: 1rem !important; margin-top: .12rem !important; }
-        .mooda-price-grid .py-3 { padding-top: .58rem !important; padding-bottom: .58rem !important; }
-        .mooda-price-grid .plan-dur-wrap { border-radius: 11px; padding: 4px; gap: 4px; }
-        .mooda-price-grid .plan-dur-btn { padding: 5px 10px; font-size: 11px; }
-        .mooda-price-grid .plan-dur-btn .disc { font-size: 9px; margin-left: 4px; }
+        /* Tombol navigasi carousel (kiri & kanan) */
+        .price-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 6;
+            width: 40px; height: 40px; border-radius: 999px; border: 1px solid #e2e8f0;
+            background: #fff; color: #4f46e5; display: grid; place-items: center; cursor: pointer;
+            box-shadow: 0 8px 20px -8px rgba(15,23,42,.3); transition: background .15s, color .15s, transform .12s; }
+        .price-nav:hover { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+        .price-nav:active { transform: translateY(-50%) scale(.92); }
+        .price-prev { left: 0; }
+        .price-next { right: 0; }
+        .price-nav svg { width: 20px; height: 20px; }
+
+        /* ===== Kartu harga versi RINGKAS: kecilkan padding & ukuran teks (override utility hanya di dalam kartu) ===== */
+        .mooda-price-carousel .p-8 { padding: 1.3rem 1.35rem 1.45rem !important; }
+        .mooda-price-carousel .rounded-3xl { border-radius: 1.15rem !important; }
+        .mooda-price-carousel h3 { font-size: 1.02rem !important; line-height: 1.2 !important; }          /* nama paket */
+        .mooda-price-carousel .text-4xl { font-size: 1.55rem !important; line-height: 1.1 !important; }    /* angka harga besar */
+        .mooda-price-carousel .text-sm { font-size: .78rem !important; line-height: 1.35 !important; }     /* tagline, /bulan, note, fitur */
+        .mooda-price-carousel .min-h-\[40px\] { min-height: 30px !important; }
+        .mooda-price-carousel .mt-4 { margin-top: .7rem !important; }
+        .mooda-price-carousel .mt-5 { margin-top: .8rem !important; }
+        .mooda-price-carousel .mt-7 { margin-top: .95rem !important; }
+        .mooda-price-carousel .space-y-2\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: .34rem !important; }
+        .mooda-price-carousel ul svg { width: 1rem !important; height: 1rem !important; margin-top: .12rem !important; }
+        .mooda-price-carousel .py-3 { padding-top: .58rem !important; padding-bottom: .58rem !important; }
+        .mooda-price-carousel .plan-dur-wrap { border-radius: 11px; padding: 4px; gap: 4px; }
+        .mooda-price-carousel .plan-dur-btn { padding: 5px 10px; font-size: 11px; }
+        .mooda-price-carousel .plan-dur-btn .disc { font-size: 9px; margin-left: 4px; }
+
+        /* MOBILE/TABLET (tanpa Swiper): carousel jadi tumpukan vertikal, tombol disembunyikan.
+           Aturan global html.lp-mobile .swiper-wrapper{display:block}/.swiper-slide{width:100%} sudah menumpuk kartu. */
+        html.lp-mobile .mooda-price-shell { padding: 0; }
+        html.lp-mobile .mooda-price-carousel { overflow: visible; padding: 0; }
+        html.lp-mobile .mooda-price-carousel .swiper-slide { margin-bottom: 16px; }
+        html.lp-mobile .price-nav { display: none !important; }
 
         /* ===== MODE MOBILE/TABLET: scroll VERTIKAL (bukan swiper horizontal) ===== */
         html.lp-mobile, html.lp-mobile body { height: auto; overflow-x: hidden; overflow-y: auto; }
@@ -427,7 +446,7 @@
                         <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Paket sederhana & transparan</h2>
                         <p class="mt-3 text-lg text-slate-600">Pilih sesuai skala bisnis — dari deposit bayar-sesuai-pakai hingga enterprise. Tanpa biaya tersembunyi.</p>
                     </div>
-                    <div class="mooda-price-grid mt-6">
+                    <div class="mooda-price-shell mt-6">
                         @php
                             $check = '<svg class="mt-0.5 h-5 w-5 flex-none text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 0 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg>';
                             $soonSvg = '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>';
@@ -486,8 +505,11 @@
                             ];
                         @endphp
 
+                        <div class="mooda-price-carousel swiper">
+                            <div class="swiper-wrapper">
+
                         {{-- 1) STARTER — akun Deposit (bayar sesuai pemakaian) --}}
-                        <div class="relative flex flex-col rounded-3xl border border-slate-200 bg-white p-8">
+                        <div class="swiper-slide relative flex flex-col rounded-3xl border border-slate-200 bg-white p-8">
                             <h3 class="text-xl font-bold text-slate-900">Starter</h3>
                             <p class="mt-1.5 min-h-[40px] text-sm text-slate-500">Bayar sesuai pemakaian (deposit saldo) — cocok untuk baru mulai / musiman.</p>
                             <div class="mt-4">
@@ -523,7 +545,7 @@
                                 $defNote = $defMonths <= 1 ? 'Tanpa komitmen'
                                     : 'Bayar ' . $defMonths . ' bln di muka · total Rp ' . number_format($defTotal, 0, ',', '.') . ($defDisc > 0 ? ' · Hemat ' . $defDisc . '%' : '');
                             @endphp
-                            <div class="relative flex flex-col rounded-3xl border bg-white p-8 {{ $mp['pop'] ? 'border-slate-200 ring-2 ring-indigo-500 shadow-xl' : 'border-slate-200' }}">
+                            <div class="swiper-slide relative flex flex-col rounded-3xl border bg-white p-8 {{ $mp['pop'] ? 'border-slate-200 ring-2 ring-indigo-500 shadow-xl' : 'border-slate-200' }}">
                                 @if ($mp['pop'])<span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 px-4 py-1 text-xs font-bold text-white shadow">Populer</span>@endif
                                 <h3 class="text-xl font-bold text-slate-900">{{ $mp['name'] }}</h3>
                                 <p class="mt-1.5 min-h-[40px] text-sm text-slate-500">{{ $mp['tagline'] }}</p>
@@ -560,7 +582,7 @@
                         @endforeach
 
                         {{-- 4) CUSTOMIZE — kontrak 2 tahun, konsultasi WhatsApp --}}
-                        <div class="relative flex flex-col rounded-3xl border-2 border-emerald-400 bg-white p-8 shadow-xl shadow-emerald-100">
+                        <div class="swiper-slide relative flex flex-col rounded-3xl border-2 border-emerald-400 bg-white p-8 shadow-xl shadow-emerald-100">
                             <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 px-4 py-1 text-xs font-bold text-white shadow">Fleksibel</span>
                             <h3 class="text-xl font-bold text-slate-900">Customize</h3>
                             <p class="mt-1.5 min-h-[40px] text-sm text-slate-500">Rakit paketmu sendiri — kontrak 2 tahun, fitur menyesuaikan bisnis.</p>
@@ -578,7 +600,17 @@
                                 Konsultasi via WhatsApp
                             </a>
                         </div>
-                    </div>
+
+                            </div>{{-- /swiper-wrapper --}}
+                        </div>{{-- /mooda-price-carousel --}}
+
+                        <button type="button" class="price-nav price-prev" aria-label="Kartu sebelumnya">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+                        </button>
+                        <button type="button" class="price-nav price-next" aria-label="Kartu berikutnya">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                        </button>
+                    </div>{{-- /mooda-price-shell --}}
                 </div>
             </div>
 

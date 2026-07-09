@@ -85,6 +85,55 @@ function initLanding() {
             }
         });
     });
+
+    initPriceCarousel();
+}
+
+// ===== Carousel kartu harga (bersarang): 2 kartu/tampilan, tombol, drag mouse, wheel -> geser kartu.
+// loop:false + wrap manual (mentok kanan balik ke awal) supaya tombol durasi/harga tetap berfungsi
+// (loop bawaan Swiper mengkloning slide -> handler klik pill tidak ikut terkloning). =====
+function initPriceCarousel() {
+    const el = document.querySelector('.mooda-price-carousel');
+    if (!el) return;
+
+    const priceSwiper = new Swiper(el, {
+        speed: 450,
+        slidesPerView: 2,
+        slidesPerGroup: 2,        // geser dua-dua (1-2 lalu 3-4)
+        spaceBetween: 18,
+        grabCursor: true,         // kursor "grab"
+        simulateTouch: true,      // klik-tahan lalu geser kiri/kanan pakai mouse
+        allowTouchMove: true,
+        nested: true,             // jangan ganggu swiper section (luar)
+        watchOverflow: true,
+        breakpoints: {
+            0:   { slidesPerView: 1, slidesPerGroup: 1, spaceBetween: 14 },
+            900: { slidesPerView: 2, slidesPerGroup: 2, spaceBetween: 18 },
+        },
+    });
+
+    // Maju/mundur dengan wrap: mentok kanan -> reset ke slide awal; mentok kiri -> ke akhir.
+    const go = (fwd) => {
+        if (fwd) { priceSwiper.isEnd ? priceSwiper.slideTo(0) : priceSwiper.slideNext(); }
+        else { priceSwiper.isBeginning ? priceSwiper.slideTo(priceSwiper.slides.length - 1) : priceSwiper.slidePrev(); }
+    };
+    const prevBtn = document.querySelector('.price-prev');
+    const nextBtn = document.querySelector('.price-next');
+    if (prevBtn) prevBtn.addEventListener('click', () => go(false));
+    if (nextBtn) nextBtn.addEventListener('click', () => go(true));
+
+    // Scroll roda mouse di ATAS area kartu -> geser kartu (bukan pindah section), dan tak berujung.
+    // Capture-phase + stopPropagation mencegah mousewheel swiper section (luar) ikut bereaksi.
+    let wheelLock = false;
+    el.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (wheelLock) return;
+        wheelLock = true;
+        const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+        go(delta > 0);
+        setTimeout(() => { wheelLock = false; }, 260);
+    }, { capture: true, passive: false });
 }
 
 if (document.readyState !== 'loading') {
