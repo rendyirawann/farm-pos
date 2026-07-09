@@ -43,7 +43,14 @@ class ShiftController extends Controller
         $today = Carbon::today();
         $isFirstShiftOfDay = !DailySalesTarget::whereDate('date', $today)->exists();
 
-        return view('backend.kasir.shift.index', compact('currentShift', 'cashSales', 'shiftExpenses', 'history', 'isFirstShiftOfDay'));
+        // Shift/kas yang ditutup HARI INI (untuk tombol "Buka Kembali" / undo).
+        $lastClosedToday = Shift::where('user_id', $userId)
+            ->where('status', 'closed')
+            ->whereDate('end_time', Carbon::today())
+            ->orderByDesc('id')
+            ->first();
+
+        return view('backend.kasir.shift.index', compact('currentShift', 'cashSales', 'shiftExpenses', 'history', 'isFirstShiftOfDay', 'lastClosedToday'));
     }
 
     public function openShift(Request $request)
@@ -215,5 +222,36 @@ class ShiftController extends Controller
             DB::rollback();
             return redirect()->back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Buka kembali (undo) shift/kas yang ditutup HARI INI — untuk mengatasi
+     * penutupan tak sengaja. Status kembali 'open', data penutupan direset;
+     * selisih dihitung ulang saat ditutup lagi.
+     */
+    public function reopenShift($id)
+    {
+        $shift = Shift::where('user_id', Auth::id())->where('status', 'closed')->findOrFail($id);
+
+        // Hanya boleh membuka kembali yang ditutup hari ini (jangan ubah histori lama).
+        if (!$shift->end_time || !Carbon::parse($shift->end_time)->isToday()) {
+            return redirect()->back()->with('error', 'Hanya kas/shift yang ditutup hari ini yang bisa dibuka kembali.');
+        }
+
+        // Tidak boleh ada shift/kas lain yang masih terbuka.
+        if (Shift::where('user_id', Auth::id())->where('status', 'open')->exists()) {
+            return redirect()->back()->with('error', 'Masih ada kas/shift yang terbuka. Tutup dulu sebelum membuka kembali yang lain.');
+        }
+
+        $shift->update([
+            'status'        => 'open',
+            'end_time'      => null,
+            'cash_sales'    => null,
+            'expected_cash' => null,
+            'actual_cash'   => null,
+            'difference'    => null,
+        ]);
+
+        return redirect()->route('shifts.index')->with('success', 'Kas/shift dibuka kembali. Silakan lanjutkan transaksi.');
     }
 }

@@ -2,6 +2,11 @@
 @section('title', 'Manajemen Shift Kasir')
 @section('content')
 
+    @php
+        $isUmkm = optional($currentTenant)->isUmkm();
+        $L = $isUmkm ? 'Kas' : 'Shift';
+    @endphp
+
     <div id="kt_app_content" class="app-content flex-column-fluid mt-5">
         <div id="kt_app_content_container" class="app-container container-xxl">
 
@@ -29,9 +34,20 @@
                         <div class="card shadow-sm border-0">
                             <div class="card-body text-center p-10">
                                 <i class="ki-outline ki-time fs-5x text-primary mb-5"></i>
-                                <h2 class="fs-2x fw-bold text-gray-800 mb-2">Shift Belum Dibuka</h2>
-                                <p class="text-gray-500 fs-5 mb-8">Anda harus membuka shift dan memasukkan modal kembalian
+                                <h2 class="fs-2x fw-bold text-gray-800 mb-2">{{ $L }} Belum Dibuka</h2>
+                                <p class="text-gray-500 fs-5 mb-8">Anda harus membuka {{ strtolower($L) }} dan memasukkan modal
                                     sebelum dapat menggunakan mesin kasir.</p>
+
+                                @if (!empty($lastClosedToday))
+                                    <form action="{{ route('shifts.reopen', $lastClosedToday->id) }}" method="POST" class="mb-3">
+                                        @csrf
+                                        <button type="submit" class="btn btn-light-warning w-100 fw-bold">
+                                            <i class="ki-outline ki-arrow-circle-left fs-3 me-1"></i> Buka Kembali {{ $L }} Terakhir
+                                            <span class="fs-8 fw-normal">(ditutup {{ \Carbon\Carbon::parse($lastClosedToday->end_time)->format('H:i') }})</span>
+                                        </button>
+                                    </form>
+                                    <div class="text-muted fs-8 mb-6">Tak sengaja tertutup? Buka kembali agar lanjut tanpa input ulang modal.</div>
+                                @endif
 
                                 <form action="{{ route('shifts.open') }}" method="POST" id="formOpenShift">
                                     @csrf
@@ -40,7 +56,7 @@
                                         <div class="bg-light-primary rounded p-5 mb-6 text-start">
                                             <div class="d-flex align-items-center mb-3">
                                                 <i class="ki-outline ki-sun fs-1 text-primary me-2"></i>
-                                                <span class="fw-bold text-primary fs-5">Setup Harian (Shift Pertama)</span>
+                                                <span class="fw-bold text-primary fs-5">Setup Harian (Awal Hari)</span>
                                             </div>
                                             <p class="text-muted fs-7 mb-4">Karena Anda membuka shift pertama hari ini,
                                                 mohon tentukan target penjualan harian.</p>
@@ -70,7 +86,7 @@
                                             placeholder="Contoh: 500000" min="0" required autofocus>
                                     </div>
                                     <button type="submit" class="btn btn-primary btn-lg w-100 fs-4 fw-bold">
-                                        <i class="ki-outline ki-unlock fs-2 me-2"></i> Buka Shift Sekarang
+                                        <i class="ki-outline ki-unlock fs-2 me-2"></i> Buka {{ $L }} Sekarang
                                     </button>
                                 </form>
                             </div>
@@ -80,7 +96,7 @@
                             <div class="card-header bg-light-primary pt-7 border-0">
                                 <h3 class="card-title align-items-start flex-column">
                                     <span class="card-label fw-bold text-primary fs-3"><i
-                                            class="ki-outline ki-security-user fs-2 text-primary me-2"></i> Shift Sedang
+                                            class="ki-outline ki-security-user fs-2 text-primary me-2"></i> {{ $L }} Sedang
                                         Berjalan</span>
                                     <span class="text-primary mt-1 fw-semibold fs-7">Dimulai:
                                         {{ \Carbon\Carbon::parse($currentShift->start_time)->translatedFormat('d M Y, H:i') }}</span>
@@ -123,7 +139,7 @@
                                     </div>
                                     <button type="button" onclick="confirmClose()"
                                         class="btn btn-danger btn-lg w-100 fs-4 fw-bold">
-                                        <i class="ki-outline ki-lock-3 fs-2 me-2"></i> Tutup Shift
+                                        <i class="ki-outline ki-lock-3 fs-2 me-2"></i> Tutup {{ $L }}
                                     </button>
                                 </form>
                             </div>
@@ -134,7 +150,7 @@
                 <div class="col-xl-7">
                     <div class="card shadow-sm border-0 h-100">
                         <div class="card-header pt-7 border-0">
-                            <h3 class="card-title fw-bold text-gray-800 fs-3">Riwayat Shift Anda</h3>
+                            <h3 class="card-title fw-bold text-gray-800 fs-3">Riwayat {{ $L }} Anda</h3>
                         </div>
                         <div class="card-body pt-3">
                             <div class="table-responsive">
@@ -236,8 +252,8 @@
             // Logika Tutup Shift Lama
             function confirmClose() {
                 Swal.fire({
-                    title: "Yakin tutup shift?",
-                    text: "Pastikan uang fisik yang dihitung sudah benar. Aksi ini tidak dapat dibatalkan.",
+                    title: "Yakin tutup {{ strtolower($L) }}?",
+                    text: "Pastikan uang fisik yang dihitung sudah benar. Kalau tak sengaja tertutup, bisa dibuka kembali (undo) di hari yang sama.",
                     icon: "warning",
                     showCancelButton: true,
                     confirmButtonText: "Ya, Tutup Shift!",

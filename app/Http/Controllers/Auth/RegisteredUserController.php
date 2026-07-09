@@ -37,6 +37,7 @@ class RegisteredUserController extends Controller
         $request->validate([
             'business_name' => ['required', 'string', 'max:255'],
             'business_type' => ['nullable', 'string', 'max:100'],
+            'category'      => ['nullable', 'in:resto,cafe,umkm'],
             'name'          => ['required', 'string', 'max:255'],
             'phone'         => ['nullable', 'string', 'max:30'],
             'email'         => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
@@ -44,10 +45,12 @@ class RegisteredUserController extends Controller
         ]);
 
         $user = DB::transaction(function () use ($request) {
+            $categoryLabels = ['resto' => 'Restoran', 'cafe' => 'Cafe', 'umkm' => 'UMKM'];
             $tenant = Tenant::create([
                 'name'                => $request->business_name,
                 'slug'                => $this->uniqueSlug($request->business_name),
-                'business_type'       => $request->business_type,
+                'business_type'       => $request->business_type ?: ($categoryLabels[$request->category] ?? null),
+                'category'            => $request->category,
                 'phone'               => $request->phone,
                 'email'               => $request->email,
                 // Terkunci sampai berlangganan (sesuai kebutuhan: wajib langganan dulu)

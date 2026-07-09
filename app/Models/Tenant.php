@@ -17,6 +17,7 @@ class Tenant extends Model
         'name',
         'slug',
         'business_type',
+        'category',
         'owner_id',
         'phone',
         'email',
@@ -177,5 +178,11 @@ class Tenant extends Model
     public function isOnTrial(): bool
     {
         return $this->subscription_status === 'trial';
+    }
+
+    /** UMKM: pakai "Kas Harian" (1x/hari) alih-alih shift per-sesi. */
+    public function isUmkm(): bool
+    {
+        return $this->category === 'umkm';
     }
 }

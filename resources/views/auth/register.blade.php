@@ -44,6 +44,20 @@
                             @error('business_name')<div class="text-danger fs-7 mt-1">{{ $message }}</div>@enderror
                         </div>
 
+                        {{-- Kategori Usaha (menentukan sistem kas: Resto/Cafe = Shift, UMKM = Kas Harian) --}}
+                        <div class="fv-row mb-4">
+                            <label class="form-label fw-semibold required">Kategori Usaha</label>
+                            <div class="d-flex gap-2">
+                                @php $curCat = old('category', 'resto'); @endphp
+                                @foreach (['resto' => 'Resto', 'cafe' => 'Cafe', 'umkm' => 'UMKM'] as $val => $label)
+                                    <input type="radio" class="btn-check" name="category" value="{{ $val }}" id="cat-{{ $val }}" @checked($curCat === $val)>
+                                    <label class="btn btn-outline btn-outline-dashed btn-active-light-primary flex-fill py-3 fw-bold" for="cat-{{ $val }}">{{ $label }}</label>
+                                @endforeach
+                            </div>
+                            <div class="form-text">Resto &amp; Cafe pakai Shift kasir; UMKM pakai Kas Harian (lebih simpel).</div>
+                            @error('category')<div class="text-danger fs-7 mt-1">{{ $message }}</div>@enderror
+                        </div>
+
                         {{-- Jenis Bisnis --}}
                         <div class="fv-row mb-4">
                             <label class="form-label fw-semibold">Jenis Bisnis</label>
