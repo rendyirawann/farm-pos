@@ -44,7 +44,14 @@ class KasirController extends Controller
         $promos = Promo::where('is_active', true)->get();
         $setting = Setting::first();
 
-        return view('backend.kasir.index', compact('categories', 'menus', 'promos', 'setting', 'activeShift'));
+        // Meja: dinamis (dari Manajemen Meja) untuk paket Enterprise+, selain itu statis 1..25.
+        $tenant = app(TenantManager::class)->tenant();
+        $useDynamicTables = \App\Tenancy\Plan::tenantAllows($tenant, 'tables');
+        $diningTables = $useDynamicTables
+            ? \App\Models\DiningTable::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get()
+            : collect();
+
+        return view('backend.kasir.index', compact('categories', 'menus', 'promos', 'setting', 'activeShift', 'useDynamicTables', 'diningTables'));
     }
 
     /** JSON daftar order untuk panel kanan (tab Sedang Diproses / Selesai). */

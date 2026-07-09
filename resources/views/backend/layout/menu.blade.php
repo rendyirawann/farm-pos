@@ -47,6 +47,14 @@
                             </a>
                         </div>
                     @endif
+                    @if (\App\Tenancy\Plan::tenantAllows($currentTenant ?? null, 'tables'))
+                        <div class="menu-item {{ request()->routeIs('tables.index') ? 'here show ' : '' }}">
+                            <a class="menu-link py-3" href="{{ route('tables.index') }}">
+                                <span class="menu-icon"><i class="ki-outline ki-tablet-book fs-2"></i></span>
+                                <span class="menu-title">Manajemen Meja</span>
+                            </a>
+                        </div>
+                    @endif
                 </div>
             </div>
         @endcan

@@ -64,9 +64,18 @@
                                 <label class="fw-bold fs-7 mb-2 d-block text-gray-600">Meja <span class="fw-normal text-muted">(opsional)</span></label>
                                 <div class="d-flex flex-wrap gap-1" id="table-picker">
                                     <button type="button" class="btn btn-sm btn-primary text-white table-pick px-3" data-table="">Tanpa</button>
-                                    @for ($i = 1; $i <= 25; $i++)
-                                        <button type="button" class="btn btn-sm btn-light table-pick" data-table="{{ $i }}" style="width:34px;height:34px;padding:0;line-height:1">{{ $i }}</button>
-                                    @endfor
+                                    @if (!empty($useDynamicTables))
+                                        @foreach ($diningTables as $t)
+                                            <button type="button" class="btn btn-sm btn-light table-pick px-3" data-table="{{ $t->name }}">{{ $t->name }}</button>
+                                        @endforeach
+                                        @if ($diningTables->isEmpty())
+                                            <span class="text-muted fs-8 align-self-center ms-2">Belum ada meja — tambah di menu Manajemen Meja.</span>
+                                        @endif
+                                    @else
+                                        @for ($i = 1; $i <= 25; $i++)
+                                            <button type="button" class="btn btn-sm btn-light table-pick" data-table="{{ $i }}" style="width:34px;height:34px;padding:0;line-height:1">{{ $i }}</button>
+                                        @endfor
+                                    @endif
                                 </div>
                             </div>
                         </div>

@@ -23,6 +23,7 @@ use App\Http\Controllers\Backend\Kitchen\KitchenController;
 use App\Http\Controllers\Backend\Master\CategoriesController;
 use App\Http\Controllers\Backend\Master\MenuController;
 use App\Http\Controllers\Backend\Master\PromoController;
+use App\Http\Controllers\Backend\Master\DiningTableController;
 // Reports
 use App\Http\Controllers\Backend\Report\ItemSalesReportController;
 use App\Http\Controllers\Backend\Report\SalesReportController;
@@ -186,6 +187,15 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
             Route::resource('/admin/promos', PromoController::class)
                 ->except(['create', 'show'])
                 ->names('promos');
+        });
+
+        // Manajemen Meja — fitur paket Enterprise ke atas (plan:tables)
+        Route::middleware('plan:tables')->group(function () {
+            Route::get('/admin/tables', [DiningTableController::class, 'index'])->name('tables.index');
+            Route::get('/admin/get-datatables', [DiningTableController::class, 'getData'])->name('tables.data');
+            Route::post('/admin/tables', [DiningTableController::class, 'store'])->name('tables.store');
+            Route::put('/admin/tables/{id}', [DiningTableController::class, 'update'])->name('tables.update');
+            Route::delete('/admin/tables/{id}', [DiningTableController::class, 'destroy'])->name('tables.destroy');
         });
     });
 
