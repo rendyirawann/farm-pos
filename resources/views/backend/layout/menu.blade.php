@@ -14,7 +14,8 @@
                 <span class="menu-title">Dashboards</span>
             </a>
         </div>
-        {{-- DATA MASTER: Superadmin + admin --}}
+        {{-- DATA MASTER (disembunyikan utk Superadmin di mode Analitik) --}}
+        @if (! ($isSuperadminView ?? false) || ($saMode ?? 'pos') === 'pos')
         @can('view_data_master')
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
                 class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
@@ -49,8 +50,10 @@
                 </div>
             </div>
         @endcan
+        @endif
 
-        {{-- REPORT: Superadmin + admin + kasir --}}
+        {{-- REPORT (disembunyikan utk Superadmin di mode Analitik) --}}
+        @if (! ($isSuperadminView ?? false) || ($saMode ?? 'pos') === 'pos')
         @can('view_report')
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
                 class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
@@ -81,6 +84,7 @@
                 </div>
             </div>
         @endcan
+        @endif
 
         {{-- RESOURCES: Superadmin only --}}
         @can('view_resources')
@@ -185,5 +189,20 @@
                 </div>
             </div>
         @endcan
+
+        {{-- TOGGLE MODE (Superadmin): Analitik <-> Kasir --}}
+        @if ($isSuperadminView ?? false)
+            <div class="menu-item d-flex align-items-center ms-lg-2 my-2 my-lg-0">
+                @if (($saMode ?? 'analytics') === 'analytics')
+                    <a href="{{ route('view-mode.switch', 'pos') }}" class="btn btn-sm btn-light-primary fw-bold w-100">
+                        <i class="ki-outline ki-handcart fs-4 me-1"></i> Mode Kasir
+                    </a>
+                @else
+                    <a href="{{ route('view-mode.switch', 'analytics') }}" class="btn btn-sm btn-light-primary fw-bold w-100">
+                        <i class="ki-outline ki-chart-simple fs-4 me-1"></i> Mode Analitik
+                    </a>
+                @endif
+            </div>
+        @endif
     </div>
 </div>

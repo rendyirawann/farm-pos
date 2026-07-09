@@ -167,6 +167,7 @@
             data-kt-scroll-dependencies="#kt_app_sidebar_logo, #kt_app_sidebar_footer"
             data-kt-scroll-wrappers="#kt_app_sidebar, #kt_app_sidebar_nav" data-kt-scroll-offset="5px">
 
+            @if (($saMode ?? 'pos') === 'pos' || ! ($isSuperadminView ?? false))
             <div class="px-3 mb-6">
                 <div class="d-flex align-items-center flex-column w-100 mb-6">
                     <div class="d-flex justify-content-between fw-bolder fs-6 text-gray-800 w-100 mt-auto mb-3">
@@ -278,6 +279,30 @@
 
                 </div>{{-- END .row --}}
             </div>{{-- END .mb-6 --}}
+            @else
+            {{-- Sidebar Superadmin (mode Analitik): pintasan platform --}}
+            <div class="mb-6 mt-4">
+                <h3 class="text-gray-800 fw-bold mb-6">Platform</h3>
+                <div class="d-flex flex-column gap-2">
+                    <a href="{{ route('tenants.index') }}" class="btn btn-flex btn-light-primary fw-bold justify-content-start">
+                        <i class="ki-outline ki-abstract-26 fs-3 me-2"></i> Manajemen Tenant
+                    </a>
+                    <a href="{{ route('deposit-settings.index') }}" class="btn btn-flex btn-light-warning fw-bold justify-content-start">
+                        <i class="ki-outline ki-wallet fs-3 me-2"></i> Setelan Deposit
+                    </a>
+                    @can('view_resources')
+                        <a href="{{ route('users.index') }}" class="btn btn-flex btn-light fw-bold justify-content-start">
+                            <i class="ki-outline ki-people fs-3 me-2"></i> User Management
+                        </a>
+                    @endcan
+                    @can('view_help')
+                        <a href="{{ route('log-activity.index') }}" class="btn btn-flex btn-light fw-bold justify-content-start">
+                            <i class="ki-outline ki-time fs-3 me-2"></i> Log Activity
+                        </a>
+                    @endcan
+                </div>
+            </div>
+            @endif
         </div>
     </div>
     <div class="flex-column-auto d-flex flex-center px-4 px-lg-8 py-3 py-lg-8" id="kt_app_sidebar_footer">

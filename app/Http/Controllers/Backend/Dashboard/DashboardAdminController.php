@@ -8,6 +8,9 @@ use App\Models\Menu;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\DailySalesTarget;
+use App\Models\Tenant;
+use App\Models\Subscription;
+use App\Models\DepositTransaction;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -15,6 +18,12 @@ class DashboardAdminController extends Controller
 {
     public function index()
     {
+        // Superadmin default: dashboard ANALITIK platform (bukan kasir).
+        // Bisa dialihkan ke mode kasir/POS lewat tombol (session sa_mode).
+        if (auth()->user()->hasRole('Superadmin') && session('sa_mode', 'analytics') === 'analytics') {
+            return $this->analytics();
+        }
+
         $monthStart = Carbon::now()->startOfMonth();
         $monthEnd = Carbon::now()->endOfMonth();
 
@@ -86,5 +95,88 @@ class DashboardAdminController extends Controller
         ];
 
         return view('backend.dashboard.index', compact('unavailableMenus', 'topProducts', 'chartData', 'summary'));
+    }
+
+    /** Alihkan tampilan Superadmin: 'analytics' (platform) <-> 'pos' (kasir). */
+    public function switchMode(string $mode)
+    {
+        abort_unless(auth()->user()->hasRole('Superadmin'), 403);
+        session(['sa_mode' => $mode === 'pos' ? 'pos' : 'analytics']);
+
+        return redirect()->route('dashboard');
+    }
+
+    /** Dashboard analitik platform untuk Superadmin (lintas tenant). */
+    private function analytics()
+    {
+        $monthStart = Carbon::now()->startOfMonth();
+        $monthEnd   = Carbon::now()->endOfMonth();
+        $now        = Carbon::now();
+
+        // Tenant mode bulanan yang masih aktif (langganan/trial belum kedaluwarsa).
+        $monthlyActive = Tenant::where('billing_mode', '!=', 'deposit')
+            ->where('is_active', true)
+            ->where(function ($q) use ($now) {
+                $q->where(function ($x) use ($now) {
+                    $x->where('subscription_status', 'active')->where('subscription_ends_at', '>', $now);
+                })->orWhere(function ($x) use ($now) {
+                    $x->where('subscription_status', 'trial')->where('trial_ends_at', '>', $now);
+                });
+            })->count();
+
+        $stats = [
+            'total_tenants'       => Tenant::count(),
+            'active_tenants'      => Tenant::where('is_active', true)->count(),
+            'deposit_tenants'     => Tenant::where('billing_mode', 'deposit')->count(),
+            'monthly_tenants'     => Tenant::where('billing_mode', '!=', 'deposit')->count(),
+            'monthly_active'      => $monthlyActive,
+            'new_this_month'      => Tenant::whereBetween('created_at', [$monthStart, $monthEnd])->count(),
+            'platform_revenue'    => (float) Order::whereBetween('created_at', [$monthStart, $monthEnd])->where('payment_status', 'paid')->sum('grand_total'),
+            'platform_tx'         => (int) Order::whereBetween('created_at', [$monthStart, $monthEnd])->where('payment_status', 'paid')->count(),
+            'sub_revenue'         => (float) Subscription::where('status', 'paid')->whereBetween('paid_at', [$monthStart, $monthEnd])->sum('amount'),
+            'deposit_outstanding' => (float) Tenant::sum('deposit_points'),
+        ];
+
+        // Grafik omzet platform harian (bulan ini)
+        $dailyOmzet = Order::whereBetween('created_at', [$monthStart, $monthEnd])
+            ->where('payment_status', 'paid')
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(grand_total) as total'))
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->pluck('total', 'date');
+
+        $dates = [];
+        $omzetSeries = [];
+        for ($d = $monthStart->copy(); $d->lte($now); $d->addDay()) {
+            $ds = $d->format('Y-m-d');
+            $dates[] = $d->format('d M');
+            $omzetSeries[] = (int) $dailyOmzet->get($ds, 0);
+        }
+        $chart = ['categories' => $dates, 'omzet' => $omzetSeries];
+
+        // Top tenant berdasarkan omzet bulan ini
+        $topRows = Order::whereBetween('created_at', [$monthStart, $monthEnd])
+            ->where('payment_status', 'paid')
+            ->whereNotNull('tenant_id')
+            ->select('tenant_id', DB::raw('SUM(grand_total) as omzet'), DB::raw('COUNT(*) as tx'))
+            ->groupBy('tenant_id')
+            ->orderByDesc('omzet')
+            ->limit(5)
+            ->get();
+        $names = Tenant::whereIn('id', $topRows->pluck('tenant_id'))->pluck('name', 'id');
+        $topTenants = $topRows->map(fn ($r) => [
+            'name'  => $names[$r->tenant_id] ?? ('Tenant #' . $r->tenant_id),
+            'omzet' => (float) $r->omzet,
+            'tx'    => (int) $r->tx,
+        ]);
+
+        $latestTenants = Tenant::orderByDesc('id')->limit(8)->get();
+
+        $recentTopups = DepositTransaction::where('type', 'topup')
+            ->with('tenant:id,name')
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get();
+
+        return view('backend.dashboard.analytics', compact('stats', 'chart', 'topTenants', 'latestTenants', 'recentTopups'));
     }
 }

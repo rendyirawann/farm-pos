@@ -57,6 +57,16 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
+        // Mode tampilan Superadmin: 'analytics' (platform) atau 'pos' (kasir).
+        // Untuk non-Superadmin selalu 'pos' (tampilan operasional biasa).
+        View::composer('backend.*', function ($view) {
+            $isSA = auth()->check() && auth()->user()->hasRole('Superadmin');
+            $view->with([
+                'isSuperadminView' => $isSA,
+                'saMode'           => $isSA ? session('sa_mode', 'analytics') : 'pos',
+            ]);
+        });
+
         // Inject data ringkas ke sidebar backend (HANYA jika user login):
         // Target Penjualan Harian vs Omzet hari ini. (Budget & pengeluaran sudah dihapus.)
         // Bagikan setelan toko (untuk konfigurasi printer di layout).

@@ -64,6 +64,8 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
 
     // --- DASHBOARD (accessible by ALL authenticated roles) ---
     Route::get('/admin/dashboard', [DashboardAdminController::class, 'index'])->name('dashboard');
+    // Toggle mode tampilan Superadmin: analytics (platform) <-> pos (kasir)
+    Route::get('/admin/view-mode/{mode}', [DashboardAdminController::class, 'switchMode'])->name('view-mode.switch');
 
     // --- MY ACCOUNT / PROFILE (accessible by ALL authenticated users) ---
     Route::get('/admin/my-account', [AccountController::class, 'index'])->name('account.index');

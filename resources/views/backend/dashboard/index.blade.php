@@ -17,6 +17,11 @@
                         </div>
                     </div>
                     <div class="d-flex gap-2 mt-3 mt-sm-0">
+                        @if ($isSuperadminView ?? false)
+                            <a href="{{ route('view-mode.switch', 'analytics') }}" class="btn btn-light fw-bold">
+                                <i class="ki-outline ki-chart-simple fs-3 me-1"></i> Dashboard Analitik
+                            </a>
+                        @endif
                         @can('view_kasir')
                             <a href="{{ route('kasir.index') }}" class="btn btn-light fw-bold">
                                 <i class="ki-outline ki-handcart fs-3 me-1"></i> Buka Kasir
