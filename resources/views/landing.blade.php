@@ -170,9 +170,26 @@
         .mooda-soon-chip { display: inline-block; border-radius: 12px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: not-allowed; user-select: none; background: #e2e8f0; color: #64748b; border: 1px solid #cbd5e1; }
 
         /* Grid harga 4 kartu (pakai CSS inline: kelas grid Tailwind baru tak ada di bundle terkompilasi) */
-        .mooda-price-grid { display: grid; gap: 24px; grid-template-columns: 1fr; max-width: 1280px; margin-left: auto; margin-right: auto; }
+        .mooda-price-grid { display: grid; gap: 16px; grid-template-columns: 1fr; max-width: 1120px; margin-left: auto; margin-right: auto; }
         @media (min-width: 768px) { .mooda-price-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (min-width: 1280px) { .mooda-price-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+        /* ===== Kartu harga versi RINGKAS: kecilkan padding & ukuran teks (override utility hanya di dalam grid) ===== */
+        .mooda-price-grid .p-8 { padding: 1.3rem 1.35rem 1.45rem !important; }
+        .mooda-price-grid .rounded-3xl { border-radius: 1.15rem !important; }
+        .mooda-price-grid h3 { font-size: 1.02rem !important; line-height: 1.2 !important; }          /* nama paket */
+        .mooda-price-grid .text-4xl { font-size: 1.55rem !important; line-height: 1.1 !important; }    /* angka harga besar */
+        .mooda-price-grid .text-sm { font-size: .78rem !important; line-height: 1.35 !important; }     /* tagline, /bulan, note, fitur */
+        .mooda-price-grid .min-h-\[40px\] { min-height: 30px !important; }
+        .mooda-price-grid .mt-4 { margin-top: .7rem !important; }
+        .mooda-price-grid .mt-5 { margin-top: .8rem !important; }
+        .mooda-price-grid .mt-7 { margin-top: .95rem !important; }
+        .mooda-price-grid .space-y-2\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: .34rem !important; }
+        .mooda-price-grid ul svg { width: 1rem !important; height: 1rem !important; margin-top: .12rem !important; }
+        .mooda-price-grid .py-3 { padding-top: .58rem !important; padding-bottom: .58rem !important; }
+        .mooda-price-grid .plan-dur-wrap { border-radius: 11px; padding: 4px; gap: 4px; }
+        .mooda-price-grid .plan-dur-btn { padding: 5px 10px; font-size: 11px; }
+        .mooda-price-grid .plan-dur-btn .disc { font-size: 9px; margin-left: 4px; }
 
         /* ===== MODE MOBILE/TABLET: scroll VERTIKAL (bukan swiper horizontal) ===== */
         html.lp-mobile, html.lp-mobile body { height: auto; overflow-x: hidden; overflow-y: auto; }
