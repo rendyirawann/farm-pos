@@ -57,7 +57,13 @@
                 <td>:</td>
                 <td>{{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</td>
             </tr>
-            @if ($order->customer_name)
+            @if ($order->table_no)
+                <tr>
+                    <td>Meja</td>
+                    <td>:</td>
+                    <td>{{ $order->table_no }} - {{ $order->customer_name ?: 'Pelanggan' }}</td>
+                </tr>
+            @elseif ($order->customer_name)
                 <tr>
                     <td>Plg</td>
                     <td>:</td>

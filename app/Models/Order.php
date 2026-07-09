@@ -17,6 +17,7 @@ class Order extends Model
         'invoice_no',
         'queue_number',
         'customer_name',
+        'table_no',
         'subtotal',
         'tax',
         'grand_total',

@@ -12,7 +12,7 @@ return [
     | Re-enable: set BILLING_PURCHASE_ENABLED=true in .env, then run
     | `php artisan optimize` and `systemctl restart octane-stakko-pos`.
     */
-    'purchase_enabled' => env('BILLING_PURCHASE_ENABLED', false),
+    'purchase_enabled' => env('BILLING_PURCHASE_ENABLED', true),
 
     /*
     | Teks yang ditampilkan saat purchase_enabled = false (dipakai landing page

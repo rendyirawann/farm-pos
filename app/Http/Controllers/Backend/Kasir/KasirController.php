@@ -77,6 +77,7 @@ class KasirController extends Controller
             'invoice_no'     => $o->invoice_no,
             'queue_number'   => $o->queue_number,
             'customer_name'  => $o->customer_name,
+            'table_no'       => $o->table_no,
             'grand_total'    => (float) $o->grand_total,
             'payment_status' => $o->payment_status,
             'order_status'   => $o->order_status,
@@ -141,6 +142,7 @@ class KasirController extends Controller
             $order = Order::create(array_merge(
                 $this->newOrderBase($request->input('customer_name')),
                 [
+                    'table_no'        => $request->input('table_no'),
                     'promo_id'        => $request->promo_id,
                     'subtotal'        => $built['subtotal'],
                     'discount_amount' => $built['discount_amount'],
@@ -437,6 +439,7 @@ class KasirController extends Controller
                 }
 
                 $order = Order::create(array_merge($base, [
+                    'table_no'        => $offline['table_no'] ?? null,
                     'promo_id'        => $offline['promo_id'] ?? null,
                     'subtotal'        => $built['subtotal'],
                     'discount_amount' => $built['discount_amount'],
@@ -584,6 +587,7 @@ class KasirController extends Controller
             'invoice_no'     => $order->invoice_no,
             'queue_number'   => $order->queue_number,
             'customer_name'  => $order->customer_name,
+            'table_no'       => $order->table_no,
             'datetime'       => optional($order->created_at)->format('d/m/Y H:i'),
             'items'          => $order->details->map(fn($d) => [
                 'name'     => $d->menu->name ?? 'Menu',

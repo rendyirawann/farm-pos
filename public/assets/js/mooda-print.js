@@ -94,7 +94,8 @@ window.MoodaPrint = (function () {
         rule();
         if (r.invoice_no) row('No', r.invoice_no);
         if (r.datetime) row('Tgl', r.datetime);
-        if (r.customer_name) row('Plg', r.customer_name);
+        if (r.table_no) line('Meja ' + r.table_no + ' - ' + (r.customer_name || 'Pelanggan'));
+        else if (r.customer_name) row('Plg', r.customer_name);
         rule();
         (r.items || []).forEach(it => {
             line(String(it.name));
@@ -137,7 +138,8 @@ window.MoodaPrint = (function () {
         o.push(sep); o.push(center('NO. ANTRIAN ' + (r.queue_number ?? '-'))); o.push(sep);
         if (r.invoice_no) o.push(row('No', r.invoice_no));
         if (r.datetime) o.push(row('Tgl', r.datetime));
-        if (r.customer_name) o.push(row('Plg', r.customer_name));
+        if (r.table_no) o.push('Meja ' + r.table_no + ' - ' + (r.customer_name || 'Pelanggan'));
+        else if (r.customer_name) o.push(row('Plg', r.customer_name));
         o.push(sep);
         (r.items || []).forEach(it => {
             o.push(String(it.name));

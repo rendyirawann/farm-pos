@@ -35,6 +35,9 @@
                         <i class="ki-outline ki-arrows-circle fs-4 me-1"></i>Sync
                         <span id="sync-count" class="badge badge-danger ms-1 d-none">0</span>
                     </button>
+                    <button id="btn-reload-page" type="button" class="btn btn-sm btn-icon btn-light" title="Muat ulang halaman" onclick="window.location.reload()">
+                        <i class="ki-outline ki-arrows-loop fs-4"></i>
+                    </button>
                     <span id="net-status" class="badge badge-light-success">
                         <span class="bullet bullet-dot bg-success me-1"></span>Online
                     </span>
@@ -54,6 +57,17 @@
                                     title="Isi cepat tanpa nama">
                                     <i class="ki-outline ki-flash fs-4"></i> Cepat
                                 </button>
+                            </div>
+
+                            {{-- Pilih Meja (statis 1..25, opsional). Kotak kecil biar hemat ruang di HP. --}}
+                            <div class="mt-3" id="table-wrap">
+                                <label class="fw-bold fs-7 mb-2 d-block text-gray-600">Meja <span class="fw-normal text-muted">(opsional)</span></label>
+                                <div class="d-flex flex-wrap gap-1" id="table-picker">
+                                    <button type="button" class="btn btn-sm btn-primary text-white table-pick px-3" data-table="">Tanpa</button>
+                                    @for ($i = 1; $i <= 25; $i++)
+                                        <button type="button" class="btn btn-sm btn-light table-pick" data-table="{{ $i }}" style="width:34px;height:34px;padding:0;line-height:1">{{ $i }}</button>
+                                    @endfor
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -142,7 +156,7 @@
 
                         {{-- Keranjang + Checkout : mengambang (offcanvas) di layar kecil, inline di md+ --}}
                         <div class="offcanvas-md offcanvas-end" tabindex="-1" id="cart-offcanvas" style="--bs-offcanvas-width: min(430px, 92vw);">
-                            <div class="offcanvas-header border-bottom d-flex justify-content-end py-2">
+                            <div class="offcanvas-header border-bottom d-flex justify-content-end py-2 d-md-none">
                                 <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Tutup"></button>
                             </div>
                             <div class="offcanvas-body">
@@ -562,11 +576,20 @@
         });
         $('#btn-default-name').on('click', function() { $('#customer-name').val('Pelanggan'); });
 
+        // Pilih meja (statis 1..25, opsional)
+        let selectedTable = '';
+        $('#table-picker').on('click', '.table-pick', function () {
+            selectedTable = $(this).data('table') ? String($(this).data('table')) : '';
+            $('#table-picker .table-pick').removeClass('btn-primary text-white').addClass('btn-light');
+            $(this).removeClass('btn-light').addClass('btn-primary text-white');
+        });
+
         // ================= CHECKOUT =================
         function buildPayload(withPayment) {
             const payload = {
                 _token: CSRF,
                 customer_name: $('#customer-name').val().trim(),
+                table_no: selectedTable || null,
                 promo_id: $('#promo-select').val() || null,
                 cart: cart.map(it => ({ menu_id: it.menu_id, qty: it.qty, addon_ids: it.addon_ids, note: it.note })),
             };
@@ -625,6 +648,9 @@
             $('#cash-received').val('');
             $('#promo-select').val('');
             $('#customer-name').val('');
+            selectedTable = '';
+            $('#table-picker .table-pick').removeClass('btn-primary text-white').addClass('btn-light');
+            $('#table-picker .table-pick[data-table=""]').removeClass('btn-light').addClass('btn-primary text-white');
             recalcTotals();
         }
 
@@ -648,6 +674,7 @@
                 invoice_no: invoiceNo,
                 queue_number: 'OFF',
                 customer_name: payload.customer_name || 'Pelanggan',
+                table_no: payload.table_no || null,
                 datetime: new Date().toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
                 items: cart.map(it => ({
                     name: it.name, qty: it.qty, price: it.unit || 0, subtotal: (it.unit || 0) * it.qty,
@@ -745,7 +772,7 @@
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <span class="fw-bold fs-5 text-gray-800">No. ${o.queue_number ?? '-'}</span>
-                            <div class="fs-8 text-muted">${esc(o.customer_name || '')} • ${o.items_count} item • ${o.created_at ?? ''}</div>
+                            <div class="fs-8 text-muted">${o.table_no ? '<span class="badge badge-light-primary">Meja ' + esc(o.table_no) + '</span> ' : ''}${esc(o.customer_name || '')} • ${o.items_count} item • ${o.created_at ?? ''}</div>
                         </div>
                         <div class="text-end">
                             <div class="fw-bold text-gray-800">${rupiah(o.grand_total)}</div>
@@ -866,7 +893,7 @@
                 const o = res.order;
                 window.__lastDetail = {
                     store_name: STORE_NAME, invoice_no: o.invoice_no, queue_number: o.queue_number,
-                    customer_name: o.customer_name, datetime: o.created_at, items: res.items,
+                    customer_name: o.customer_name, table_no: o.table_no, datetime: o.created_at, items: res.items,
                     subtotal: o.subtotal, discount_amount: o.discount_amount, tax: o.tax, grand_total: o.grand_total,
                     payment_method: o.payment_method, payment_status: o.payment_status,
                     cash_received: o.cash_received, change_amount: o.change_amount
@@ -881,7 +908,7 @@
                 $('#detail-body').html(`
                     <div class="mb-3">
                         <div class="fs-2 fw-bold text-primary">No. ${o.queue_number ?? '-'}</div>
-                        <div class="text-muted">${esc(o.customer_name || '')} • #${o.invoice_no}</div>
+                        <div class="text-muted">${o.table_no ? 'Meja ' + esc(o.table_no) + ' · ' : ''}${esc(o.customer_name || '')} • #${o.invoice_no}</div>
                         <div>${o.payment_status === 'paid' ? '<span class="badge badge-success">Lunas</span>' : '<span class="badge badge-danger">Belum Lunas</span>'}
                              <span class="badge badge-light-info text-uppercase">${o.payment_method || '-'}</span></div>
                     </div>
