@@ -452,6 +452,9 @@ class KasirController extends Controller
 
                 if (!empty($offline['payment_method']) && in_array($offline['payment_method'], ['cash', 'qris'], true)) {
                     $this->applyPayment($order, $offline['payment_method'], $offline['cash_received'] ?? null);
+                    // Pesanan offline yang dibuat via "Bayar Sekarang (Lunas)" = transaksi selesai
+                    // -> tandai completed agar masuk tab "Selesai", bukan "Sedang Diproses".
+                    $order->update(['order_status' => 'completed']);
                 }
             }
 
