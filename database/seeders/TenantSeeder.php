@@ -16,10 +16,11 @@ class TenantSeeder extends Seeder
             [
                 'name'                 => 'Demo Resto Mooda',
                 'business_type'        => 'Restoran',
+                'category'             => 'resto',
                 'phone'                => '08123456789',
                 'email'                => 'demo@mooda.test',
                 'address'              => 'Jl. Contoh No. 1, Indonesia',
-                'plan'                 => 'starter',
+                'plan'                 => 'basic',
                 'subscription_status'  => 'active',
                 'trial_ends_at'        => now()->addDays(14),
                 'subscription_ends_at' => now()->addYear(),

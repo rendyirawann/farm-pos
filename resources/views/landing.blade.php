@@ -431,7 +431,7 @@
                                 [
                                     'name' => 'Basic', 'pop' => false,
                                     'tagline' => 'Semua yang dibutuhkan untuk mulai jualan dengan rapi & cepat.',
-                                    'periods' => \App\Tenancy\Plan::periods('starter'),
+                                    'periods' => \App\Tenancy\Plan::periods('basic'),
                                     'features' => array_merge($core, [
                                         'Maks 3 User (tambah user Rp 10.000/user)',
                                         'Penyimpanan Database Pelanggan (12.000 Data)',

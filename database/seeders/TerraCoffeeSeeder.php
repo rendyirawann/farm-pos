@@ -27,7 +27,7 @@ class TerraCoffeeSeeder extends Seeder
 
         // Langganan Starter 6 bulan (promo): total dihitung dari config paket.
         $months  = 6;
-        $amount  = Plan::periodAmount('starter', $months) ?? 894000; // 6 x Rp149.000
+        $amount  = Plan::periodAmount('basic', $months) ?? 894000; // 6 x Rp149.000
         $startAt = now();
         $endsAt  = now()->addMonthsNoOverflow($months);
 
@@ -42,7 +42,7 @@ class TerraCoffeeSeeder extends Seeder
                 'phone'                => '081200000001',
                 'email'                => 'halo@terracoffee.id',
                 'address'              => 'Lubuk Pakam, Deli Serdang, Sumatera Utara',
-                'plan'                 => 'starter',
+                'plan'                 => 'basic',
                 'subscription_status'  => 'active',
                 'trial_ends_at'        => null,
                 'subscription_ends_at' => $endsAt,
@@ -52,7 +52,7 @@ class TerraCoffeeSeeder extends Seeder
 
         // Pastikan status langganan tetap sinkron walau tenant sudah ada.
         $tenant->update([
-            'plan'                 => 'starter',
+            'plan'                 => 'basic',
             'subscription_status'  => 'active',
             'subscription_ends_at' => $endsAt,
             'is_active'            => true,
@@ -112,7 +112,7 @@ class TerraCoffeeSeeder extends Seeder
             ['midtrans_order_id' => 'TERRA-SEED-STARTER-6M'],
             [
                 'tenant_id'      => $tenant->id,
-                'plan'           => 'starter',
+                'plan'           => 'basic',
                 'amount'         => $amount,
                 'billing_period' => (string) $months,
                 'status'         => 'paid',
