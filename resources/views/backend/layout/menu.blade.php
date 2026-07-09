@@ -86,6 +86,17 @@
         @endcan
         @endif
 
+        {{-- PENGELUARAN: owner/admin/kasir tenant (Superadmin tanpa tenant tidak tampil) --}}
+        @if (auth()->user()->tenant_id)
+            @can('view_expense')
+                <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('expenses.*') ? 'here show ' : '' }}">
+                    <a href="{{ route('expenses.index') }}" class="menu-link px-4 {{ request()->routeIs('expenses.*') ? 'active ' : '' }}">
+                        <span class="menu-title">Pengeluaran</span>
+                    </a>
+                </div>
+            @endcan
+        @endif
+
         {{-- RESOURCES: Superadmin only --}}
         @can('view_resources')
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"

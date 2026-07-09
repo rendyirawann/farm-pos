@@ -26,6 +26,7 @@ use App\Http\Controllers\Backend\Master\PromoController;
 // Reports
 use App\Http\Controllers\Backend\Report\ItemSalesReportController;
 use App\Http\Controllers\Backend\Report\SalesReportController;
+use App\Http\Controllers\Backend\Finance\ExpenseController;
 // Settings / Billing / Tenant
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\DownloadAppController;
@@ -201,6 +202,17 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
             Route::get('/admin/reports/items/data', [ItemSalesReportController::class, 'getData'])->name('reports.items.data');
             Route::get('/admin/reports/items/print', [ItemSalesReportController::class, 'print'])->name('reports.items.print');
         });
+    });
+
+    // ====================================================
+    // PENGELUARAN (Expenses): view_expense — Superadmin, owner, admin, kasir
+    // ====================================================
+    Route::middleware(['can:view_expense', 'subscribed'])->group(function () {
+        Route::get('/admin/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+        Route::get('/admin/get-dataexpenses', [ExpenseController::class, 'getDataExpenses'])->name('expenses.data');
+        Route::post('/admin/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+        Route::put('/admin/expenses/{id}', [ExpenseController::class, 'update'])->name('expenses.update');
+        Route::delete('/admin/expenses/{id}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
     });
 
     // ====================================================

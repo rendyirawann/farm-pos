@@ -25,6 +25,7 @@ class RolePermissionSeeder extends Seeder
             'view_kitchen',
             'view_data_master',
             'view_report',
+            'view_expense',   // Pengeluaran (owner/admin/kasir)
             'view_resources',
             'view_help',
             'view_billing',   // Langganan (untuk owner/admin tenant)
@@ -101,7 +102,7 @@ class RolePermissionSeeder extends Seeder
         // tetapi TIDAK punya 'view_tenants' (itu khusus Superadmin platform).
         $ownerPermissions = [
             'view_dashboard', 'view_kasir', 'view_kitchen',
-            'view_data_master', 'view_report', 'view_help',
+            'view_data_master', 'view_report', 'view_expense', 'view_help',
             'view_resources', 'view_billing',
             'user.show', 'user.create', 'user.edit', 'user.delete', 'user.massdelete', 'user.ban',
             // Catatan: role.* (kelola Hak Akses) TIDAK diberikan ke owner.
@@ -122,6 +123,7 @@ class RolePermissionSeeder extends Seeder
             'view_kitchen',
             'view_data_master',
             'view_report',
+            'view_expense',
             'view_help',
             'category.show', 'category.create', 'category.edit', 'category.delete',
             'menu.show', 'menu.create', 'menu.edit', 'menu.delete',
@@ -136,6 +138,7 @@ class RolePermissionSeeder extends Seeder
             'view_kasir',
             'view_kitchen',
             'view_report',
+            'view_expense',
             'report.sales',
             'report.items',
         ];

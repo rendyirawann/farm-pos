@@ -10,6 +10,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\DailySalesTarget; // Model Target Penjualan
+use App\Models\DailyBudget;      // Anggaran pengeluaran harian
+use App\Models\Expense;          // Pengeluaran (rekonsiliasi tutup shift)
 
 class ShiftController extends Controller
 {
@@ -18,6 +20,7 @@ class ShiftController extends Controller
         $userId = Auth::id();
         $currentShift = Shift::where('user_id', $userId)->where('status', 'open')->first();
         $cashSales = 0;
+        $shiftExpenses = 0;
 
         if ($currentShift) {
             // PERBAIKAN: Gunakan tabel Order dan kolom grand_total
@@ -25,6 +28,9 @@ class ShiftController extends Controller
                 ->where('payment_status', 'paid')
                 ->where('created_at', '>=', $currentShift->start_time)
                 ->sum('grand_total');
+
+            // Pengeluaran yang dicatat selama shift ini (mengurangi uang laci)
+            $shiftExpenses = Expense::where('created_at', '>=', $currentShift->start_time)->sum('amount');
         }
 
         $history = Shift::where('user_id', $userId)
@@ -37,7 +43,7 @@ class ShiftController extends Controller
         $today = Carbon::today();
         $isFirstShiftOfDay = !DailySalesTarget::whereDate('date', $today)->exists();
 
-        return view('backend.kasir.shift.index', compact('currentShift', 'cashSales', 'history', 'isFirstShiftOfDay'));
+        return view('backend.kasir.shift.index', compact('currentShift', 'cashSales', 'shiftExpenses', 'history', 'isFirstShiftOfDay'));
     }
 
     public function openShift(Request $request)
@@ -50,6 +56,7 @@ class ShiftController extends Controller
 
         if ($isFirstShiftOfDay) {
             $rules['target_penjualan'] = 'required|numeric|min:0';
+            $rules['daily_budget']     = 'required|numeric|min:0'; // anggaran/modal pengeluaran hari ini
         }
         $request->validate($rules);
 
@@ -77,6 +84,10 @@ class ShiftController extends Controller
                 DailySalesTarget::create([
                     'date'   => $today,
                     'amount' => $request->target_penjualan,
+                ]);
+                DailyBudget::create([
+                    'date'   => $today,
+                    'amount' => $request->daily_budget,
                 ]);
             }
 
@@ -180,8 +191,11 @@ class ShiftController extends Controller
                 ->where('created_at', '>=', $shift->start_time)
                 ->sum('grand_total');
 
-            // Kalkulasi
-            $expectedCash = $shift->starting_cash + $cashSales;
+            // Pengeluaran selama shift ini mengurangi uang di laci (fix selisih).
+            $shiftExpenses = Expense::where('created_at', '>=', $shift->start_time)->sum('amount');
+
+            // Kalkulasi: kas seharusnya = modal + tunai masuk - pengeluaran
+            $expectedCash = $shift->starting_cash + $cashSales - $shiftExpenses;
             $actualCash   = $request->actual_cash;
             $difference   = $actualCash - $expectedCash;
 

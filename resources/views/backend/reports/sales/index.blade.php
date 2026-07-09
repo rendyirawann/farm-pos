@@ -39,22 +39,28 @@
             </div>
 
             <div class="row g-5 mb-8">
-                <div class="col-md-4">
+                <div class="col-6 col-md-3">
                     <div class="bg-light-primary rounded p-6 border border-primary border-dashed h-100">
-                        <span class="fs-6 fw-semibold text-primary d-block mb-1">Total Nota Terjual</span>
-                        <span class="fs-1 fw-bolder text-gray-900" id="summary-orders">0 Nota</span>
+                        <span class="fs-6 fw-semibold text-primary d-block mb-1">Total Nota</span>
+                        <span class="fs-2x fw-bolder text-gray-900" id="summary-orders">0 Nota</span>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-6 col-md-3">
+                    <div class="bg-light-info rounded p-6 border border-info border-dashed h-100">
+                        <span class="fs-6 fw-semibold text-info d-block mb-1">Total Pendapatan</span>
+                        <span class="fs-2x fw-bolder text-gray-900" id="summary-revenue">Rp 0</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
                     <div class="bg-light-danger rounded p-6 border border-danger border-dashed h-100">
-                        <span class="fs-6 fw-semibold text-danger d-block mb-1">Total Diskon / Promo</span>
-                        <span class="fs-1 fw-bolder text-gray-900" id="summary-discount">Rp 0</span>
+                        <span class="fs-6 fw-semibold text-danger d-block mb-1">Total Pengeluaran</span>
+                        <span class="fs-2x fw-bolder text-gray-900" id="summary-expense">Rp 0</span>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-6 col-md-3">
                     <div class="bg-light-success rounded p-6 border border-success border-dashed h-100">
-                        <span class="fs-6 fw-semibold text-success d-block mb-1">Total Pendapatan Bersih</span>
-                        <span class="fs-1 fw-bolder text-gray-900" id="summary-revenue">Rp 0</span>
+                        <span class="fs-6 fw-semibold text-success d-block mb-1">Omzet Bersih</span>
+                        <span class="fs-2x fw-bolder text-gray-900" id="summary-net">Rp 0</span>
                     </div>
                 </div>
             </div>
@@ -130,7 +136,8 @@
                         },
                         dataSrc: function(json) {
                             $('#summary-revenue').text(json.totalRevenue);
-                            $('#summary-discount').text(json.totalDiscount); // Tambahan untuk diskon
+                            $('#summary-expense').text(json.totalExpense);
+                            $('#summary-net').text(json.netRevenue);
                             $('#summary-orders').text(json.totalOrders + ' Nota');
                             return json.data;
                         }

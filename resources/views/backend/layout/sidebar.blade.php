@@ -219,6 +219,29 @@
                 </div>
             @endif
 
+            {{-- Pengeluaran Harian: ringkasan + tombol catat cepat (modal) --}}
+            @can('view_expense')
+                <div class="px-1 mb-6">
+                    <div class="border border-danger border-dashed bg-light-danger rounded w-100 py-3 px-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fs-6 text-danger fw-bold">Pengeluaran Hari Ini</span>
+                            <button type="button" class="btn btn-sm btn-danger py-1 px-3" data-bs-toggle="modal" data-bs-target="#modal-quick-expense">
+                                <i class="ki-outline ki-plus fs-5"></i> Catat
+                            </button>
+                        </div>
+                        <div id="sb-expense-spent" class="fs-2 fw-bold text-gray-800">Rp {{ number_format($dailySpent ?? 0, 0, ',', '.') }}</div>
+                        @if (($dailyBudget ?? 0) > 0)
+                            <div class="w-100 bg-white rounded mt-2" style="height: 6px">
+                                <div class="{{ $expenseColor ?? 'bg-primary' }} rounded" style="height: 6px; width: {{ $expensePct ?? 0 }}%"></div>
+                            </div>
+                            <div class="fs-8 text-muted mt-1">Terpakai {{ $expensePct ?? 0 }}% dari anggaran Rp{{ number_format($dailyBudget, 0, ',', '.') }}</div>
+                        @else
+                            <div class="fs-8 text-muted mt-1">Belum ada anggaran pengeluaran hari ini.</div>
+                        @endif
+                    </div>
+                </div>
+            @endcan
+
             <div class="mb-6 mt-4">
                 <h3 class="text-gray-800 fw-bold mb-8">Menu Utama</h3>
                 <div class="row row-cols-3" data-kt-buttons="true" data-kt-buttons-target="[data-kt-button]">

@@ -189,9 +189,19 @@
                     {{ number_format($totalDiscount, 0, ',', '.') }}</td>
             </tr>
             <tr>
-                <td style="border: none; padding-top: 10px;" class="bold">PENDAPATAN BERSIH</td>
-                <td style="border: none; padding-top: 10px; font-size: 16px;" class="text-right bold text-success">
-                    Rp {{ number_format($totalRevenue, 0, ',', '.') }}
+                <td style="border: none; padding-top: 8px;" class="bold">Total Pendapatan</td>
+                <td style="border: none; padding-top: 8px;" class="text-right bold">Rp
+                    {{ number_format($totalRevenue, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <td style="border: none; padding-top: 5px;">Total Pengeluaran</td>
+                <td style="border: none; padding-top: 5px; color: #d9534f;" class="text-right bold">- Rp
+                    {{ number_format($totalExpense, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <td style="border-top: 2px solid #000; border-left:none; border-right:none; border-bottom:none; padding-top: 10px;" class="bold">OMZET BERSIH</td>
+                <td style="border-top: 2px solid #000; border-left:none; border-right:none; border-bottom:none; padding-top: 10px; font-size: 16px;" class="text-right bold">
+                    Rp {{ number_format($netRevenue, 0, ',', '.') }}
                 </td>
             </tr>
         </table>

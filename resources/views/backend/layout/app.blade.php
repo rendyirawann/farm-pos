@@ -388,6 +388,78 @@ License: Proprietary - Mooda System
 
     @include('partials._number_format')
     @stack('scripts')
+
+    @can('view_expense')
+        {{-- Modal catat pengeluaran cepat (dipicu dari sidebar) --}}
+        <div class="modal fade" id="modal-quick-expense" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered mw-550px">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="fw-bold text-danger">Catat Pengeluaran</h2>
+                        <div class="btn btn-icon btn-sm btn-active-icon-primary" data-bs-dismiss="modal"><i class="ki-outline ki-cross fs-1"></i></div>
+                    </div>
+                    <div class="modal-body mx-5 my-5">
+                        <form id="form-quick-expense">
+                            @csrf
+                            <div class="mb-4">
+                                <label class="required fs-6 fw-semibold mb-2">Tanggal</label>
+                                <input type="date" class="form-control" name="date" value="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="required fs-6 fw-semibold mb-2">Kategori</label>
+                                <input type="text" class="form-control" name="category" placeholder="Contoh: Bahan Baku, Listrik" list="qe-cat-list" required>
+                                <datalist id="qe-cat-list">
+                                    <option value="Bahan Baku"></option>
+                                    <option value="Gaji Karyawan"></option>
+                                    <option value="Listrik & Air"></option>
+                                    <option value="Sewa Tempat"></option>
+                                    <option value="Perlengkapan"></option>
+                                    <option value="Lain-lain"></option>
+                                </datalist>
+                            </div>
+                            <div class="mb-4">
+                                <label class="required fs-6 fw-semibold mb-2">Nominal</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light-danger text-danger fw-bold">Rp</span>
+                                    <input type="number" class="form-control fw-bold" name="amount" value="0" min="0" required>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="fs-6 fw-semibold mb-2">Keterangan (opsional)</label>
+                                <textarea class="form-control" name="notes" rows="2"></textarea>
+                            </div>
+                            <div class="text-center pt-6">
+                                <button type="submit" class="btn btn-danger w-100" id="btn-quick-expense-save">Simpan Pengeluaran</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+            (function () {
+                var form = document.getElementById('form-quick-expense');
+                if (!form) return;
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    var btn = document.getElementById('btn-quick-expense-save');
+                    btn.disabled = true; btn.textContent = 'Menyimpan...';
+                    $.ajax({
+                        url: "{{ route('expenses.store') }}", method: 'POST', data: $(form).serialize(),
+                        success: function (res) {
+                            Swal.fire({ icon: 'success', title: 'Berhasil!', text: (res && res.message) || 'Pengeluaran dicatat.', timer: 1800, showConfirmButton: false })
+                                .then(function () { location.reload(); });
+                        },
+                        error: function (xhr) {
+                            var msg = (xhr.responseJSON && (xhr.responseJSON.message || 'Periksa isian form.')) || 'Gagal menyimpan.';
+                            Swal.fire('Gagal', msg, 'error');
+                            btn.disabled = false; btn.textContent = 'Simpan Pengeluaran';
+                        }
+                    });
+                });
+            })();
+        </script>
+    @endcan
     <!--end::Javascript-->
 </body>
 <!--end::Body-->

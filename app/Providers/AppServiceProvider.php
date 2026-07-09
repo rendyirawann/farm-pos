@@ -101,12 +101,30 @@ class AppServiceProvider extends ServiceProvider
                     }
                 }
 
+                // Anggaran & pengeluaran hari ini (untuk widget sidebar Pengeluaran)
+                $dailyBudget = (float) (\App\Models\DailyBudget::whereDate('date', $today)->value('amount') ?? 0);
+                $dailySpent  = (float) \App\Models\Expense::whereDate('date', $today)->sum('amount');
+                $expensePct = 0;
+                $expenseColor = 'bg-primary';
+                if ($dailyBudget > 0) {
+                    $expensePct = min(100, round($dailySpent / $dailyBudget * 100));
+                    if ($expensePct >= 100) {
+                        $expenseColor = 'bg-danger';
+                    } elseif ($expensePct >= 75) {
+                        $expenseColor = 'bg-warning';
+                    }
+                }
+
                 $view->with(compact(
                     'salesTarget',
                     'income',
                     'salesPercentage',
                     'salesBarWidth',
-                    'salesProgressColor'
+                    'salesProgressColor',
+                    'dailyBudget',
+                    'dailySpent',
+                    'expensePct',
+                    'expenseColor'
                 ));
             }
         });

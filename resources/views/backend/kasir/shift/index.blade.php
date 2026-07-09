@@ -52,6 +52,15 @@
                                                     class="form-control form-control-solid" placeholder="Contoh: 3000000"
                                                     min="0" required>
                                             </div>
+                                            <div class="mb-1">
+                                                <label class="required fw-semibold fs-6 mb-1">Anggaran Pengeluaran Hari Ini
+                                                    (Rp)</label>
+                                                <input type="number" name="daily_budget"
+                                                    class="form-control form-control-solid" placeholder="Contoh: 500000"
+                                                    min="0" required>
+                                                <div class="form-text fs-8">Modal/anggaran pengeluaran operasional hari ini
+                                                    (untuk pembelian bahan, dll).</div>
+                                            </div>
                                         </div>
                                     @endif
                                     <div class="text-start mb-6">
@@ -88,11 +97,16 @@
                                     <span class="text-success fw-bold fs-4">+ Rp
                                         {{ number_format($cashSales, 0, ',', '.') }}</span>
                                 </div>
+                                <div class="d-flex flex-stack mb-5">
+                                    <span class="text-gray-600 fs-5">Pengeluaran (Keluar)</span>
+                                    <span class="text-danger fw-bold fs-4">- Rp
+                                        {{ number_format($shiftExpenses ?? 0, 0, ',', '.') }}</span>
+                                </div>
                                 <div class="separator separator-dashed my-5"></div>
                                 <div class="d-flex flex-stack mb-8">
                                     <span class="text-gray-800 fw-bolder fs-4">Harapan Uang di Laci</span>
                                     <span class="text-primary fw-bolder fs-2qx">Rp
-                                        {{ number_format($currentShift->starting_cash + $cashSales, 0, ',', '.') }}</span>
+                                        {{ number_format($currentShift->starting_cash + $cashSales - ($shiftExpenses ?? 0), 0, ',', '.') }}</span>
                                 </div>
 
                                 <form action="{{ route('shifts.close', $currentShift->id) }}" method="POST"
