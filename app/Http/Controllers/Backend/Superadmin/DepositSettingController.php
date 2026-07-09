@@ -47,7 +47,10 @@ class DepositSettingController extends Controller
             ->limit(15)
             ->get();
 
-        return view('backend.superadmin.deposit.index', compact('settings', 'tiers', 'tenants', 'recentManual'));
+        // Paket aktif untuk dropdown top-up manual (bukan nominal bebas).
+        $activeTiers = DepositConfig::tiers();
+
+        return view('backend.superadmin.deposit.index', compact('settings', 'tiers', 'tenants', 'recentManual', 'activeTiers'));
     }
 
     /** Simpan setelan + sinkron daftar tier. */
@@ -105,24 +108,31 @@ class DepositSettingController extends Controller
     {
         $data = $request->validate([
             'tenant_id' => ['required', 'integer', 'exists:tenants,id'],
-            'amount'    => ['nullable', 'integer', 'min:0'],   // Rupiah diterima (opsional, untuk catatan)
-            'points'    => ['required', 'integer', 'min:1'],   // poin yang dikreditkan
+            'amount'    => ['required', 'integer'],   // nominal PAKET yang dipilih (bukan nominal bebas)
             'note'      => ['nullable', 'string', 'max:255'],
         ]);
+
+        // Poin diambil dari paket/tier aktif — server-side, anti-manipulasi.
+        $points = DepositConfig::pointsFor((int) $data['amount']);
+        if ($points === null) {
+            return redirect()->route('deposit-settings.index')
+                ->with('error', 'Paket top-up tidak valid. Silakan pilih paket yang tersedia.');
+        }
 
         $tenant = Tenant::findOrFail($data['tenant_id']);
 
         app(DepositService::class)->manualCredit(
             $tenant,
-            (int) $data['points'],
-            isset($data['amount']) ? (int) $data['amount'] : null,
+            (int) $points,
+            (int) $data['amount'],
             auth()->id(),
             $data['note'] ?? ''
         );
 
         return redirect()->route('deposit-settings.index')->with(
             'success',
-            'Top-up manual berhasil: +' . number_format($data['points'], 0, ',', '.') . ' poin ke ' . $tenant->name . '.'
+            'Top-up manual berhasil: +' . number_format($points, 0, ',', '.') . ' poin (paket Rp'
+                . number_format($data['amount'], 0, ',', '.') . ') ke ' . $tenant->name . '.'
         );
     }
 }

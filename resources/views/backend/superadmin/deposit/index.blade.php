@@ -149,13 +149,14 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label fw-semibold">Nominal Transfer (Rp)</label>
-                                <input type="number" name="amount" id="manual-amount" min="0" class="form-control" placeholder="opsional">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label fw-semibold">Poin Dikreditkan</label>
-                                <input type="number" name="points" id="manual-points" min="1" class="form-control" required>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Paket Top-up</label>
+                                <select name="amount" class="form-select" required>
+                                    <option value="">— pilih paket —</option>
+                                    @foreach ($activeTiers as $tier)
+                                        <option value="{{ $tier->amount }}">Rp{{ number_format($tier->amount, 0, ',', '.') }} → {{ number_format($tier->points, 0, ',', '.') }} poin</option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Catatan (mis. ref transfer)</label>
@@ -256,13 +257,9 @@
             bindRow(tr);
         });
 
-        // Top-up manual: auto-isi poin = nominal transfer (1:1); admin bisa ubah.
-        var mAmount = document.getElementById('manual-amount');
-        var mPoints = document.getElementById('manual-points');
-        if (mAmount && mPoints) {
-            mAmount.addEventListener('input', function () { mPoints.value = mAmount.value; });
-        }
-
+        @if (session('error'))
+            Swal.fire({ icon: 'error', title: 'Gagal', text: @json(session('error')) });
+        @endif
         @if (session('success'))
             Swal.fire({ icon: 'success', title: 'Berhasil!', text: @json(session('success')), timer: 3000 });
         @endif
