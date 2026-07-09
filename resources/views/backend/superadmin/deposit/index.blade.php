@@ -248,9 +248,9 @@
             const tr = document.createElement('tr');
             tr.className = 'tier-row';
             tr.innerHTML = `
-                <td><input type="number" name="tiers[${i}][amount]" min="1" class="form-control form-control-sm tier-amount" value="5000" required></td>
-                <td><input type="number" name="tiers[${i}][points]" min="1" class="form-control form-control-sm tier-points" value="5500" required></td>
-                <td class="tier-bonus text-success fw-semibold">Rp500</td>
+                <td><input type="number" name="tiers[${i}][amount]" min="1" class="form-control form-control-sm tier-amount" value="25000" required></td>
+                <td><input type="number" name="tiers[${i}][points]" min="1" class="form-control form-control-sm tier-points" value="30000" required></td>
+                <td class="tier-bonus text-success fw-semibold">Rp5.000</td>
                 <td>
                     <div class="form-check form-switch">
                         <input type="hidden" name="tiers[${i}][is_active]" value="0">

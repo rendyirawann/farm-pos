@@ -20,7 +20,9 @@ return [
 
     // Batas maksimum SALDO. Top-up yang membuat saldo melewati ini ditolak.
     // Bila null/0 (dikosongkan di Superadmin) => tanpa batas (unlimited).
-    'max_points' => 70000,
+    // Default: tanpa batas — cap rendah membuat paket ter-hide setelah aktivasi wajib
+    // 50rb (=62.500 saldo). Superadmin bisa isi angka bila mau ada plafon.
+    'max_points' => null,
 
     // Potongan saldo per transaksi (pesanan diselesaikan). Bisa diubah Superadmin.
     'fee_per_transaction' => 169,
