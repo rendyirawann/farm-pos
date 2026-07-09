@@ -124,7 +124,11 @@
 
         /* ===== Swiper + centering anti-ketimpa ===== */
         /* 100dvh = tinggi viewport dinamis (akurat di HP dgn bilah alamat) */
-        #landing-swiper, .swiper-wrapper, .swiper-slide { height: 100vh; height: 100dvh; }
+        /* PENTING: hanya slide SECTION (anak langsung #landing-swiper) yang 100vh.
+           Jangan kena carousel harga bersarang (yang juga .swiper-slide) -> pakai selector anak langsung. */
+        #landing-swiper,
+        #landing-swiper > .swiper-wrapper,
+        #landing-swiper > .swiper-wrapper > .swiper-slide { height: 100vh; height: 100dvh; }
         /* Slide = 1 layar penuh; bg absolute menutupinya. overflow hidden agar bg tidak ikut menggulir. */
         .lp-slide { display: flex !important; overflow: hidden; }
         /* Konten boleh MENGGULIR vertikal saat lebih tinggi dari layar (anti-terpotong di HP & mode landscape). */
@@ -171,9 +175,9 @@
 
         /* ===== Harga: CAROUSEL bersarang (2 kartu/tampilan + tombol geser) ===== */
         .mooda-price-shell { position: relative; max-width: 940px; margin-left: auto; margin-right: auto; padding: 0 48px; }
-        .mooda-price-carousel { overflow: hidden; padding: 22px 8px 10px; }
-        .mooda-price-carousel .swiper-wrapper { align-items: stretch; }
-        .mooda-price-carousel .swiper-slide { height: auto; }   /* semua kartu setinggi kartu tertinggi */
+        .mooda-price-carousel { overflow: hidden; padding: 22px 8px 10px; height: auto !important; }
+        .mooda-price-carousel .swiper-wrapper { align-items: stretch; height: auto !important; }
+        .mooda-price-carousel .swiper-slide { height: auto !important; }   /* kartu setinggi konten (bukan 100vh) */
 
         /* Tombol navigasi carousel (kiri & kanan) */
         .price-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 6;
