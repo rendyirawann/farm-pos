@@ -24,7 +24,7 @@ class DepositConfig
     {
         return DepositSetting::query()->first() ?? new DepositSetting([
             'max_points'          => (int) config('deposit.max_points', 70000),
-            'fee_per_transaction' => (int) config('deposit.fee_per_transaction', 150),
+            'fee_per_transaction' => (int) config('deposit.fee_per_transaction', 169),
             'expiry_days'         => (int) config('deposit.expiry_days', 60),
             'min_deposit'         => (int) config('deposit.min_deposit', 5000),
             'initial_topup'       => (int) config('deposit.initial_topup', 50000),

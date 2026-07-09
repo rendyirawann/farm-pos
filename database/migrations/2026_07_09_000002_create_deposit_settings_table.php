@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('deposit_settings', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('max_points')->default(70000);
-            $table->unsignedInteger('fee_per_transaction')->default(150);
+            $table->unsignedInteger('fee_per_transaction')->default(169);
             $table->unsignedSmallInteger('expiry_days')->default(60);
             $table->unsignedInteger('min_deposit')->default(5000);
             $table->timestamps();

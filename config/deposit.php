@@ -24,7 +24,7 @@ return [
     'max_points' => 70000,
 
     // Potongan poin per transaksi (pesanan diselesaikan). Bisa diubah Superadmin.
-    'fee_per_transaction' => 150,
+    'fee_per_transaction' => 169,
 
     // Poin hangus bila tidak ada aktivitas (top-up/pemakaian) selama sekian hari.
     'expiry_days' => 60,

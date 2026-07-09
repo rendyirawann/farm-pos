@@ -15,10 +15,13 @@ class DepositTierSeeder extends Seeder
     public function run(): void
     {
         DepositSetting::firstOrCreate([], [
-            'max_points'          => (int) config('deposit.max_points', 50000),
-            'fee_per_transaction' => (int) config('deposit.fee_per_transaction', 150),
+            'max_points'          => (int) config('deposit.max_points', 70000),
+            'fee_per_transaction' => (int) config('deposit.fee_per_transaction', 169),
             'expiry_days'         => (int) config('deposit.expiry_days', 60),
             'min_deposit'         => (int) config('deposit.min_deposit', 5000),
+            'initial_topup'       => (int) config('deposit.initial_topup', 50000),
+            'manual_wa'           => config('deposit.manual_wa'),
+            'manual_bank'         => config('deposit.manual_bank'),
         ]);
 
         if (DepositTier::count() === 0) {
