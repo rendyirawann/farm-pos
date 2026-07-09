@@ -163,6 +163,41 @@ License: Proprietary - Mooda System
                                 </div>
                             </div>
                         @endif
+
+                        {{-- Banner plan deposit: poin habis / akan hangus --}}
+                        @if (isset($currentTenant) && $currentTenant && $currentTenant->isDepositMode() && $currentTenant->hasActiveAccess())
+                            @if (($depositPoints ?? 0) < ($depositFee ?? 150))
+                                <div class="app-container container-xxl mt-4">
+                                    <div class="alert alert-danger d-flex flex-column flex-sm-row align-items-sm-center justify-content-between mb-0">
+                                        <div class="d-flex align-items-center">
+                                            <i class="ki-outline ki-wallet fs-2x text-danger me-3"></i>
+                                            <div>
+                                                <h5 class="mb-1">Poin deposit habis</h5>
+                                                <span class="text-gray-700">Sisa poin Rp{{ number_format($depositPoints ?? 0, 0, ',', '.') }}. Transaksi tidak bisa diselesaikan sebelum top up (potongan Rp{{ number_format($depositFee ?? 150, 0, ',', '.') }}/transaksi).</span>
+                                            </div>
+                                        </div>
+                                        @can('view_billing')
+                                            <a href="{{ route('deposit.index') }}" class="btn btn-danger btn-sm mt-3 mt-sm-0">Top Up Sekarang</a>
+                                        @endcan
+                                    </div>
+                                </div>
+                            @elseif (!empty($depositExpiringSoon) && !empty($depositExpiresAt))
+                                <div class="app-container container-xxl mt-4">
+                                    <div class="alert alert-warning d-flex flex-column flex-sm-row align-items-sm-center justify-content-between mb-0">
+                                        <div class="d-flex align-items-center">
+                                            <i class="ki-outline ki-time fs-2x text-warning me-3"></i>
+                                            <div>
+                                                <h5 class="mb-1">Poin akan hangus</h5>
+                                                <span class="text-gray-700">Sisa poin Rp{{ number_format($depositPoints ?? 0, 0, ',', '.') }} akan hangus pada {{ \Carbon\Carbon::parse($depositExpiresAt)->translatedFormat('d F Y') }} bila tidak ada transaksi/top-up. Poin hangus setelah {{ \App\Tenancy\DepositConfig::expiryDays() }} hari tidak dipakai.</span>
+                                            </div>
+                                        </div>
+                                        @can('view_billing')
+                                            <a href="{{ route('deposit.index') }}" class="btn btn-warning btn-sm mt-3 mt-sm-0">Lihat Deposit</a>
+                                        @endcan
+                                    </div>
+                                </div>
+                            @endif
+                        @endif
                         <!--begin::Content-->
                         @yield('content')
                         <!--end::Content-->

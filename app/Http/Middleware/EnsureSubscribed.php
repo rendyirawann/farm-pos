@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\DepositService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +28,12 @@ class EnsureSubscribed
         }
 
         $tenant = $user->tenant;
+
+        // Bila langganan bulanan sudah berakhir tapi masih punya poin deposit yang
+        // dapat dipakai, kembalikan otomatis ke mode deposit (poin aktif lagi).
+        if ($tenant) {
+            app(DepositService::class)->maybeRevertToDeposit($tenant);
+        }
 
         if (!$tenant || !$tenant->hasActiveAccess()) {
             $message = 'Langganan Anda belum aktif atau sudah berakhir. Silakan berlangganan untuk memakai fitur ini.';

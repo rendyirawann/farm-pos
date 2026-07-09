@@ -57,5 +57,11 @@ class DatabaseSeeder extends Seeder
         $this->call([
             TerraCoffeeSeeder::class,
         ]);
+
+        // 5. Plan deposit: setelan/tier default + 5 tenant deposit (owner saja, deposit Rp5.000)
+        $this->call([
+            DepositTierSeeder::class,
+            DepositTenantsSeeder::class,
+        ]);
     }
 }

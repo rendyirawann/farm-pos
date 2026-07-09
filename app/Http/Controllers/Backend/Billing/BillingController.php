@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Backend\Billing;
 use App\Http\Controllers\Controller;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Models\DepositTopup;
+use App\Services\DepositService;
 use App\Tenancy\Plan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -156,25 +158,75 @@ class BillingController extends Controller
             return response()->json(['message' => 'Invalid signature'], 403);
         }
 
-        // 2. Cari subscription (tanpa scope tenant — model ini memang lintas konteks)
-        $subscription = Subscription::where('midtrans_order_id', $request->order_id)->first();
-        if (!$subscription) {
-            return response()->json(['message' => 'Subscription not found'], 404);
-        }
-
         $transaction = $request->transaction_status;
         $fraud       = $request->fraud_status;
+        $succeeded   = ($transaction === 'capture' && $fraud === 'accept') || $transaction === 'settlement';
+        $failed      = in_array($transaction, ['cancel', 'deny', 'expire'], true);
 
-        // 3. Aktivasi saat pembayaran sukses
-        if (($transaction === 'capture' && $fraud === 'accept') || $transaction === 'settlement') {
-            $this->activateSubscription($subscription, $request->payment_type);
-        } elseif (in_array($transaction, ['cancel', 'deny', 'expire'], true)) {
-            $subscription->update(['status' => 'failed']);
-        } elseif ($transaction === 'pending') {
-            $subscription->update(['status' => 'pending', 'payment_type' => $request->payment_type]);
+        // 2. Cari subscription (tanpa scope tenant — model ini memang lintas konteks)
+        $subscription = Subscription::where('midtrans_order_id', $request->order_id)->first();
+        if ($subscription) {
+            if ($succeeded) {
+                $this->activateSubscription($subscription, $request->payment_type);
+            } elseif ($failed) {
+                $subscription->update(['status' => 'failed']);
+            } elseif ($transaction === 'pending') {
+                $subscription->update(['status' => 'pending', 'payment_type' => $request->payment_type]);
+            }
+
+            return response()->json(['message' => 'OK']);
         }
 
-        return response()->json(['message' => 'OK']);
+        // 3. Bila bukan langganan, cek top-up deposit (endpoint webhook dipakai bersama)
+        $topup = DepositTopup::where('midtrans_order_id', $request->order_id)->first();
+        if ($topup) {
+            if ($succeeded) {
+                $this->activateTopup($topup, $request->payment_type);
+            } elseif ($failed) {
+                $topup->update(['status' => 'failed']);
+            } elseif ($transaction === 'pending') {
+                $topup->update(['status' => 'pending', 'payment_type' => $request->payment_type]);
+            }
+
+            return response()->json(['message' => 'OK']);
+        }
+
+        return response()->json(['message' => 'Order not found'], 404);
+    }
+
+    /**
+     * Kreditkan poin saat top-up deposit lunas + alihkan tenant ke mode deposit.
+     */
+    private function activateTopup(DepositTopup $topup, ?string $paymentType): void
+    {
+        if ($topup->status === 'paid') {
+            return; // idempoten
+        }
+
+        DB::transaction(function () use ($topup, $paymentType) {
+            $topup->update([
+                'status'       => 'paid',
+                'payment_type' => $paymentType,
+                'paid_at'      => now(),
+            ]);
+
+            $tenant  = $topup->tenant;
+            $service = app(DepositService::class);
+
+            // Poin dikreditkan tanpa enforce cap (pembayaran sudah terjadi; cap ditegakkan saat checkout).
+            $service->credit(
+                $tenant,
+                (int) $topup->points,
+                (int) $topup->amount,
+                $topup->midtrans_order_id,
+                null,
+                'Top-up deposit Rp' . number_format($topup->amount, 0, ',', '.'),
+                false
+            );
+
+            // Aktifkan mode deposit (langganan bulanan, bila ada, hangus).
+            $service->switchToDeposit($tenant->fresh());
+        });
     }
 
     private function activateSubscription(Subscription $subscription, ?string $paymentType): void
@@ -207,6 +259,8 @@ class BillingController extends Controller
                 'subscription_status'  => 'active',
                 'subscription_ends_at' => $endsAt,
                 'is_active'            => true,
+                // Beralih ke mode bulanan: poin deposit (bila ada) dibekukan, tetap tersimpan.
+                'billing_mode'         => 'monthly',
             ]);
         });
     }

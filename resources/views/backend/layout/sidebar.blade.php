@@ -197,6 +197,27 @@
                 </div>
             </div>
 
+            {{-- Plan Deposit: sisa poin (hanya untuk tenant mode deposit) --}}
+            @if (!empty($depositMode))
+                <div class="px-1 mb-6">
+                    <div class="border border-{{ ($depositPoints ?? 0) < ($depositFee ?? 150) ? 'danger' : 'warning' }} border-dashed bg-light-{{ ($depositPoints ?? 0) < ($depositFee ?? 150) ? 'danger' : 'warning' }} rounded w-100 py-3 px-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fs-6 text-{{ ($depositPoints ?? 0) < ($depositFee ?? 150) ? 'danger' : 'warning' }} fw-bold">Sisa Poin Deposit</span>
+                            @can('view_billing')
+                                <a href="{{ route('deposit.index') }}" class="badge badge-light-primary">Top Up</a>
+                            @endcan
+                        </div>
+                        <div id="sb-deposit-points" class="fs-2 fw-bold text-gray-800">Rp {{ number_format($depositPoints ?? 0, 0, ',', '.') }}</div>
+                        <div class="fs-8 text-muted">Potongan Rp{{ number_format($depositFee ?? 150, 0, ',', '.') }} / transaksi</div>
+                        @if (($depositPoints ?? 0) < ($depositFee ?? 150))
+                            <div class="fs-8 text-danger fw-semibold mt-1">Poin habis — top up untuk transaksi.</div>
+                        @elseif (!empty($depositExpiringSoon) && !empty($depositExpiresAt))
+                            <div class="fs-8 text-danger fw-semibold mt-1">Hangus {{ \Carbon\Carbon::parse($depositExpiresAt)->translatedFormat('d M Y') }} bila tak dipakai.</div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             <div class="mb-6 mt-4">
                 <h3 class="text-gray-800 fw-bold mb-8">Menu Utama</h3>
                 <div class="row row-cols-3" data-kt-buttons="true" data-kt-buttons-target="[data-kt-button]">

@@ -30,7 +30,9 @@ use App\Http\Controllers\Backend\Report\SalesReportController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\DownloadAppController;
 use App\Http\Controllers\Backend\Billing\BillingController;
+use App\Http\Controllers\Backend\Billing\DepositController;
 use App\Http\Controllers\Backend\Superadmin\TenantController;
+use App\Http\Controllers\Backend\Superadmin\DepositSettingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -94,6 +96,11 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     Route::middleware('can:view_billing')->group(function () {
         Route::get('/admin/billing', [BillingController::class, 'index'])->name('billing.index');
         Route::post('/admin/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+
+        // Plan Deposit / Poin
+        Route::get('/admin/deposit', [DepositController::class, 'index'])->name('deposit.index');
+        Route::post('/admin/deposit/checkout', [DepositController::class, 'checkout'])->name('deposit.checkout');
+        Route::post('/admin/deposit/switch', [DepositController::class, 'switchToDeposit'])->name('deposit.switch');
     });
 
     // ====================================================
@@ -106,6 +113,10 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         Route::post('/admin/tenants/{id}/toggle-active', [TenantController::class, 'toggleActive'])->name('tenants.toggle-active');
         Route::post('/admin/tenants/{id}/subscription', [TenantController::class, 'updateSubscription'])->name('tenants.subscription.update');
         Route::delete('/admin/tenants/{id}', [TenantController::class, 'destroy'])->name('tenants.destroy');
+
+        // Setelan Plan Deposit (platform-wide, Superadmin)
+        Route::get('/admin/deposit-settings', [DepositSettingController::class, 'index'])->name('deposit-settings.index');
+        Route::post('/admin/deposit-settings', [DepositSettingController::class, 'update'])->name('deposit-settings.update');
     });
 
     // ====================================================

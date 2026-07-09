@@ -14,6 +14,8 @@ use App\Models\Promo;
 use App\Models\Shift;
 use App\Models\DailySalesTarget;
 use App\Tenancy\TenantManager;
+use App\Tenancy\DepositConfig;
+use App\Services\DepositService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -211,6 +213,7 @@ class KasirController extends Controller
         try {
             DB::beginTransaction();
             $order = Order::findOrFail($id);
+            $wasCompleted = $order->order_status === 'completed';
 
             // Jika belum bayar: harus bayar dulu. Terima pembayaran inline bila dikirim.
             if ($order->payment_status !== 'paid') {
@@ -224,6 +227,29 @@ class KasirController extends Controller
                 }
                 $request->validate(['payment_method' => 'in:cash,qris']);
                 $this->applyPayment($order, $request->payment_method, $request->cash_received);
+            }
+
+            // Plan deposit: potong poin transaksi saat pesanan diselesaikan (hanya sekali).
+            $tenant = app(TenantManager::class)->tenant();
+            if (!$wasCompleted && $tenant && $tenant->isDepositMode()) {
+                $fee = DepositConfig::feePerTransaction();
+                if ((float) $tenant->deposit_points < $fee) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success'    => false,
+                        'need_topup' => true,
+                        'error'      => 'Poin deposit tidak cukup (sisa Rp' . number_format($tenant->deposit_points, 0, ',', '.')
+                            . '). Silakan top up untuk menyelesaikan transaksi.',
+                    ], 422);
+                }
+                app(DepositService::class)->deduct(
+                    $tenant,
+                    $fee,
+                    'usage',
+                    $order->uuid,
+                    Auth::id(),
+                    'Biaya transaksi pesanan ' . ($order->invoice_no ?? ('#' . $order->id))
+                );
             }
 
             $order->update(['order_status' => 'completed']);

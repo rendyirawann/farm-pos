@@ -11,3 +11,6 @@ Artisan::command('inspire', function () {
 // Tandai trial/langganan tenant yang kedaluwarsa setiap hari pukul 00:05.
 // Jalankan scheduler via cron: * * * * * php artisan schedule:run
 Schedule::command('subscriptions:expire')->dailyAt('00:05');
+
+// Plan deposit: hanguskan poin dormant & kembalikan tenant ke mode deposit bila langganan berakhir.
+Schedule::command('deposit:sweep')->dailyAt('00:10');

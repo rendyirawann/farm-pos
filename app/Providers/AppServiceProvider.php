@@ -46,6 +46,15 @@ class AppServiceProvider extends ServiceProvider
                 $tenant = app(TenantManager::class)->tenant();
             }
             $view->with('currentTenant', $tenant);
+
+            // Info plan deposit untuk sidebar & banner.
+            $view->with([
+                'depositMode'         => $tenant ? $tenant->isDepositMode() : false,
+                'depositPoints'       => $tenant ? (float) $tenant->deposit_points : 0,
+                'depositExpiresAt'    => $tenant ? $tenant->deposit_expires_at : null,
+                'depositExpiringSoon' => $tenant ? $tenant->depositExpiringSoon(7) : false,
+                'depositFee'          => \App\Tenancy\DepositConfig::feePerTransaction(),
+            ]);
         });
 
         // Inject data ringkas ke sidebar backend (HANYA jika user login):

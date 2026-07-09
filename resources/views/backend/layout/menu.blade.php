@@ -125,6 +125,15 @@
                     <span class="menu-title">Manajemen Tenant</span>
                 </a>
             </div>
+
+            {{-- SETELAN DEPOSIT: Superadmin only --}}
+            <div
+                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('deposit-settings.*') ? 'here show ' : '' }}">
+                <a href="{{ route('deposit-settings.index') }}"
+                    class="menu-link px-4 {{ request()->routeIs('deposit-settings.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Setelan Deposit</span>
+                </a>
+            </div>
         @endcan
 
         {{-- LANGGANAN / BILLING: owner & admin tenant (bukan Superadmin yang tanpa tenant) --}}
@@ -134,6 +143,15 @@
                 <a href="{{ route('billing.index') }}"
                     class="menu-link px-4 {{ request()->routeIs('billing.*') ? 'active ' : '' }}">
                     <span class="menu-title">Langganan</span>
+                </a>
+            </div>
+
+            {{-- PLAN DEPOSIT / POIN --}}
+            <div
+                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('deposit.*') ? 'here show ' : '' }}">
+                <a href="{{ route('deposit.index') }}"
+                    class="menu-link px-4 {{ request()->routeIs('deposit.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Deposit</span>
                 </a>
             </div>
         @endif

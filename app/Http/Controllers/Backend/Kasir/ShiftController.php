@@ -59,6 +59,17 @@ class ShiftController extends Controller
             return redirect()->back()->with('error', 'Anda masih memiliki shift yang aktif!');
         }
 
+        // 2b. Anti-curang (khususnya plan deposit): jangan izinkan buka shift baru
+        //     bila masih ada pesanan menggantung (belum selesai / belum dibayar) dari
+        //     sesi sebelumnya. Wajib diselesaikan dulu agar biaya transaksi tidak dihindari.
+        $pendingOrders = Order::where(function ($query) {
+            $query->whereIn('order_status', ['pending', 'cooking', 'served'])
+                ->orWhere('payment_status', 'unpaid');
+        })->count();
+        if ($pendingOrders > 0) {
+            return redirect()->back()->with('error', 'Tidak bisa membuka shift baru! Masih ada ' . $pendingOrders . ' pesanan yang belum diselesaikan atau belum dibayar. Harap selesaikan semua pesanan di menu Kasir terlebih dahulu.');
+        }
+
         DB::beginTransaction();
         try {
             // 3. JIKA SHIFT PERTAMA: Simpan Target Penjualan Harian
