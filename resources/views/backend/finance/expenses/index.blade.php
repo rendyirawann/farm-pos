@@ -146,7 +146,7 @@
                 { data: 'date', name: 'date' },
                 { data: 'title', name: 'category' },
                 { data: 'amount', name: 'amount' },
-                { data: 'user', name: 'user.name' },
+                { data: 'user', name: 'user.name', orderable: false, searchable: false },
                 { data: 'action', orderable: false, searchable: false, className: 'text-end' },
             ],
             language: { emptyTable: 'Belum ada catatan pengeluaran.', processing: 'Memuat...' },

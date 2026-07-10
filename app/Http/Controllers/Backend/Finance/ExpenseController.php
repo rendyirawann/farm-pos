@@ -28,18 +28,39 @@ class ExpenseController extends Controller
     /** Sumber DataTables server-side (ter-scope otomatis per tenant). */
     public function getDataExpenses(Request $request)
     {
-        $data = Expense::with('user')
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->select('expenses.*');
+        try {
+            $data = Expense::with('user')
+                ->orderBy('date', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->select('expenses.*');
 
+            return $this->buildExpenseDataTable($data);
+        } catch (\Throwable $e) {
+            // Jangan biarkan 500 -> tabel diam-diam kosong. Log penyebab & balas JSON valid.
+            \Illuminate\Support\Facades\Log::error('getDataExpenses gagal: ' . $e->getMessage(), [
+                'file' => $e->getFile(), 'line' => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'draw'            => (int) $request->input('draw', 0),
+                'recordsTotal'    => 0,
+                'recordsFiltered' => 0,
+                'data'            => [],
+                'error'           => 'Gagal memuat data pengeluaran: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /** Bangun response DataTables dari query yang sudah disiapkan. */
+    protected function buildExpenseDataTable($data)
+    {
         return DataTables::of($data)
             ->addIndexColumn()
             ->addColumn('date', fn ($row) => '<span class="badge badge-light-primary fs-7">' . Carbon::parse($row->date)->translatedFormat('d M Y') . '</span>')
             ->addColumn('title', fn ($row) => '<span class="fw-bold text-gray-800">' . e($row->category) . '</span>'
                 . ($row->notes ? '<br><span class="text-muted fs-7">' . e(Str::limit($row->notes, 50)) . '</span>' : ''))
             ->addColumn('amount', fn ($row) => '<span class="fw-bold text-danger">Rp ' . number_format($row->amount, 0, ',', '.') . '</span>')
-            ->addColumn('user', fn ($row) => e($row->user->name ?? 'Sistem'))
+            ->addColumn('user', fn ($row) => e(optional($row->user)->name ?? 'Sistem'))
             ->addColumn('action', function ($row) {
                 $d = htmlspecialchars(json_encode([
                     'id'       => $row->id,
