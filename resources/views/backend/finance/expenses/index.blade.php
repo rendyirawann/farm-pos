@@ -126,7 +126,12 @@
 
 @endsection
 
+@push('stylesheets')
+    <link rel="stylesheet" href="{{ URL::to('assets/plugins/custom/datatables/datatables.bundle.css') }}" />
+@endpush
+
 @push('scripts')
+    <script src="{{ URL::to('assets/plugins/custom/datatables/datatables.bundle.js') }}"></script>
     <script>
         const EX_ROUTES = {
             data:   "{{ route('expenses.data') }}",
