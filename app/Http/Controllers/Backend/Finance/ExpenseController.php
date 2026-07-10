@@ -76,6 +76,10 @@ class ExpenseController extends Controller
                 'amount'   => $data['amount'],
                 'notes'    => $data['notes'] ?? null,
                 'user_id'  => Auth::id(),
+                // Set tenant eksplisit: cegah expense "yatim" (tenant_id NULL) bila direkam
+                // dalam konteks tanpa tenant aktif (mis. Superadmin yg tetap punya tenant_id).
+                // Jatuh ke tenant_id user pencatat agar tetap tampil di daftar tenant.
+                'tenant_id' => app(\App\Tenancy\TenantManager::class)->id() ?? Auth::user()?->tenant_id,
             ]);
             DB::commit();
 

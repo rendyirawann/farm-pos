@@ -165,8 +165,11 @@
 
                         {{-- Keranjang + Checkout : mengambang (offcanvas) di layar kecil, inline di md+ --}}
                         <div class="offcanvas-md offcanvas-end" tabindex="-1" id="cart-offcanvas" style="--bs-offcanvas-width: min(430px, 92vw);">
-                            <div class="offcanvas-header border-bottom d-flex justify-content-end py-2 d-md-none">
-                                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Tutup"></button>
+                            <div class="offcanvas-header border-bottom d-flex justify-content-between align-items-center py-3 d-md-none">
+                                <h4 class="fw-bold mb-0 text-gray-800"><i class="ki-outline ki-basket fs-2 me-2 text-primary"></i>Keranjang</h4>
+                                <button type="button" class="btn btn-light-danger btn-active-danger fw-bold d-inline-flex align-items-center gap-2 px-4" data-bs-dismiss="offcanvas" aria-label="Tutup keranjang" style="min-height:46px;">
+                                    <i class="ki-outline ki-cross-circle fs-2"></i> Tutup
+                                </button>
                             </div>
                             <div class="offcanvas-body">
                                 <div class="card card-flush shadow-sm w-100">

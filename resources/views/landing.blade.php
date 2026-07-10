@@ -222,6 +222,10 @@
         html.lp-mobile .swiper-slide { width: 100% !important; height: auto !important; }
         html.lp-mobile .lp-slide { overflow: visible; min-height: 100vh; min-height: 100dvh; }
         html.lp-mobile .lp-content { max-height: none !important; overflow: visible !important; padding-bottom: 2.5rem !important; }
+        /* Hero di mobile: konten mepet ke atas (bukan ke tengah) supaya tak ada gap besar di atas teks */
+        html.lp-mobile .lp-hero { justify-content: flex-start !important; padding-top: 5.5rem !important; padding-bottom: 3rem !important; }
+        html.lp-mobile .lp-hero > :first-child { margin-top: 0 !important; }
+        html.lp-mobile .lp-hero > :last-child { margin-bottom: 0 !important; }
         html.lp-mobile .landing-pagination,
         html.lp-mobile .landing-prev,
         html.lp-mobile .landing-next,
@@ -323,7 +327,7 @@
             <div class="swiper-slide lp-slide relative" data-nav-dark>
                 <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ asset('assets/media/landing/hero.jpg') }}')"></div>
                 <div class="absolute inset-0 bg-gradient-to-br from-slate-950/85 via-slate-900/70 to-indigo-950/80"></div>
-                <div class="lp-content relative z-10 w-full max-w-3xl px-6 py-24 text-center text-white">
+                <div class="lp-content lp-hero relative z-10 w-full max-w-3xl px-6 py-24 text-center text-white">
                     <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur">
                         <span class="relative flex h-2 w-2"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-400"></span></span>
                         Sistem Kasir Restoran All-in-One
