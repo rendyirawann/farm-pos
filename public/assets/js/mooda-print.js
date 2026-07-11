@@ -169,8 +169,12 @@ window.MoodaPrint = (function () {
     const hasNative = () => !!(window.AndroidPrinter && typeof window.AndroidPrinter.printReceipt === 'function');
     function resolveMethod() {
         let m = CFG.method || 'auto';
-        if (m === 'auto') return hasNative() ? 'native' : 'browser';
-        if (m === 'native' && !hasNative()) return 'browser';
+        // Di dalam APK (bridge native tersedia) SELALU pakai native. Metode browser/qztray/
+        // webbluetooth/rawbt tidak berfungsi di WebView & memicu dialog cetak -> PDF. Setelan
+        // tenant (mis. 'Dialog Browser/OS') hanya berlaku untuk PC/browser, bukan APK.
+        if (hasNative()) return 'native';
+        if (m === 'auto') return 'browser';
+        if (m === 'native') return 'browser'; // native diminta tapi tak ada bridge (bukan APK)
         return m;
     }
 

@@ -256,6 +256,18 @@
         <span class="mx-1 opacity-50">·</span>
         <span class="fw-bold" id="cart-fab-total">Rp 0</span>
     </button>
+    <script>
+        // Sembunyikan FAB keranjang saat sidebar drawer (mobile) terbuka agar tidak menutupi
+        // tombol Setelan di footer sidebar.
+        (function () {
+            var sb = document.getElementById('kt_app_sidebar');
+            var fab = document.getElementById('cart-fab');
+            if (!sb || !fab) return;
+            var sync = function () { fab.style.display = sb.classList.contains('drawer-on') ? 'none' : ''; };
+            new MutationObserver(sync).observe(sb, { attributes: true, attributeFilter: ['class'] });
+            sync();
+        })();
+    </script>
 
     {{-- ===== Modal: Add-On saat menambah menu ===== --}}
     <div class="modal fade" id="modal-addon" tabindex="-1" aria-hidden="true">
