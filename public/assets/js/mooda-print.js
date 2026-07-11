@@ -410,42 +410,55 @@ window.MoodaPrint = (function () {
         print(sample, null);
     }
 
-    // -------- public: autoSetup (APK) — pilih printer BT otomatis saat pertama masuk --------
-    // Hanya jalan di dalam APK (native). Bila belum ada printer tersimpan:
-    //  0 printer ter-pair -> arahkan pair di Setelan Bluetooth; 1 -> langsung dipakai; banyak -> pilih.
+    // -------- public: autoSetup (APK) — pilih + SAMBUNGKAN printer BT saat pertama masuk --------
+    // Hanya di APK (native). Belum ada printer tersimpan: 0 ter-pair -> arahkan pair; 1 -> pakai;
+    // banyak -> pilih. Setelah itu (atau bila sudah tersimpan) langsung connect (buka koneksi).
     async function autoSetup() {
-        if (resolveMethod() !== 'native' || !hasNative() || !window.Swal) return;
+        if (resolveMethod() !== 'native' || !hasNative()) return;
+
         let current = '';
         try { current = (window.AndroidPrinter.getSelectedPrinter && window.AndroidPrinter.getSelectedPrinter()) || ''; } catch (e) {}
-        if (current) return; // sudah pernah pilih -> jangan ganggu
 
-        let list = [];
-        try { list = JSON.parse(window.AndroidPrinter.getPrinters() || '[]'); } catch (e) {}
+        if (!current) {
+            if (!window.Swal) return;
+            let list = [];
+            try { list = JSON.parse(window.AndroidPrinter.getPrinters() || '[]'); } catch (e) {}
+            if (!list.length) {
+                await Swal.fire({
+                    icon: 'info', title: 'Sambungkan Printer Dulu',
+                    html: 'Belum ada printer Bluetooth yang ter-<i>pair</i>.<br>Pasangkan printer (mis. IWARE / EcoPrint) di <b>Setelan Bluetooth Android</b>, lalu buka aplikasi lagi.',
+                    confirmButtonText: 'Mengerti',
+                });
+                return;
+            }
+            if (list.length === 1) {
+                try { window.AndroidPrinter.setPrinter(list[0].address); } catch (e) {}
+            } else {
+                const opts = {}; list.forEach(function (p) { opts[p.address] = p.name || p.address; });
+                const res = await Swal.fire({
+                    title: 'Pilih Printer', input: 'select', inputOptions: opts,
+                    inputPlaceholder: 'Pilih printer thermal', showCancelButton: true,
+                    confirmButtonText: 'Pakai printer ini', cancelButtonText: 'Nanti',
+                });
+                if (!(res.isConfirmed && res.value)) return; // ditunda user
+                try { window.AndroidPrinter.setPrinter(res.value); } catch (e) {}
+            }
+        }
 
-        if (!list.length) {
-            await Swal.fire({
-                icon: 'info', title: 'Sambungkan Printer Dulu',
-                html: 'Belum ada printer Bluetooth yang ter-<i>pair</i>.<br>Pasangkan printer (mis. IWARE / EcoPrint) di <b>Setelan Bluetooth Android</b>, lalu buka aplikasi lagi.',
-                confirmButtonText: 'Mengerti',
-            });
-            return;
-        }
-        if (list.length === 1) {
-            try { window.AndroidPrinter.setPrinter(list[0].address); } catch (e) {}
-            toast('success', 'Printer siap: ' + (list[0].name || list[0].address));
-            return;
-        }
-        const opts = {}; list.forEach(function (p) { opts[p.address] = p.name || p.address; });
-        const res = await Swal.fire({
-            title: 'Pilih Printer', input: 'select', inputOptions: opts,
-            inputPlaceholder: 'Pilih printer thermal', showCancelButton: true,
-            confirmButtonText: 'Pakai printer ini', cancelButtonText: 'Nanti',
-        });
-        if (res.isConfirmed && res.value) {
-            try { window.AndroidPrinter.setPrinter(res.value); } catch (e) {}
-            toast('success', 'Printer dipilih: ' + (opts[res.value] || res.value));
+        connect(); // buka koneksi sekarang (connect duluan saat login)
+    }
+
+    // -------- public: connect (APK) — buka koneksi ke printer terpilih tanpa mencetak --------
+    // APK versi lama (belum rebuild) tanpa bridge connect() -> koneksi terbuka saat cetak pertama.
+    function connect() {
+        if (!hasNative()) return;
+        if (window.AndroidPrinter.connect) {
+            try { window.AndroidPrinter.connect(); } catch (e) {}
+            toast('info', 'Menyambungkan printer…');
+        } else {
+            toast('success', 'Printer siap (tersambung saat cetak).');
         }
     }
 
-    return { print, quickConnect, needsButton, buttonLabel, test, preview, cols, resolveMethod, hasNative, connectBle, restoreBle, autoSetup };
+    return { print, quickConnect, needsButton, buttonLabel, test, preview, cols, resolveMethod, hasNative, connectBle, restoreBle, autoSetup, connect };
 })();

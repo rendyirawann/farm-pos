@@ -250,16 +250,28 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) { closeSocket(); false }
     }
 
+    // Pastikan koneksi SPP siap (buka socket) tanpa menulis.
+    @SuppressLint("MissingPermission")
+    private fun ensureSppReady(device: BluetoothDevice): Boolean {
+        return try { ensureSocket(device); true } catch (e: Exception) { closeSocket(); false }
+    }
+
+    // Pastikan koneksi BLE siap (connect + discover) tanpa menulis. true bila karakteristik tulis siap.
+    @SuppressLint("MissingPermission")
+    private fun ensureBleReady(device: BluetoothDevice): Boolean {
+        if (bleWriteChar != null && bleGatt != null) return true
+        closeBle()
+        bleConnLatch = CountDownLatch(1)
+        bleGatt = device.connectGatt(this, false, gattCallback)
+        try { bleConnLatch?.await(10, TimeUnit.SECONDS) } catch (_: Exception) {}
+        return bleWriteChar != null && bleGatt != null
+    }
+
     // Cetak via BLE/GATT (printer BLE, mis. EcoPrint). true bila sukses. Keep-alive.
     @Suppress("DEPRECATION")
     @SuppressLint("MissingPermission")
     private fun printBle(device: BluetoothDevice, bytes: ByteArray): Boolean {
-        if (bleWriteChar == null || bleGatt == null) {
-            closeBle()
-            bleConnLatch = CountDownLatch(1)
-            bleGatt = device.connectGatt(this, false, gattCallback)
-            try { bleConnLatch?.await(10, TimeUnit.SECONDS) } catch (_: Exception) {}
-        }
+        if (!ensureBleReady(device)) return false
         val gatt = bleGatt ?: return false
         val ch = bleWriteChar ?: return false
         val noResp = ch.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0
@@ -291,6 +303,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun closeAll() { closeSocket(); closeBle() }
+
+    // Sambungkan ke printer terpilih TANPA mencetak (dipanggil saat login agar siap duluan).
+    @SuppressLint("MissingPermission")
+    private fun doConnect() {
+        synchronized(printLock) {
+            if (!hasBtPermission()) { ensureBtPermission(); toast("Beri izin Bluetooth lalu coba lagi."); return }
+            val ad = adapter()
+            if (ad == null || !ad.isEnabled) { toast("Bluetooth mati / tidak tersedia."); return }
+            val device = pickDevice()
+            if (device == null) { toast("Belum ada printer terpasang (pair di Setelan Bluetooth)."); return }
+            val leFirst = try { device.type == BluetoothDevice.DEVICE_TYPE_LE } catch (_: Exception) { false }
+            val order = if (leFirst) booleanArrayOf(true, false) else booleanArrayOf(false, true)
+            for (useBle in order) {
+                for (attempt in 0 until 2) {
+                    val ok = if (useBle) ensureBleReady(device) else ensureSppReady(device)
+                    if (ok) { toast("Printer tersambung: ${device.name ?: device.address}"); return }
+                    if (useBle) closeBle()
+                    Thread.sleep(300)
+                }
+            }
+            toast("Gagal menyambung printer. Pastikan menyala, dekat, & sudah di-pair.")
+        }
+    }
 
     @SuppressLint("MissingPermission")
     private fun doPrint(text: String) {
@@ -329,6 +364,9 @@ class MainActivity : AppCompatActivity() {
     inner class PrinterBridge {
         @JavascriptInterface
         fun printReceipt(text: String) { Thread { doPrint(text) }.start() }
+
+        @JavascriptInterface
+        fun connect() { Thread { doConnect() }.start() }
 
         @SuppressLint("MissingPermission")
         @JavascriptInterface
