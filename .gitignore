@@ -34,3 +34,8 @@ rr
 /mobile/android-webview/app/build
 /mobile/android-webview/local.properties
 *.apk
+
+# JANGAN commit kunci penandatanganan (repo publik!)
+*.jks
+*.keystore
+keystore.properties
