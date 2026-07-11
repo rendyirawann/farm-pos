@@ -27,3 +27,10 @@ Thumbs.db
 /files.zip
 rr
 .rr.yaml
+
+# android webview build artifacts
+/mobile/android-webview/.gradle
+/mobile/android-webview/build
+/mobile/android-webview/app/build
+/mobile/android-webview/local.properties
+*.apk

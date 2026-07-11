@@ -40,6 +40,11 @@ class MainActivity : AppCompatActivity() {
     // Perintah ESC/POS dasar
     private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
+    // Socket cetak dipertahankan (keep-alive) supaya tidak reconnect tiap kali cetak.
+    private var printSocket: BluetoothSocket? = null
+    private var printMac: String? = null
+    private val printLock = Any()
+
     private val fileChooser =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val data = if (result.resultCode == RESULT_OK) result.data else null
@@ -114,6 +119,11 @@ class MainActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState); webView.saveState(outState)
     }
 
+    override fun onDestroy() {
+        synchronized(printLock) { closeSocket() }
+        super.onDestroy()
+    }
+
     // ---------- Bluetooth helpers ----------
 
     private fun hasBtPermission(): Boolean {
@@ -146,31 +156,75 @@ class MainActivity : AppCompatActivity() {
         return bonded.firstOrNull { it.address == mac } ?: bonded.firstOrNull()
     }
 
+    // Sambungkan RFCOMM dengan beberapa strategi. Banyak kombinasi printer/HP butuh
+    // fallback: secure -> insecure -> refleksi createRfcommSocket(channel 1) yang
+    // terkenal memperbaiki kegagalan connect klasik di Android.
+    @SuppressLint("MissingPermission")
+    private fun openSocket(device: BluetoothDevice): BluetoothSocket {
+        adapter()?.cancelDiscovery()
+        try {
+            val s = device.createRfcommSocketToServiceRecord(SPP_UUID); s.connect(); return s
+        } catch (_: Exception) {}
+        try {
+            val s = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID); s.connect(); return s
+        } catch (_: Exception) {}
+        val m = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+        val s = m.invoke(device, 1) as BluetoothSocket; s.connect(); return s
+    }
+
+    // Pakai ulang socket bila masih tersambung; kalau tidak, sambungkan (dengan retry).
+    @SuppressLint("MissingPermission")
+    private fun ensureSocket(device: BluetoothDevice): BluetoothSocket {
+        val cached = printSocket
+        if (cached != null && cached.isConnected && printMac == device.address) return cached
+        closeSocket()
+        var err: Exception? = null
+        for (i in 0 until 3) {
+            try {
+                val s = openSocket(device)
+                printSocket = s; printMac = device.address
+                return s
+            } catch (e: Exception) { err = e; Thread.sleep(300L * (i + 1)) }
+        }
+        throw err ?: Exception("Gagal menyambung printer.")
+    }
+
+    private fun closeSocket() {
+        try { printSocket?.close() } catch (_: Exception) {}
+        printSocket = null; printMac = null
+    }
+
     @SuppressLint("MissingPermission")
     private fun doPrint(text: String) {
-        if (!hasBtPermission()) { ensureBtPermission(); toast("Beri izin Bluetooth lalu coba lagi."); return }
-        val ad = adapter()
-        if (ad == null || !ad.isEnabled) { toast("Bluetooth mati / tidak tersedia."); return }
-        val device = pickDevice()
-        if (device == null) { toast("Belum ada printer terpasang (pair di Setelan Bluetooth)."); return }
+        synchronized(printLock) {
+            if (!hasBtPermission()) { ensureBtPermission(); toast("Beri izin Bluetooth lalu coba lagi."); return }
+            val ad = adapter()
+            if (ad == null || !ad.isEnabled) { toast("Bluetooth mati / tidak tersedia."); return }
+            val device = pickDevice()
+            if (device == null) { toast("Belum ada printer terpasang (pair di Setelan Bluetooth)."); return }
 
-        var socket: BluetoothSocket? = null
-        try {
-            socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-            ad.cancelDiscovery()
-            socket.connect()
-            val out = socket.outputStream
-            out.write(byteArrayOf(0x1B, 0x40))                       // ESC @ init
-            out.write(text.toByteArray(charset("ISO-8859-1")))       // isi struk
-            out.write("\n\n\n".toByteArray())                        // feed
-            out.write(byteArrayOf(0x1D, 0x56, 0x00))                 // GS V 0 full cut
-            out.flush()
-            Thread.sleep(300)
-            toast("Struk dikirim ke printer.")
-        } catch (e: Exception) {
-            toast("Gagal mencetak: ${e.message}")
-        } finally {
-            try { socket?.close() } catch (_: Exception) {}
+            val payload = listOf(
+                byteArrayOf(0x1B, 0x40),                       // ESC @ init
+                text.toByteArray(charset("ISO-8859-1")),       // isi struk
+                "\n\n\n".toByteArray(),                        // feed
+                byteArrayOf(0x1D, 0x56, 0x00)                  // GS V 0 full cut
+            )
+
+            // Tulis; bila socket mati (printer sempat tidur/keluar jangkauan), sambung ulang lalu ulangi sekali.
+            for (attempt in 0 until 2) {
+                try {
+                    val out = ensureSocket(device).outputStream
+                    payload.forEach { out.write(it) }
+                    out.flush()
+                    Thread.sleep(300)
+                    toast("Struk dikirim ke printer.")
+                    return
+                } catch (e: Exception) {
+                    closeSocket()
+                    if (attempt == 1) { toast("Gagal mencetak: ${e.message}"); return }
+                    Thread.sleep(400)
+                }
+            }
         }
     }
 
@@ -195,6 +249,7 @@ class MainActivity : AppCompatActivity() {
         fun setPrinter(mac: String) {
             getSharedPreferences("stakko", Context.MODE_PRIVATE).edit()
                 .putString("printer_mac", mac).apply()
+            synchronized(printLock) { closeSocket() }   // drop socket lama -> cetak berikutnya sambung ke printer baru
         }
 
         @JavascriptInterface
@@ -202,5 +257,8 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun requestPermission() { ensureBtPermission() }
+
+        @JavascriptInterface
+        fun disconnect() { synchronized(printLock) { closeSocket() } }
     }
 }
