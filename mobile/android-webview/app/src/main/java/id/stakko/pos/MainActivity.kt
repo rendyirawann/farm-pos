@@ -4,8 +4,13 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothSocket
+import android.bluetooth.BluetoothStatusCodes
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -27,6 +32,8 @@ import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * Pembungkus WebView Mooda + jembatan cetak thermal ESC/POS (Bluetooth).
@@ -44,6 +51,46 @@ class MainActivity : AppCompatActivity() {
     private var printSocket: BluetoothSocket? = null
     private var printMac: String? = null
     private val printLock = Any()
+
+    // --- BLE / GATT (printer BLE, mis. EcoPrint: service 0x18F0, karakteristik 0x2AF1) ---
+    private val BLE_SERVICE_UUID: UUID = UUID.fromString("000018f0-0000-1000-8000-00805f9b34fb")
+    private val BLE_CHAR_UUID: UUID = UUID.fromString("00002af1-0000-1000-8000-00805f9b34fb")
+    private var bleGatt: BluetoothGatt? = null
+    @Volatile private var bleWriteChar: BluetoothGattCharacteristic? = null
+    @Volatile private var bleMtu = 20
+    private var bleConnLatch: CountDownLatch? = null
+
+    private val gattCallback = object : BluetoothGattCallback() {
+        @SuppressLint("MissingPermission")
+        override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                try { if (!gatt.requestMtu(200)) gatt.discoverServices() }
+                catch (_: Exception) { try { gatt.discoverServices() } catch (_: Exception) {} }
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                bleWriteChar = null
+                bleConnLatch?.countDown()
+            }
+        }
+        @SuppressLint("MissingPermission")
+        override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+            bleMtu = if (mtu > 23) mtu - 3 else 20
+            try { gatt.discoverServices() } catch (_: Exception) {}
+        }
+        override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            bleWriteChar = findBleWritable(gatt)
+            bleConnLatch?.countDown()
+        }
+    }
+
+    private fun findBleWritable(gatt: BluetoothGatt): BluetoothGattCharacteristic? {
+        gatt.getService(BLE_SERVICE_UUID)?.getCharacteristic(BLE_CHAR_UUID)?.let { return it }
+        for (svc in gatt.services) for (c in svc.characteristics) {
+            val p = c.properties
+            if (p and BluetoothGattCharacteristic.PROPERTY_WRITE != 0 ||
+                p and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0) return c
+        }
+        return null
+    }
 
     private val fileChooser =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -120,7 +167,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        synchronized(printLock) { closeSocket() }
+        synchronized(printLock) { closeAll() }
         super.onDestroy()
     }
 
@@ -194,6 +241,57 @@ class MainActivity : AppCompatActivity() {
         printSocket = null; printMac = null
     }
 
+    // Cetak via Bluetooth Classic (SPP/RFCOMM). true bila sukses.
+    @SuppressLint("MissingPermission")
+    private fun printSpp(device: BluetoothDevice, bytes: ByteArray): Boolean {
+        return try {
+            val out = ensureSocket(device).outputStream
+            out.write(bytes); out.flush(); Thread.sleep(250); true
+        } catch (e: Exception) { closeSocket(); false }
+    }
+
+    // Cetak via BLE/GATT (printer BLE, mis. EcoPrint). true bila sukses. Keep-alive.
+    @Suppress("DEPRECATION")
+    @SuppressLint("MissingPermission")
+    private fun printBle(device: BluetoothDevice, bytes: ByteArray): Boolean {
+        if (bleWriteChar == null || bleGatt == null) {
+            closeBle()
+            bleConnLatch = CountDownLatch(1)
+            bleGatt = device.connectGatt(this, false, gattCallback)
+            try { bleConnLatch?.await(10, TimeUnit.SECONDS) } catch (_: Exception) {}
+        }
+        val gatt = bleGatt ?: return false
+        val ch = bleWriteChar ?: return false
+        val noResp = ch.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0
+        val type = if (noResp) BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                   else BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+        val chunk = if (bleMtu in 20..512) bleMtu else 20
+        return try {
+            var i = 0
+            while (i < bytes.size) {
+                val part = bytes.copyOfRange(i, minOf(i + chunk, bytes.size))
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (gatt.writeCharacteristic(ch, part, type) != BluetoothStatusCodes.SUCCESS) return false
+                } else {
+                    ch.writeType = type
+                    ch.value = part
+                    if (!gatt.writeCharacteristic(ch)) return false
+                }
+                i += part.size
+                Thread.sleep(if (noResp) 22 else 45)
+            }
+            true
+        } catch (e: Exception) { false }
+    }
+
+    private fun closeBle() {
+        try { bleGatt?.disconnect() } catch (_: Exception) {}
+        try { bleGatt?.close() } catch (_: Exception) {}
+        bleGatt = null; bleWriteChar = null; bleMtu = 20
+    }
+
+    private fun closeAll() { closeSocket(); closeBle() }
+
     @SuppressLint("MissingPermission")
     private fun doPrint(text: String) {
         synchronized(printLock) {
@@ -203,28 +301,27 @@ class MainActivity : AppCompatActivity() {
             val device = pickDevice()
             if (device == null) { toast("Belum ada printer terpasang (pair di Setelan Bluetooth)."); return }
 
-            val payload = listOf(
-                byteArrayOf(0x1B, 0x40),                       // ESC @ init
-                text.toByteArray(charset("ISO-8859-1")),       // isi struk
-                "\n\n\n".toByteArray(),                        // feed
-                byteArrayOf(0x1D, 0x56, 0x00)                  // GS V 0 full cut
-            )
+            val bytes = java.io.ByteArrayOutputStream().apply {
+                write(byteArrayOf(0x1B, 0x40))                     // ESC @ init
+                write(text.toByteArray(charset("ISO-8859-1")))     // isi struk
+                write("\n\n\n".toByteArray())                      // feed
+                write(byteArrayOf(0x1D, 0x56, 0x00))               // GS V 0 full cut
+            }.toByteArray()
 
-            // Tulis; bila socket mati (printer sempat tidur/keluar jangkauan), sambung ulang lalu ulangi sekali.
-            for (attempt in 0 until 2) {
-                try {
-                    val out = ensureSocket(device).outputStream
-                    payload.forEach { out.write(it) }
-                    out.flush()
+            // Pilih transport sesuai tipe perangkat, coba transport satunya sebagai cadangan
+            // (printer dual / salah deteksi). BLE utk EcoPrint; SPP utk classic (mis. IWARE).
+            val leFirst = try { device.type == BluetoothDevice.DEVICE_TYPE_LE } catch (_: Exception) { false }
+            val order = if (leFirst) booleanArrayOf(true, false) else booleanArrayOf(false, true)
+
+            for (useBle in order) {
+                for (attempt in 0 until 2) {
+                    val ok = if (useBle) printBle(device, bytes) else printSpp(device, bytes)
+                    if (ok) { toast("Struk dikirim ke printer."); return }
+                    if (useBle) closeBle()
                     Thread.sleep(300)
-                    toast("Struk dikirim ke printer.")
-                    return
-                } catch (e: Exception) {
-                    closeSocket()
-                    if (attempt == 1) { toast("Gagal mencetak: ${e.message}"); return }
-                    Thread.sleep(400)
                 }
             }
+            toast("Gagal mencetak. Pastikan printer menyala, dekat, & sudah di-pair di Setelan Bluetooth.")
         }
     }
 
@@ -249,7 +346,7 @@ class MainActivity : AppCompatActivity() {
         fun setPrinter(mac: String) {
             getSharedPreferences("stakko", Context.MODE_PRIVATE).edit()
                 .putString("printer_mac", mac).apply()
-            synchronized(printLock) { closeSocket() }   // drop socket lama -> cetak berikutnya sambung ke printer baru
+            synchronized(printLock) { closeAll() }   // drop socket lama -> cetak berikutnya sambung ke printer baru
         }
 
         @JavascriptInterface
@@ -259,6 +356,6 @@ class MainActivity : AppCompatActivity() {
         fun requestPermission() { ensureBtPermission() }
 
         @JavascriptInterface
-        fun disconnect() { synchronized(printLock) { closeSocket() } }
+        fun disconnect() { synchronized(printLock) { closeAll() } }
     }
 }
