@@ -30,10 +30,16 @@ rr
 
 # android webview build artifacts
 /mobile/android-webview/.gradle
+/mobile/android-webview/.idea
 /mobile/android-webview/build
 /mobile/android-webview/app/build
+/mobile/android-webview/app/release
 /mobile/android-webview/local.properties
+*.aab
+
+# APK: abaikan hasil build, TAPI izinkan APK distribusi yang disajikan ke user
 *.apk
+!/public/downloads/mooda-pos.apk
 
 # JANGAN commit kunci penandatanganan (repo publik!)
 *.jks
