@@ -449,19 +449,18 @@ window.MoodaPrint = (function () {
             }
         }
 
-        connect(); // buka koneksi sekarang (connect duluan saat login)
+        // Printer terpilih & siap. TIDAK memaksa buka koneksi di sini: memaksa connect saat login
+        // (via bridge native) sempat menahan proses hingga terasa "loading terus" di sebagian
+        // perangkat. Koneksi dibuka otomatis & cepat saat cetak pertama (socket keep-alive).
+        toast('success', 'Printer siap.');
     }
 
     // -------- public: connect (APK) — buka koneksi ke printer terpilih tanpa mencetak --------
-    // APK versi lama (belum rebuild) tanpa bridge connect() -> koneksi terbuka saat cetak pertama.
+    // Tidak dipanggil otomatis saat login (bisa menahan proses). Tersedia untuk pemicu manual.
+    // APK lama tanpa bridge connect() -> koneksi terbuka saat cetak pertama.
     function connect() {
-        if (!hasNative()) return;
-        if (window.AndroidPrinter.connect) {
-            try { window.AndroidPrinter.connect(); } catch (e) {}
-            toast('info', 'Menyambungkan printer…');
-        } else {
-            toast('success', 'Printer siap (tersambung saat cetak).');
-        }
+        if (!hasNative() || !window.AndroidPrinter.connect) return;
+        try { window.AndroidPrinter.connect(); } catch (e) {}
     }
 
     return { print, quickConnect, needsButton, buttonLabel, test, preview, cols, resolveMethod, hasNative, connectBle, restoreBle, autoSetup, connect };
