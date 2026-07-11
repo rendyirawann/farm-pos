@@ -385,6 +385,17 @@ License: Proprietary - Mooda System
         window.MOODA_PRINT = @json($moodaPrintCfg);
     </script>
     <script src="{{ asset('assets/js/mooda-print.js') }}"></script>
+    <script>
+        // APK: saat pertama masuk (sekali per sesi aplikasi), bantu pilih printer Bluetooth
+        // otomatis supaya siap sebelum transaksi. Di browser biasa: tidak melakukan apa-apa.
+        (function () {
+            try { if (sessionStorage.getItem('mooda_printer_autosetup')) return; } catch (e) {}
+            setTimeout(function () {
+                try { sessionStorage.setItem('mooda_printer_autosetup', '1'); } catch (e) {}
+                if (window.MoodaPrint && MoodaPrint.autoSetup) { try { MoodaPrint.autoSetup(); } catch (e) {} }
+            }, 1200);
+        })();
+    </script>
 
     @include('partials._number_format')
     @stack('scripts')

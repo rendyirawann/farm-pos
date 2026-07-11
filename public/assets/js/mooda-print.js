@@ -410,5 +410,42 @@ window.MoodaPrint = (function () {
         print(sample, null);
     }
 
-    return { print, quickConnect, needsButton, buttonLabel, test, preview, cols, resolveMethod, hasNative, connectBle, restoreBle };
+    // -------- public: autoSetup (APK) — pilih printer BT otomatis saat pertama masuk --------
+    // Hanya jalan di dalam APK (native). Bila belum ada printer tersimpan:
+    //  0 printer ter-pair -> arahkan pair di Setelan Bluetooth; 1 -> langsung dipakai; banyak -> pilih.
+    async function autoSetup() {
+        if (resolveMethod() !== 'native' || !hasNative() || !window.Swal) return;
+        let current = '';
+        try { current = (window.AndroidPrinter.getSelectedPrinter && window.AndroidPrinter.getSelectedPrinter()) || ''; } catch (e) {}
+        if (current) return; // sudah pernah pilih -> jangan ganggu
+
+        let list = [];
+        try { list = JSON.parse(window.AndroidPrinter.getPrinters() || '[]'); } catch (e) {}
+
+        if (!list.length) {
+            await Swal.fire({
+                icon: 'info', title: 'Sambungkan Printer Dulu',
+                html: 'Belum ada printer Bluetooth yang ter-<i>pair</i>.<br>Pasangkan printer (mis. IWARE / EcoPrint) di <b>Setelan Bluetooth Android</b>, lalu buka aplikasi lagi.',
+                confirmButtonText: 'Mengerti',
+            });
+            return;
+        }
+        if (list.length === 1) {
+            try { window.AndroidPrinter.setPrinter(list[0].address); } catch (e) {}
+            toast('success', 'Printer siap: ' + (list[0].name || list[0].address));
+            return;
+        }
+        const opts = {}; list.forEach(function (p) { opts[p.address] = p.name || p.address; });
+        const res = await Swal.fire({
+            title: 'Pilih Printer', input: 'select', inputOptions: opts,
+            inputPlaceholder: 'Pilih printer thermal', showCancelButton: true,
+            confirmButtonText: 'Pakai printer ini', cancelButtonText: 'Nanti',
+        });
+        if (res.isConfirmed && res.value) {
+            try { window.AndroidPrinter.setPrinter(res.value); } catch (e) {}
+            toast('success', 'Printer dipilih: ' + (opts[res.value] || res.value));
+        }
+    }
+
+    return { print, quickConnect, needsButton, buttonLabel, test, preview, cols, resolveMethod, hasNative, connectBle, restoreBle, autoSetup };
 })();
