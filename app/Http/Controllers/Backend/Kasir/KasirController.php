@@ -357,6 +357,10 @@ class KasirController extends Controller
         $tenantId = app(TenantManager::class)->id();
         abort_if($tenantId === null, 403, 'Tidak ada tenant aktif.');
 
+        // Bersihkan pemisah ribuan (mis. "50.000" / "50,000" -> "50000") sebelum validasi,
+        // agar tidak salah dibaca sebagai desimal (50.000 -> 50).
+        $request->merge(['amount' => preg_replace('/\D/', '', (string) $request->input('amount'))]);
+
         $data = $request->validate([
             'amount' => 'required|numeric|min:0',
         ]);

@@ -65,6 +65,13 @@ class ShiftController extends Controller
             $rules['target_penjualan'] = 'required|numeric|min:0';
             $rules['daily_budget']     = 'required|numeric|min:0'; // anggaran/modal pengeluaran hari ini
         }
+
+        // Bersihkan pemisah ribuan pada input uang (mis. "300.000" -> "300000") sebelum validasi.
+        foreach (['starting_cash', 'target_penjualan', 'daily_budget'] as $mf) {
+            if ($request->has($mf)) {
+                $request->merge([$mf => preg_replace('/\D/', '', (string) $request->input($mf))]);
+            }
+        }
         $request->validate($rules);
 
         // 2. Cegah buka shift ganda
@@ -168,6 +175,10 @@ class ShiftController extends Controller
 
     public function closeShift(Request $request, $id)
     {
+        // Bersihkan pemisah ribuan (mis. "400.000" -> "400000") sebelum validasi,
+        // agar tidak salah dibaca sebagai desimal (400.000 -> 400).
+        $request->merge(['actual_cash' => preg_replace('/\D/', '', (string) $request->input('actual_cash'))]);
+
         $request->validate([
             'actual_cash' => 'required|numeric|min:0'
         ]);

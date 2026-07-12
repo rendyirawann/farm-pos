@@ -876,10 +876,12 @@
                 showCancelButton: true,
                 confirmButtonText: 'Simpan',
                 cancelButtonText: 'Batal',
-                inputValidator: v => (v === '' || v === null || Number(v) < 0) ? 'Masukkan nominal yang valid' : undefined,
+                inputValidator: v => { const n = window.rawNum ? window.rawNum(v) : Number(String(v).replace(/[^\d]/g, '')); return (v === '' || v === null || isNaN(n) || n < 0) ? 'Masukkan nominal yang valid' : undefined; },
             }).then(r => {
                 if (!r.isConfirmed) return;
-                $.ajax({ url: ROUTES.setTarget, method: 'POST', data: { _token: CSRF, amount: Number(r.value) } })
+                // rawNum: buang pemisah ribuan ("50.000" -> 50000). Jangan Number() ("50.000" -> 50).
+                const amount = window.rawNum ? window.rawNum(r.value) : Number(String(r.value).replace(/[^\d]/g, ''));
+                $.ajax({ url: ROUTES.setTarget, method: 'POST', data: { _token: CSRF, amount: amount } })
                     .done(res => {
                         if (res.success) {
                             applyWidget(res.widget);

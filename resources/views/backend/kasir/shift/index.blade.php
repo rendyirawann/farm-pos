@@ -271,7 +271,12 @@
                                 Swal.showLoading();
                             }
                         });
-                        document.getElementById('formCloseShift').submit();
+                        // .submit() programatik TIDAK memicu event 'submit', jadi pembersih ribuan
+                        // (_number_format) tak jalan. Bersihkan manual dulu: "400.000" -> "400000".
+                        var _f = document.getElementById('formCloseShift');
+                        var _ac = _f.querySelector('[name="actual_cash"]');
+                        if (_ac) _ac.value = String((window.rawNum ? window.rawNum(_ac.value) : Number(String(_ac.value).replace(/[^\d]/g, ''))) || 0);
+                        _f.submit();
                     }
                 });
             }
