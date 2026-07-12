@@ -487,13 +487,35 @@ class KasirController extends Controller
     /** Nilai dasar order baru + generate invoice & nomor antrian harian (per-tenant via scope). */
     private function newOrderBase(?string $customerName): array
     {
+        $tenantId = app(TenantManager::class)->id() ?? 0;
+
+        // Advisory lock per tenant+tanggal (transaction-scoped, auto-release saat commit/rollback):
+        // serialkan generate nomor antrian antar kasir yang buat pesanan bersamaan -> cegah
+        // queue_number kembar. Dipanggil di dalam transaksi (storeOrder & syncOfflineOrders).
+        $lockKey = crc32('order-queue-' . $tenantId . '-' . Carbon::today()->toDateString());
+        DB::select('SELECT pg_advisory_xact_lock(?)', [$lockKey]);
+
         $nextQueue = (int) (Order::whereDate('created_at', Carbon::today())->max('queue_number')) + 1;
 
         return [
-            'invoice_no'    => 'MDA-INV-' . date('YmdHis') . rand(10, 99),
+            'invoice_no'    => $this->generateInvoiceNo(),
             'queue_number'  => $nextQueue,
             'customer_name' => $customerName ?: 'Pelanggan',
         ];
+    }
+
+    /**
+     * Invoice unik. Kolom invoice_no punya UNIQUE constraint GLOBAL, jadi pakai entropi tinggi
+     * (Str::random) + cek keberadaan LINTAS-tenant -> praktis tak pernah tabrakan, sehingga
+     * tidak lagi 500 saat 2 kasir membuat pesanan pada detik yang sama. Unique DB = jaring pengaman.
+     */
+    private function generateInvoiceNo(): string
+    {
+        do {
+            $invoice = 'MDA-INV-' . now()->format('YmdHis') . '-' . strtoupper(\Illuminate\Support\Str::random(6));
+        } while (Order::withoutGlobalScopes()->where('invoice_no', $invoice)->exists());
+
+        return $invoice;
     }
 
     /**

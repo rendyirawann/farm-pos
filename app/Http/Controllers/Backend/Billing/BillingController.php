@@ -199,11 +199,14 @@ class BillingController extends Controller
      */
     private function activateTopup(DepositTopup $topup, ?string $paymentType): void
     {
-        if ($topup->status === 'paid') {
-            return; // idempoten
-        }
-
         DB::transaction(function () use ($topup, $paymentType) {
+            // Kunci baris + re-cek status DI DALAM transaksi -> idempoten & anti-race:
+            // webhook Midtrans bisa dikirim berkali-kali / (settlement+capture) hampir bersamaan.
+            $topup = DepositTopup::whereKey($topup->getKey())->lockForUpdate()->first();
+            if (! $topup || $topup->status === 'paid') {
+                return; // sudah diproses
+            }
+
             $topup->update([
                 'status'       => 'paid',
                 'payment_type' => $paymentType,
@@ -231,12 +234,16 @@ class BillingController extends Controller
 
     private function activateSubscription(Subscription $subscription, ?string $paymentType): void
     {
-        if ($subscription->status === 'paid') {
-            return; // idempoten
-        }
-
         DB::transaction(function () use ($subscription, $paymentType) {
-            $tenant = $subscription->tenant;
+            // Kunci baris + re-cek status DI DALAM transaksi -> idempoten & anti-race:
+            // webhook Midtrans bisa dikirim berkali-kali / (settlement+capture) hampir bersamaan,
+            // sehingga tanpa lock masa aktif bisa diperpanjang DOBEL.
+            $subscription = Subscription::whereKey($subscription->getKey())->lockForUpdate()->first();
+            if (! $subscription || $subscription->status === 'paid') {
+                return; // sudah diproses
+            }
+
+            $tenant = $subscription->tenant()->lockForUpdate()->first();
 
             // Perpanjang dari sisa masa aktif jika masih berlaku
             $base = ($tenant->subscription_ends_at && $tenant->subscription_ends_at->isFuture())
