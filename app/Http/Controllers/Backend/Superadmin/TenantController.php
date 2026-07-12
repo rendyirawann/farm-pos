@@ -24,7 +24,7 @@ class TenantController extends Controller
             'total'    => Tenant::count(),
             'active'   => Tenant::where('subscription_status', 'active')->count(),
             'inactive' => Tenant::whereIn('subscription_status', ['inactive', 'expired'])->count(),
-            'users'    => User::whereNotNull('tenant_id')->count(),
+            'users'    => User::withoutGlobalScopes()->whereNotNull('tenant_id')->count(),
         ];
 
         return view('backend.superadmin.tenants.index', compact('stats'));
@@ -33,7 +33,9 @@ class TenantController extends Controller
     public function getData(Request $request)
     {
         if ($request->ajax()) {
-            $query = Tenant::withCount('users')->orderByDesc('created_at');
+            // Superadmin lintas-tenant: hitung user tanpa TenantScope (kalau superadmin sedang
+            // mode POS di satu toko, scope User bisa salah -> jumlah user keliru).
+            $query = Tenant::withCount(['users' => fn($q) => $q->withoutGlobalScopes()])->orderByDesc('created_at');
 
             return DataTables::of($query)
                 ->addIndexColumn()
@@ -82,8 +84,9 @@ class TenantController extends Controller
 
     public function show($id)
     {
-        $tenant = Tenant::withCount('users')->findOrFail($id);
-        $users = User::where('tenant_id', $tenant->id)->with('roles')->get();
+        $tenant = Tenant::withCount(['users' => fn($q) => $q->withoutGlobalScopes()])->findOrFail($id);
+        // withoutGlobalScopes: superadmin melihat user tenant mana pun (tak kena TenantScope).
+        $users = User::withoutGlobalScopes()->where('tenant_id', $tenant->id)->with('roles')->get();
         $subscriptions = $tenant->subscriptions()->orderByDesc('created_at')->limit(30)->get();
         $plans = Plan::all();
 
@@ -340,12 +343,32 @@ class TenantController extends Controller
         $name = $tenant->name;
 
         DB::transaction(function () use ($tenant) {
-            User::where('tenant_id', $tenant->id)->delete();
+            $tid = $tenant->id;
+
+            // ID user tenant (tanpa TenantScope -> aman walau superadmin sedang mode POS).
+            $userIds = User::withoutGlobalScopes()->where('tenant_id', $tid)->pluck('id');
+            if ($userIds->isNotEmpty()) {
+                DB::table('model_has_roles')->whereIn('model_id', $userIds)->delete();
+                DB::table('model_has_permissions')->whereIn('model_id', $userIds)->delete();
+            }
+
+            // Hapus TUNTAS data milik tenant (query builder -> lolos TenantScope; anak seperti
+            // order_details & menu_addons ikut terhapus via FK ON DELETE CASCADE). Urutan menjaga
+            // FK antar tabel: menus sebelum categories; orders sebelum menus; shifts/expenses/
+            // deposit_transactions sebelum users. -> tidak ada data yatim (tenant_id NULL) tersisa.
+            foreach ([
+                'orders', 'menus', 'categories', 'promos', 'dining_tables',
+                'expenses', 'shifts', 'daily_sales_targets', 'daily_budgets',
+                'deposit_transactions', 'deposit_topups', 'subscriptions', 'settings', 'users',
+            ] as $table) {
+                DB::table($table)->where('tenant_id', $tid)->delete();
+            }
+
             $tenant->delete();
         });
 
         if (function_exists('activity')) {
-            activity()->useLog('tenant')->causedBy(Auth::user())->log('Menghapus tenant: ' . $name);
+            activity()->useLog('tenant')->causedBy(Auth::user())->log('Menghapus tenant (beserta seluruh datanya): ' . $name);
         }
 
         return response()->json(['success' => true]);

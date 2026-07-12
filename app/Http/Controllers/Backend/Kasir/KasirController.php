@@ -466,8 +466,25 @@ class KasirController extends Controller
 
                 if (!empty($offline['payment_method']) && in_array($offline['payment_method'], ['cash', 'qris'], true)) {
                     $this->applyPayment($order, $offline['payment_method'], $offline['cash_received'] ?? null);
-                    // Pesanan offline yang dibuat via "Bayar Sekarang (Lunas)" = transaksi selesai
-                    // -> tandai completed agar masuk tab "Selesai", bukan "Sedang Diproses".
+
+                    // Plan deposit: POTONG fee transaksi (sama seperti completeOrder) — cegah
+                    // transaksi offline jadi "gratis" tanpa potong poin. Saldo tak cukup -> batalkan
+                    // seluruh sinkron (transaksi) supaya tidak ada layanan tak terbayar.
+                    $tenant = app(TenantManager::class)->tenant();
+                    if ($tenant && $tenant->isDepositMode()) {
+                        $tenant->refresh(); // saldo terkini (order sebelumnya di batch mungkin sudah memotong)
+                        $fee = DepositConfig::feePerTransaction();
+                        if ((float) $tenant->deposit_points < $fee) {
+                            throw new \RuntimeException('Saldo deposit tidak cukup untuk menyinkronkan transaksi offline (sisa Rp'
+                                . number_format($tenant->deposit_points, 0, ',', '.') . '). Silakan top up dulu.');
+                        }
+                        app(DepositService::class)->deduct(
+                            $tenant, $fee, 'usage', $order->uuid, Auth::id(),
+                            'Biaya transaksi (offline) ' . ($order->invoice_no ?? ('#' . $order->id))
+                        );
+                    }
+
+                    // Transaksi lunas & selesai -> masuk tab "Selesai".
                     $order->update(['order_status' => 'completed']);
                 }
             }
