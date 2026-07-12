@@ -269,6 +269,27 @@
         })();
     </script>
 
+    {{-- Notif khusus KASIR: shift/kas hari sebelumnya belum ditutup (tidak mengunci) --}}
+    @if ($shiftStale ?? false)
+        @php $shiftWord = optional($currentTenant)->isUmkm() ? 'Kas' : 'Shift'; @endphp
+        <script>
+            (function () {
+                try { if (sessionStorage.getItem('mooda_shift_stale_kasir')) return; } catch (e) {}
+                document.addEventListener('DOMContentLoaded', function () {
+                    try { sessionStorage.setItem('mooda_shift_stale_kasir', '1'); } catch (e) {}
+                    if (!window.Swal) return;
+                    Swal.fire({
+                        icon: 'warning',
+                        title: '{{ $shiftWord }} Belum Ditutup',
+                        html: '{{ $shiftWord }} dari hari sebelumnya belum ditutup. Sebaiknya <b>tutup {{ strtolower($shiftWord) }}</b> dulu sebelum melayani transaksi hari ini.',
+                        confirmButtonText: 'Tutup {{ $shiftWord }}',
+                        showCancelButton: true, cancelButtonText: 'Lanjut Jualan',
+                    }).then(function (r) { if (r.isConfirmed) window.location.href = "{{ route('shifts.index') }}"; });
+                });
+            })();
+        </script>
+    @endif
+
     {{-- ===== Modal: Add-On saat menambah menu ===== --}}
     <div class="modal fade" id="modal-addon" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
