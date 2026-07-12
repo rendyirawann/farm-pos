@@ -154,8 +154,17 @@
                                             <span class="d-block text-muted fs-8">Sejak
                                                 {{ \Carbon\Carbon::parse($os->start_time)->translatedFormat('d M Y, H:i') }}</span>
                                         </div>
-                                        <span class="badge badge-light-success align-self-center">Modal Rp
-                                            {{ number_format($os->starting_cash, 0, ',', '.') }}</span>
+                                        <div class="text-end align-self-center">
+                                            <div class="badge badge-light-success mb-1">Modal Rp
+                                                {{ number_format($os->starting_cash, 0, ',', '.') }}</div>
+                                            @if ($canReopen)
+                                                <div>
+                                                    <a href="#" class="js-edit-modal fs-8 fw-bold text-primary"
+                                                        data-id="{{ $os->id }}" data-modal="{{ (int) $os->starting_cash }}"
+                                                        data-name="{{ e(optional($os->user)->name) }}"><i class="ki-outline ki-pencil fs-8"></i> Edit modal</a>
+                                                </div>
+                                            @endif
+                                        </div>
                                     </div>
                                 @empty
                                     <div class="text-muted text-center py-6">Tidak ada {{ strtolower($L) }} yang sedang berjalan.</div>
@@ -315,6 +324,39 @@
                     }
                 });
             }
+
+            // Owner/admin: koreksi Uang Modal Laci shift yang sedang berjalan.
+            document.addEventListener('click', function (e) {
+                var a = e.target.closest('.js-edit-modal');
+                if (!a) return;
+                e.preventDefault();
+                var id = a.getAttribute('data-id');
+                var cur = a.getAttribute('data-modal') || '';
+                var nm = a.getAttribute('data-name') || 'kasir';
+                Swal.fire({
+                    title: 'Edit Uang Modal Laci',
+                    text: 'Perbaiki uang modal laci (kembalian + pengeluaran) shift ' + nm + '.',
+                    input: 'number',
+                    inputValue: (cur && cur !== '0') ? cur : '',
+                    inputAttributes: { min: 0, step: 1000 },
+                    inputPlaceholder: 'mis. 500000',
+                    showCancelButton: true, confirmButtonText: 'Simpan', cancelButtonText: 'Batal',
+                    inputValidator: function (v) {
+                        var n = window.rawNum ? window.rawNum(v) : Number(String(v).replace(/[^\d]/g, ''));
+                        return (v === '' || v === null || isNaN(n) || n < 0) ? 'Masukkan nominal yang valid' : undefined;
+                    }
+                }).then(function (r) {
+                    if (!r.isConfirmed) return;
+                    var n = window.rawNum ? window.rawNum(r.value) : Number(String(r.value).replace(/[^\d]/g, ''));
+                    var f = document.createElement('form');
+                    f.method = 'POST';
+                    f.action = '{{ url('admin/shifts') }}/' + id + '/modal';
+                    f.innerHTML = '<input type="hidden" name="_token" value="{{ csrf_token() }}">'
+                        + '<input type="hidden" name="starting_cash" value="' + n + '">';
+                    document.body.appendChild(f);
+                    f.submit();
+                });
+            });
         </script>
     @endpush
 @endsection

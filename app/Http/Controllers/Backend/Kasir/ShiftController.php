@@ -240,4 +240,21 @@ class ShiftController extends Controller
 
         return redirect()->route('shifts.index')->with('success', 'Kas/shift kasir dibuka kembali. Kasir dapat melanjutkan transaksi.');
     }
+
+    /**
+     * Owner/admin mengoreksi Uang Modal Laci sebuah shift yang SEDANG berjalan.
+     * Berguna bila kasir salah input modal. Dijaga middleware can:shift.reopen.
+     */
+    public function updateModal(Request $request, $id)
+    {
+        // Bersihkan pemisah ribuan sebelum validasi.
+        $request->merge(['starting_cash' => preg_replace('/\D/', '', (string) $request->input('starting_cash'))]);
+        $request->validate(['starting_cash' => 'required|numeric|min:0']);
+
+        // Tenant-scoped otomatis; hanya shift yang masih terbuka yang boleh dikoreksi.
+        $shift = Shift::where('status', 'open')->findOrFail($id);
+        $shift->update(['starting_cash' => $request->starting_cash]);
+
+        return redirect()->route('shifts.index')->with('success', 'Uang modal laci shift diperbarui.');
+    }
 }

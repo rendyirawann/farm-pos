@@ -137,6 +137,7 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         Route::post('/admin/shifts/open', [ShiftController::class, 'openShift'])->middleware('can:shift.operate')->name('shifts.open');
         Route::post('/admin/shifts/close/{id}', [ShiftController::class, 'closeShift'])->middleware('can:shift.operate')->name('shifts.close');
         Route::post('/admin/shifts/reopen/{id}', [ShiftController::class, 'reopenShift'])->middleware('can:shift.reopen')->name('shifts.reopen');
+        Route::post('/admin/shifts/{id}/modal', [ShiftController::class, 'updateModal'])->middleware('can:shift.reopen')->name('shifts.update-modal');
 
         // Kasir single-page
         Route::get('/admin/kasir', [KasirController::class, 'index'])->name('kasir.index');

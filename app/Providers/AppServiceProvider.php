@@ -96,21 +96,23 @@ class AppServiceProvider extends ServiceProvider
                 // ganti hari selama shift belum ditutup. Bila tak ada shift terbuka -> kalender
                 // hari ini (perilaku lama, aman untuk tenant yang tak memakai shift).
                 //
-                // HANYA untuk OPERATOR (kasir, punya 'shift.operate'). Peninjau (owner/admin) tidak
-                // memegang laci -> jangan menempel ke shift pribadi mereka yang mungkin basi; mereka
-                // melihat angka TOKO hari ini (kalender). Ini juga menyembunyikan banner shift-basi
-                // untuk owner/admin.
-                $openShift = auth()->user()->can('shift.operate')
+                // OPERATOR (kasir): ikut shift MILIKNYA. PENINJAU (owner/admin): ikut shift KASIR
+                // yang sedang berjalan di tenant-nya (agar target & pendapatan sidebar sesuai inputan
+                // kasir, live). Bila tak ada shift terbuka -> kalender hari ini.
+                $isOperator = auth()->user()->can('shift.operate');
+                $openShift = $isOperator
                     ? \App\Models\Shift::where('user_id', auth()->id())
                         ->where('status', 'open')->latest('start_time')->first()
-                    : null;
+                    : \App\Models\Shift::where('status', 'open')->latest('start_time')->first();
 
                 $shiftStale = false; // shift terbuka dari hari sebelumnya (lupa ditutup)
 
                 if ($openShift) {
                     $start     = $openShift->start_time;
                     $scopeDate = Carbon::parse($start)->toDateString();
-                    $shiftStale = ! Carbon::parse($start)->isToday();
+                    // Banner "shift kemarin belum ditutup" HANYA untuk operator (yang bisa menutup);
+                    // peninjau cukup melihat angkanya tanpa banner aksi.
+                    $shiftStale = $isOperator && ! Carbon::parse($start)->isToday();
 
                     $income      = (float) Order::where('payment_status', 'paid')
                         ->where('created_at', '>=', $start)->sum('grand_total');
