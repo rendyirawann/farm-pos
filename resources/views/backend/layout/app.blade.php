@@ -392,7 +392,55 @@ License: Proprietary - Mooda System
             }
         });
     </script>
-    
+
+    @auth
+        @can('budget.set')
+            {{-- Set/ubah anggaran pengeluaran hari ini — tombol .js-set-budget di sidebar & halaman Pengeluaran --}}
+            <script>
+                document.addEventListener('click', function (e) {
+                    const btn = e.target.closest('.js-set-budget');
+                    if (!btn) return;
+                    e.preventDefault();
+                    const current = btn.getAttribute('data-amount') || '';
+                    Swal.fire({
+                        title: 'Anggaran Pengeluaran Hari Ini',
+                        text: 'Batas/kas belanja operasional untuk hari ini (Rupiah). Kosongkan 0 bila tanpa batas.',
+                        input: 'number',
+                        inputValue: (current && current !== '0') ? current : '',
+                        inputAttributes: { min: 0, step: 1000 },
+                        inputPlaceholder: 'mis. 500000',
+                        showCancelButton: true,
+                        confirmButtonText: 'Simpan',
+                        cancelButtonText: 'Batal',
+                        inputValidator: function (v) {
+                            const n = window.rawNum ? window.rawNum(v) : Number(String(v).replace(/[^\d]/g, ''));
+                            return (v === '' || v === null || isNaN(n) || n < 0) ? 'Masukkan nominal yang valid' : undefined;
+                        }
+                    }).then(function (r) {
+                        if (!r.isConfirmed) return;
+                        const amount = window.rawNum ? window.rawNum(r.value) : Number(String(r.value).replace(/[^\d]/g, ''));
+                        fetch('{{ route('kasir.sales.budget') }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'Accept': 'application/json'
+                            },
+                            body: 'amount=' + encodeURIComponent(amount)
+                        }).then(function (res) { return res.json(); }).then(function (res) {
+                            if (res && res.success) {
+                                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Anggaran diperbarui', showConfirmButton: false, timer: 1500 });
+                                setTimeout(function () { location.reload(); }, 800);
+                            } else {
+                                Swal.fire('Gagal', (res && res.error) || 'Gagal menyimpan anggaran.', 'error');
+                            }
+                        }).catch(function () { Swal.fire('Gagal', 'Gagal menyimpan anggaran.', 'error'); });
+                    });
+                });
+            </script>
+        @endcan
+    @endauth
+
     <!-- Konfigurasi & engine cetak struk (multi-metode) -->
     @php
         $ps = $posSetting ?? null;

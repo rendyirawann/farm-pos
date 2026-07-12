@@ -18,7 +18,13 @@
                         <div class="card-body p-6">
                             <div class="fs-6 fw-semibold text-primary mb-1">Anggaran Pengeluaran Hari Ini</div>
                             <div class="fs-2x fw-bold text-gray-800">Rp {{ number_format($budget, 0, ',', '.') }}</div>
-                            <div class="fs-8 text-muted">Diatur saat buka shift pertama.</div>
+                            <div class="fs-8 text-muted">
+                                @can('budget.set')
+                                    <a href="#" class="js-set-budget text-primary fw-bold" data-amount="{{ (int) $budget }}"><i class="ki-outline ki-pencil fs-8"></i> Atur anggaran hari ini</a>
+                                @else
+                                    Diatur saat buka shift pertama.
+                                @endcan
+                            </div>
                         </div>
                     </div>
                 </div>
