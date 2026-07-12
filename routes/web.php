@@ -115,6 +115,12 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     Route::middleware('can:view_tenants')->group(function () {
         Route::get('/admin/tenants', [TenantController::class, 'index'])->name('tenants.index');
         Route::get('/admin/tenants/data', [TenantController::class, 'getData'])->name('tenants.data');
+        // create HARUS sebelum {id} agar "create" tak dianggap id.
+        Route::get('/admin/tenants/create', [TenantController::class, 'create'])->name('tenants.create');
+        Route::post('/admin/tenants', [TenantController::class, 'store'])->name('tenants.store');
+        Route::get('/admin/tenants/{id}/edit', [TenantController::class, 'edit'])->name('tenants.edit');
+        Route::post('/admin/tenants/{id}/update', [TenantController::class, 'update'])->name('tenants.update');
+        Route::post('/admin/tenants/{id}/users', [TenantController::class, 'storeUser'])->name('tenants.users.store');
         Route::get('/admin/tenants/{id}', [TenantController::class, 'show'])->name('tenants.show');
         Route::post('/admin/tenants/{id}/toggle-active', [TenantController::class, 'toggleActive'])->name('tenants.toggle-active');
         Route::post('/admin/tenants/{id}/subscription', [TenantController::class, 'updateSubscription'])->name('tenants.subscription.update');

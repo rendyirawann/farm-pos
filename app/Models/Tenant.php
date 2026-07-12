@@ -28,6 +28,7 @@ class Tenant extends Model
         'trial_ends_at',
         'subscription_ends_at',
         'is_active',
+        'created_via',
         // Plan deposit / poin
         'billing_mode',
         'deposit_points',

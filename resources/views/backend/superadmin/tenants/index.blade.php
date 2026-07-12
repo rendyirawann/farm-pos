@@ -33,8 +33,9 @@
             <div class="card card-flush">
                 <div class="card-header pt-5">
                     <h3 class="card-title fw-bold text-gray-800 fs-2">Daftar Tenant</h3>
-                    <div class="card-toolbar">
+                    <div class="card-toolbar gap-2">
                         <input type="text" id="search" class="form-control form-control-solid w-250px" placeholder="Cari tenant..." />
+                        <a href="{{ route('tenants.create') }}" class="btn btn-primary fw-bold"><i class="ki-outline ki-plus fs-3"></i> Buat Tenant</a>
                     </div>
                 </div>
                 <div class="card-body">
