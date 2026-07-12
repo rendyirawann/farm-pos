@@ -2,6 +2,10 @@
 @section('title', 'Dashboard Analytics')
 @section('content')
 
+    @php
+        $selMonthLabel = \Carbon\Carbon::createFromFormat('Y-m', $selectedMonth ?? now()->format('Y-m'))->translatedFormat('F Y');
+    @endphp
+
     <div id="kt_app_content" class="app-content flex-column-fluid mt-5">
         <div id="kt_app_content_container" class="app-container container-xxl">
 
@@ -16,7 +20,16 @@
                             {{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}
                         </div>
                     </div>
-                    <div class="d-flex gap-2 mt-3 mt-sm-0">
+                    <div class="d-flex gap-2 mt-3 mt-sm-0 align-items-center flex-wrap">
+                        <form method="GET" class="me-1">
+                            <select name="month" class="form-select form-select-sm fw-bold border-0 text-gray-800"
+                                onchange="this.form.submit()" style="min-width: 150px;" title="Pilih bulan analitik">
+                                @foreach (($monthOptions ?? []) as $opt)
+                                    <option value="{{ $opt['value'] }}" {{ ($selectedMonth ?? '') === $opt['value'] ? 'selected' : '' }}>
+                                        {{ $opt['label'] }}</option>
+                                @endforeach
+                            </select>
+                        </form>
                         @if ($isSuperadminView ?? false)
                             <a href="{{ route('view-mode.switch', 'analytics') }}" class="btn btn-light fw-bold">
                                 <i class="ki-outline ki-chart-simple fs-3 me-1"></i> Dashboard Analitik
@@ -43,7 +56,7 @@
                 <div class="col-6 col-md-3">
                     <div class="card bg-light-primary border-0 shadow-sm h-100">
                         <div class="card-body p-6">
-                            <div class="fs-6 fw-semibold text-primary mb-2">Total Omzet (Bulan Ini)</div>
+                            <div class="fs-6 fw-semibold text-primary mb-2">Total Omzet ({{ $selMonthLabel }})</div>
                             <div class="fs-2hx fw-bold text-gray-800">Rp
                                 {{ number_format($summary['revenue'], 0, ',', '.') }}</div>
                         </div>
@@ -52,7 +65,7 @@
                 <div class="col-6 col-md-3">
                     <div class="card bg-light-success border-0 shadow-sm h-100">
                         <div class="card-body p-6">
-                            <div class="fs-6 fw-semibold text-success mb-2">Jumlah Transaksi (Bulan Ini)</div>
+                            <div class="fs-6 fw-semibold text-success mb-2">Jumlah Transaksi ({{ $selMonthLabel }})</div>
                             <div class="fs-2hx fw-bold text-gray-800">
                                 {{ number_format($summary['orders_count'] ?? 0, 0, ',', '.') }} <span
                                     class="fs-4 text-muted">Transaksi</span>
@@ -88,7 +101,7 @@
                         <div class="card-header pt-5 border-0">
                             <h3 class="card-title align-items-start flex-column">
                                 <span class="card-label fw-bold fs-3 mb-1">Performa Restoran Harian</span>
-                                <span class="text-muted fw-semibold fs-7">Omzet Aktual vs Target (Bulan Ini)</span>
+                                <span class="text-muted fw-semibold fs-7">Omzet Aktual vs Target ({{ $selMonthLabel }})</span>
                             </h3>
                         </div>
                         <div class="card-body pt-2 pb-0 ps-0">

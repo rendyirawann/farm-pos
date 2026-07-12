@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardAdminController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // Superadmin default: dashboard ANALITIK platform (bukan kasir).
         // Bisa dialihkan ke mode kasir/POS lewat tombol (session sa_mode).
@@ -24,8 +24,21 @@ class DashboardAdminController extends Controller
             return $this->analytics();
         }
 
-        $monthStart = Carbon::now()->startOfMonth();
-        $monthEnd = Carbon::now()->endOfMonth();
+        // Bulan yang dipilih (format Y-m); default = bulan berjalan.
+        $selectedMonth = (string) $request->input('month', Carbon::now()->format('Y-m'));
+        try {
+            $monthStart = Carbon::createFromFormat('Y-m', $selectedMonth)->startOfMonth();
+        } catch (\Throwable $e) {
+            $monthStart = Carbon::now()->startOfMonth();
+        }
+        $selectedMonth = $monthStart->format('Y-m');
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
+        // Pilihan bulan untuk filter (12 bulan terakhir).
+        $monthOptions = [];
+        for ($c = Carbon::now()->startOfMonth(), $i = 0; $i < 12; $i++, $c->subMonth()) {
+            $monthOptions[] = ['value' => $c->format('Y-m'), 'label' => $c->translatedFormat('F Y')];
+        }
 
         // 1. Menu Tidak Tersedia / Habis (Real-time)
         $unavailableMenus = Menu::with('category')
@@ -60,8 +73,9 @@ class DashboardAdminController extends Controller
         $salesSeries = [];
         $targetSeries = [];
 
-        // Looping dari tanggal 1 sampai hari ini
-        for ($date = $monthStart->copy(); $date->lte(Carbon::now()); $date->addDay()) {
+        // Sampai hari ini bila bulan berjalan; sampai akhir bulan bila bulan lampau.
+        $chartEnd = $monthEnd->lt(Carbon::now()) ? $monthEnd->copy() : Carbon::now();
+        for ($date = $monthStart->copy(); $date->lte($chartEnd); $date->addDay()) {
             $dateString = $date->format('Y-m-d');
             $dates[] = $date->format('d M'); 
             $salesSeries[] = (int) $actualSales->get($dateString, 0);
@@ -94,7 +108,7 @@ class DashboardAdminController extends Controller
             'items_sold'   => $itemsSold,
         ];
 
-        return view('backend.dashboard.index', compact('unavailableMenus', 'topProducts', 'chartData', 'summary'));
+        return view('backend.dashboard.index', compact('unavailableMenus', 'topProducts', 'chartData', 'summary', 'selectedMonth', 'monthOptions'));
     }
 
     /** Alihkan tampilan Superadmin: 'analytics' (platform) <-> 'pos' (kasir). */

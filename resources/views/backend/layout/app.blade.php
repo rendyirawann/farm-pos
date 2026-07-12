@@ -198,6 +198,34 @@ License: Proprietary - Mooda System
                                 </div>
                             @endif
                         @endif
+                        {{-- Peringatan: shift/kas hari sebelumnya belum ditutup (tidak mengunci) --}}
+                        @if ($shiftStale ?? false)
+                            @php $shiftWord = optional($currentTenant)->isUmkm() ? 'Kas' : 'Shift'; @endphp
+                            <div class="alert alert-warning d-flex align-items-center flex-wrap gap-3 mx-5 mt-4 mb-0" role="alert">
+                                <i class="ki-outline ki-time fs-2x text-warning"></i>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold fs-6 text-gray-900">{{ $shiftWord }} kemarin belum ditutup</div>
+                                    <div class="fs-7 text-gray-700">Masih ada {{ strtolower($shiftWord) }} terbuka dari hari sebelumnya. Harap <b>tutup {{ strtolower($shiftWord) }}</b> dulu untuk memulai {{ strtolower($shiftWord) }} hari ini.</div>
+                                </div>
+                                <a href="{{ route('shifts.index') }}" class="btn btn-sm btn-warning fw-bold">Tutup {{ $shiftWord }}</a>
+                            </div>
+                            <script>
+                                (function () {
+                                    try { if (sessionStorage.getItem('mooda_shift_stale')) return; } catch (e) {}
+                                    document.addEventListener('DOMContentLoaded', function () {
+                                        try { sessionStorage.setItem('mooda_shift_stale', '1'); } catch (e) {}
+                                        if (!window.Swal) return;
+                                        Swal.fire({
+                                            icon: 'warning',
+                                            title: '{{ $shiftWord }} Belum Ditutup',
+                                            html: 'Anda masih punya {{ strtolower($shiftWord) }} yang belum ditutup dari hari sebelumnya.<br>Harap <b>tutup {{ strtolower($shiftWord) }}</b> dulu untuk memulai {{ strtolower($shiftWord) }} hari ini.',
+                                            confirmButtonText: 'Tutup {{ $shiftWord }} Sekarang',
+                                            showCancelButton: true, cancelButtonText: 'Nanti',
+                                        }).then(function (r) { if (r.isConfirmed) window.location.href = "{{ route('shifts.index') }}"; });
+                                    });
+                                })();
+                            </script>
+                        @endif
                         <!--begin::Content-->
                         @yield('content')
                         <!--end::Content-->

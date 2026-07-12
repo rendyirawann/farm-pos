@@ -79,14 +79,31 @@ class AppServiceProvider extends ServiceProvider
             if (auth()->check()) {
                 $today = date('Y-m-d');
 
-                // 1. Target Penjualan Harian
-                $salesTargetObj = DailySalesTarget::where('date', $today)->first();
-                $salesTarget = $salesTargetObj ? $salesTargetObj->amount : 0;
+                // Angka sidebar MENGIKUTI shift yang sedang TERBUKA (per user): tidak reset saat
+                // ganti hari selama shift belum ditutup. Bila tak ada shift terbuka -> kalender
+                // hari ini (perilaku lama, aman untuk tenant yang tak memakai shift).
+                $openShift = \App\Models\Shift::where('user_id', auth()->id())
+                    ->where('status', 'open')->latest('start_time')->first();
 
-                // 2. Omzet Harian (Dari tabel orders yang sudah dibayar)
-                $income = Order::whereDate('created_at', $today)
-                    ->where('payment_status', 'paid')
-                    ->sum('grand_total');
+                $shiftStale = false; // shift terbuka dari hari sebelumnya (lupa ditutup)
+
+                if ($openShift) {
+                    $start     = $openShift->start_time;
+                    $scopeDate = Carbon::parse($start)->toDateString();
+                    $shiftStale = ! Carbon::parse($start)->isToday();
+
+                    $income      = (float) Order::where('payment_status', 'paid')
+                        ->where('created_at', '>=', $start)->sum('grand_total');
+                    $salesTarget = (float) (DailySalesTarget::where('date', $scopeDate)->value('amount') ?? 0);
+                    $dailyBudget = (float) (\App\Models\DailyBudget::where('date', $scopeDate)->value('amount') ?? 0);
+                    $dailySpent  = (float) \App\Models\Expense::where('created_at', '>=', $start)->sum('amount');
+                } else {
+                    $income      = (float) Order::whereDate('created_at', $today)
+                        ->where('payment_status', 'paid')->sum('grand_total');
+                    $salesTarget = (float) (DailySalesTarget::where('date', $today)->value('amount') ?? 0);
+                    $dailyBudget = (float) (\App\Models\DailyBudget::whereDate('date', $today)->value('amount') ?? 0);
+                    $dailySpent  = (float) \App\Models\Expense::whereDate('date', $today)->sum('amount');
+                }
 
                 // Kalkulasi Persentase Penjualan vs Target
                 $salesPercentage = 0;
@@ -102,9 +119,7 @@ class AppServiceProvider extends ServiceProvider
                     }
                 }
 
-                // Anggaran & pengeluaran hari ini (untuk widget sidebar Pengeluaran)
-                $dailyBudget = (float) (\App\Models\DailyBudget::whereDate('date', $today)->value('amount') ?? 0);
-                $dailySpent  = (float) \App\Models\Expense::whereDate('date', $today)->sum('amount');
+                // Anggaran & pengeluaran (untuk widget sidebar Pengeluaran)
                 $expensePct = 0;
                 $expenseColor = 'bg-primary';
                 if ($dailyBudget > 0) {
@@ -125,7 +140,9 @@ class AppServiceProvider extends ServiceProvider
                     'dailyBudget',
                     'dailySpent',
                     'expensePct',
-                    'expenseColor'
+                    'expenseColor',
+                    'shiftStale',
+                    'openShift'
                 ));
             }
         });
