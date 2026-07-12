@@ -29,6 +29,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.pm.PackageInfoCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -125,6 +126,14 @@ class MainActivity : AppCompatActivity() {
             mediaPlaybackRequiresUserGesture = false
             allowFileAccess = true
         }
+
+        // Tandai User-Agent dengan versionCode APK -> server bisa mendeteksi versi & menyarankan
+        // update (popup di halaman login). Contoh UA: "...Chrome/... MoodaAPK/2".
+        try {
+            val pInfo = packageManager.getPackageInfo(packageName, 0)
+            val vCode = PackageInfoCompat.getLongVersionCode(pInfo)
+            webView.settings.userAgentString = (webView.settings.userAgentString ?: "") + " MoodaAPK/" + vCode
+        } catch (e: Exception) { /* biarkan UA default */ }
 
         webView.addJavascriptInterface(PrinterBridge(), "AndroidPrinter")
 

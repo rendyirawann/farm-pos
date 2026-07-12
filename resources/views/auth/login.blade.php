@@ -127,6 +127,14 @@
 @endpush
 
 @section('content')
+    @php
+        // Deteksi versi APK dari User-Agent ("MoodaAPK/<code>"). Bila lebih lama dari versi
+        // terbaru -> tampilkan popup update. Browser biasa (tanpa tag) tidak terpengaruh.
+        $ua = request()->userAgent() ?? '';
+        $apkVer = preg_match('/MoodaAPK\/(\d+)/', $ua, $m) ? (int) $m[1] : null;
+        $apkUpdateAvailable = $apkVer !== null && $apkVer < (int) config('mooda.apk_latest_version_code', 2);
+    @endphp
+
     <div class="d-flex flex-column-fluid flex-lg-row-auto justify-content-center justify-content-lg-start p-12">
 
         <div class="bg-body d-flex flex-column flex-center rounded-4 w-md-600px p-10 shadow-lg">
@@ -312,6 +320,25 @@
     </div>
 
     @push('scripts')
+        @if ($apkUpdateAvailable ?? false)
+            <script>
+                // Popup "update APK tersedia" (hanya untuk pengguna APK versi lama). Sekali per sesi.
+                (function () {
+                    try { if (sessionStorage.getItem('mooda_apk_update')) return; } catch (e) {}
+                    document.addEventListener('DOMContentLoaded', function () {
+                        try { sessionStorage.setItem('mooda_apk_update', '1'); } catch (e) {}
+                        if (!window.Swal) return;
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Update Aplikasi Tersedia',
+                            html: 'Tersedia versi aplikasi Mooda yang lebih baru (perbaikan &amp; fitur terbaru).<br>Silakan unduh &amp; pasang APK terbaru.',
+                            confirmButtonText: 'Download APK Terbaru',
+                            showCancelButton: true, cancelButtonText: 'Nanti',
+                        }).then(function (r) { if (r.isConfirmed) window.location.href = "{{ asset('downloads/mooda-pos.apk') }}"; });
+                    });
+                })();
+            </script>
+        @endif
         <script>
             const togglePassword = document.querySelector('#togglePassword');
             const passwordInput = document.querySelector('#passwordInput');
