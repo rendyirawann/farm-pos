@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Backend\Finance;
 
 use App\Http\Controllers\Controller;
-use App\Models\DailyBudget;
 use App\Models\DailySalesTarget;
 use App\Models\Expense;
 use Carbon\Carbon;
@@ -15,14 +14,13 @@ use Yajra\DataTables\Facades\DataTables;
 
 class ExpenseController extends Controller
 {
-    /** Halaman pencatatan pengeluaran + ringkasan anggaran hari ini. */
+    /** Halaman pencatatan pengeluaran + ringkasan total pengeluaran hari ini. */
     public function index()
     {
-        $today  = Carbon::today()->toDateString();
-        $budget = (float) (DailyBudget::whereDate('date', $today)->value('amount') ?? 0);
-        $spent  = (float) Expense::whereDate('date', $today)->sum('amount');
+        $today = Carbon::today()->toDateString();
+        $spent = (float) Expense::whereDate('date', $today)->sum('amount');
 
-        return view('backend.finance.expenses.index', compact('budget', 'spent'));
+        return view('backend.finance.expenses.index', compact('spent'));
     }
 
     /** Sumber DataTables server-side (ter-scope otomatis per tenant). */

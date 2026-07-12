@@ -43,7 +43,7 @@
                                     <form action="{{ route('shifts.open') }}" method="POST" id="formOpenShift">
                                         @csrf
 
-                                        @if ($needTarget || $needBudget)
+                                        @if ($needTarget)
                                             <div class="bg-light-primary rounded p-5 mb-6 text-start">
                                                 <div class="d-flex align-items-center mb-3">
                                                     <i class="ki-outline ki-sun fs-1 text-primary me-2"></i>
@@ -58,25 +58,16 @@
                                                             min="0" required>
                                                     </div>
                                                 @endif
-
-                                                @if ($needBudget)
-                                                    <div class="mb-1">
-                                                        <label class="required fw-semibold fs-6 mb-1">Anggaran Pengeluaran Hari Ini (Rp)</label>
-                                                        <input type="number" name="daily_budget"
-                                                            class="form-control form-control-solid" placeholder="Contoh: 500000"
-                                                            min="0" required>
-                                                        <div class="form-text fs-8">Kas belanja operasional hari ini (beli bahan, dll).
-                                                            Ikut dihitung sebagai uang fisik di laci.</div>
-                                                    </div>
-                                                @endif
                                             </div>
                                         @endif
 
                                         <div class="text-start mb-6">
-                                            <label class="required fw-semibold fs-5 mb-2">Modal Uang Kembalian Laci (Rp)</label>
+                                            <label class="required fw-semibold fs-5 mb-2">Uang Modal Laci (kembalian + pengeluaran) (Rp)</label>
                                             <input type="number" name="starting_cash"
                                                 class="form-control form-control-lg form-control-solid text-center fs-3 fw-bold"
                                                 placeholder="Contoh: 500000" min="0" required autofocus>
+                                            <div class="form-text fs-8">Uang tunai yang ditaruh di laci: untuk kembalian sekaligus
+                                                kas belanja/pengeluaran hari ini (jadi satu).</div>
                                         </div>
                                         <button type="submit" class="btn btn-primary btn-lg w-100 fs-4 fw-bold">
                                             <i class="ki-outline ki-unlock fs-2 me-2"></i> Buka {{ $L }} Sekarang
@@ -97,19 +88,19 @@
                                 </div>
                                 <div class="card-body p-8">
                                     <div class="d-flex flex-stack mb-5">
-                                        <span class="text-gray-600 fs-5">Modal Awal Laci</span>
+                                        <span class="text-gray-600 fs-5">Uang Modal Laci <span class="text-muted fs-8">(kembalian + pengeluaran)</span></span>
                                         <span class="text-gray-800 fw-bold fs-4">Rp
                                             {{ number_format($currentShift->starting_cash, 0, ',', '.') }}</span>
                                     </div>
                                     <div class="d-flex flex-stack mb-5">
-                                        <span class="text-gray-600 fs-5">Anggaran Pengeluaran</span>
-                                        <span class="text-gray-800 fw-bold fs-4">Rp
-                                            {{ number_format($shiftBudget, 0, ',', '.') }}</span>
-                                    </div>
-                                    <div class="d-flex flex-stack mb-5">
-                                        <span class="text-gray-600 fs-5">Total Penjualan Tunai (Masuk)</span>
+                                        <span class="text-gray-600 fs-5">Pendapatan Tunai (Masuk)</span>
                                         <span class="text-success fw-bold fs-4">+ Rp
                                             {{ number_format($cashSales, 0, ',', '.') }}</span>
+                                    </div>
+                                    <div class="d-flex flex-stack mb-5">
+                                        <span class="text-gray-600 fs-5">Pendapatan QRIS <span class="text-muted fs-8">(info, tak masuk laci)</span></span>
+                                        <span class="text-info fw-bold fs-4">Rp
+                                            {{ number_format($qrisSales ?? 0, 0, ',', '.') }}</span>
                                     </div>
                                     <div class="d-flex flex-stack mb-5">
                                         <span class="text-gray-600 fs-5">Pengeluaran (Keluar)</span>
@@ -120,7 +111,7 @@
                                     <div class="d-flex flex-stack mb-8">
                                         <span class="text-gray-800 fw-bolder fs-4">Uang Fisik Seharusnya</span>
                                         <span class="text-primary fw-bolder fs-2qx">Rp
-                                            {{ number_format($currentShift->starting_cash + $shiftBudget + $cashSales - ($shiftExpenses ?? 0), 0, ',', '.') }}</span>
+                                            {{ number_format($currentShift->starting_cash + $cashSales - ($shiftExpenses ?? 0), 0, ',', '.') }}</span>
                                     </div>
 
                                     <form action="{{ route('shifts.close', $currentShift->id) }}" method="POST"
@@ -128,8 +119,8 @@
                                         @csrf
                                         <div class="bg-light-warning rounded p-6 mb-6">
                                             <label class="required fw-bold fs-5 text-gray-800 mb-2">Uang Fisik Aktual (Rp)</label>
-                                            <p class="text-muted fs-7 mb-4">Hitung SEMUA uang tunai di laci sekarang (termasuk kas
-                                                belanja), lalu masukkan totalnya untuk menutup {{ strtolower($L) }}.</p>
+                                            <p class="text-muted fs-7 mb-4">Hitung SEMUA uang tunai di laci sekarang (modal + hasil tunai −
+                                                pengeluaran), lalu masukkan totalnya untuk menutup {{ strtolower($L) }}.</p>
                                             <input type="number" name="actual_cash"
                                                 class="form-control form-control-lg text-center fs-2x fw-bold" placeholder="0"
                                                 min="0" required>

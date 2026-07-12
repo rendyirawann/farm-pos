@@ -71,7 +71,6 @@ class RolePermissionSeeder extends Seeder
             'sales.target',   // set/ubah target penjualan hari ini
             'shift.operate',  // buka/tutup shift (KASIR — shift miliknya sendiri)
             'shift.reopen',   // buka kembali shift yg tak sengaja ditutup (OWNER/ADMIN — koreksi)
-            'budget.set',     // set/ubah anggaran pengeluaran hari ini (OWNER/ADMIN)
         ];
 
         // Create all permissions
@@ -119,8 +118,6 @@ class RolePermissionSeeder extends Seeder
             // Owner LIHAT-SAJA shift (tak buka/tutup), tapi boleh membuka kembali shift kasir
             // yang tak sengaja ditutup (koreksi supervisor).
             'shift.reopen',
-            // Atur anggaran pengeluaran harian (dari sidebar / halaman Pengeluaran).
-            'budget.set',
         ];
         $roleOwner->syncPermissions($ownerPermissions);
 
@@ -139,8 +136,6 @@ class RolePermissionSeeder extends Seeder
             'report.sales', 'report.items',
             // Admin LIHAT-SAJA shift (tak buka/tutup), tapi boleh membuka kembali shift kasir.
             'shift.reopen',
-            // Atur anggaran pengeluaran harian.
-            'budget.set',
         ];
         $roleAdmin->syncPermissions($adminPermissions);
 

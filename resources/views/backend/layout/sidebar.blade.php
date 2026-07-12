@@ -231,24 +231,7 @@
                             </button>
                         </div>
                         <div id="sb-expense-spent" class="fs-2 fw-bold text-gray-800">Rp {{ number_format($dailySpent ?? 0, 0, ',', '.') }}</div>
-                        @if (($dailyBudget ?? 0) > 0)
-                            <div class="w-100 bg-white rounded mt-2" style="height: 6px">
-                                <div class="{{ $expenseColor ?? 'bg-primary' }} rounded" style="height: 6px; width: {{ $expensePct ?? 0 }}%"></div>
-                            </div>
-                            <div class="fs-8 text-muted mt-1 d-flex justify-content-between align-items-center">
-                                <span>Terpakai {{ $expensePct ?? 0 }}% dari anggaran Rp{{ number_format($dailyBudget, 0, ',', '.') }}</span>
-                                @can('budget.set')
-                                    <a href="#" class="js-set-budget text-primary fw-bold text-nowrap ms-2" data-amount="{{ (int) ($dailyBudget ?? 0) }}"><i class="ki-outline ki-pencil fs-8"></i> Atur</a>
-                                @endcan
-                            </div>
-                        @else
-                            <div class="fs-8 text-muted mt-1 d-flex justify-content-between align-items-center">
-                                <span>Belum ada anggaran pengeluaran hari ini.</span>
-                                @can('budget.set')
-                                    <a href="#" class="js-set-budget text-primary fw-bold text-nowrap ms-2" data-amount="0"><i class="ki-outline ki-plus fs-8"></i> Atur</a>
-                                @endcan
-                            </div>
-                        @endif
+                        <div class="fs-8 text-muted mt-1">Diambil dari uang laci (mengurangi kas).</div>
                     </div>
                 </div>
             @endcan

@@ -2,49 +2,17 @@
 @section('title', 'Pengeluaran')
 @section('content')
 
-    @php
-        $sisa = max(0, $budget - $spent);
-        $pct  = $budget > 0 ? min(100, round($spent / $budget * 100)) : 0;
-        $barColor = $pct >= 100 ? 'bg-danger' : ($pct >= 75 ? 'bg-warning' : 'bg-primary');
-    @endphp
-
     <div id="kt_app_content" class="app-content flex-column-fluid mt-5">
         <div id="kt_app_content_container" class="app-container container-xxl">
 
-            {{-- Ringkasan anggaran hari ini --}}
+            {{-- Ringkasan pengeluaran hari ini (diambil dari uang laci) --}}
             <div class="row g-5 mb-6">
-                <div class="col-md-4">
-                    <div class="card bg-light-primary border-0 shadow-sm h-100">
-                        <div class="card-body p-6">
-                            <div class="fs-6 fw-semibold text-primary mb-1">Anggaran Pengeluaran Hari Ini</div>
-                            <div class="fs-2x fw-bold text-gray-800">Rp {{ number_format($budget, 0, ',', '.') }}</div>
-                            <div class="fs-8 text-muted">
-                                @can('budget.set')
-                                    <a href="#" class="js-set-budget text-primary fw-bold" data-amount="{{ (int) $budget }}"><i class="ki-outline ki-pencil fs-8"></i> Atur anggaran hari ini</a>
-                                @else
-                                    Diatur saat buka shift pertama.
-                                @endcan
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="card bg-light-danger border-0 shadow-sm h-100">
                         <div class="card-body p-6">
-                            <div class="fs-6 fw-semibold text-danger mb-1">Terpakai Hari Ini</div>
+                            <div class="fs-6 fw-semibold text-danger mb-1">Total Pengeluaran Hari Ini</div>
                             <div class="fs-2x fw-bold text-gray-800">Rp {{ number_format($spent, 0, ',', '.') }}</div>
-                            <div class="w-100 bg-white rounded mt-2" style="height: 8px">
-                                <div class="{{ $barColor }} rounded" style="height: 8px; width: {{ $pct }}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card bg-light-success border-0 shadow-sm h-100">
-                        <div class="card-body p-6">
-                            <div class="fs-6 fw-semibold text-success mb-1">Sisa Anggaran</div>
-                            <div class="fs-2x fw-bold text-gray-800">Rp {{ number_format($sisa, 0, ',', '.') }}</div>
-                            <div class="fs-8 text-muted">Terpakai {{ $pct }}% dari anggaran.</div>
+                            <div class="fs-8 text-muted">Diambil dari uang laci (mengurangi kas fisik saat tutup shift).</div>
                         </div>
                     </div>
                 </div>

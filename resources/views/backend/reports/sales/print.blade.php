@@ -193,16 +193,13 @@
                 <td style="border: none; padding-top: 8px;" class="text-right bold">Rp
                     {{ number_format($totalRevenue, 0, ',', '.') }}</td>
             </tr>
+            @if (($expenseApplies ?? true))
             <tr>
-                <td style="border: none; padding-top: 5px; color: #8a6d3b;">Anggaran Pengeluaran</td>
-                <td style="border: none; padding-top: 5px; color: #8a6d3b;" class="text-right">Rp
-                    {{ number_format($totalBudget ?? 0, 0, ',', '.') }}</td>
-            </tr>
-            <tr>
-                <td style="border: none; padding-top: 5px;">Total Pengeluaran</td>
+                <td style="border: none; padding-top: 5px;">Total Pengeluaran <span style="color:#999;">(kas tunai)</span></td>
                 <td style="border: none; padding-top: 5px; color: #d9534f;" class="text-right bold">- Rp
                     {{ number_format($totalExpense, 0, ',', '.') }}</td>
             </tr>
+            @endif
             <tr>
                 <td style="border-top: 2px solid #000; border-left:none; border-right:none; border-bottom:none; padding-top: 10px;" class="bold">OMZET BERSIH</td>
                 <td style="border-top: 2px solid #000; border-left:none; border-right:none; border-bottom:none; padding-top: 10px; font-size: 16px;" class="text-right bold">

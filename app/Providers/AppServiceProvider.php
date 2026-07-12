@@ -115,13 +115,11 @@ class AppServiceProvider extends ServiceProvider
                     $income      = (float) Order::where('payment_status', 'paid')
                         ->where('created_at', '>=', $start)->sum('grand_total');
                     $salesTarget = (float) (DailySalesTarget::where('date', $scopeDate)->value('amount') ?? 0);
-                    $dailyBudget = (float) (\App\Models\DailyBudget::where('date', $scopeDate)->value('amount') ?? 0);
                     $dailySpent  = (float) \App\Models\Expense::where('created_at', '>=', $start)->sum('amount');
                 } else {
                     $income      = (float) Order::whereDate('created_at', $today)
                         ->where('payment_status', 'paid')->sum('grand_total');
                     $salesTarget = (float) (DailySalesTarget::where('date', $today)->value('amount') ?? 0);
-                    $dailyBudget = (float) (\App\Models\DailyBudget::whereDate('date', $today)->value('amount') ?? 0);
                     $dailySpent  = (float) \App\Models\Expense::whereDate('date', $today)->sum('amount');
                 }
 
@@ -139,28 +137,13 @@ class AppServiceProvider extends ServiceProvider
                     }
                 }
 
-                // Anggaran & pengeluaran (untuk widget sidebar Pengeluaran)
-                $expensePct = 0;
-                $expenseColor = 'bg-primary';
-                if ($dailyBudget > 0) {
-                    $expensePct = min(100, round($dailySpent / $dailyBudget * 100));
-                    if ($expensePct >= 100) {
-                        $expenseColor = 'bg-danger';
-                    } elseif ($expensePct >= 75) {
-                        $expenseColor = 'bg-warning';
-                    }
-                }
-
                 $view->with(compact(
                     'salesTarget',
                     'income',
                     'salesPercentage',
                     'salesBarWidth',
                     'salesProgressColor',
-                    'dailyBudget',
                     'dailySpent',
-                    'expensePct',
-                    'expenseColor',
                     'shiftStale',
                     'openShift'
                 ));
