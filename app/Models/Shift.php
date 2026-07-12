@@ -20,6 +20,8 @@ class Shift extends Model
         'end_time',
         'starting_cash',
         'cash_sales',
+        'budget_amount',
+        'expense_total',
         'expected_cash',
         'actual_cash',
         'difference',

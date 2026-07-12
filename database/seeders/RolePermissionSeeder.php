@@ -69,6 +69,8 @@ class RolePermissionSeeder extends Seeder
             'order.delete',   // hapus pesanan (berjalan/selesai)
             'sales.clear',    // reset/kosongkan penjualan hari ini
             'sales.target',   // set/ubah target penjualan hari ini
+            'shift.operate',  // buka/tutup shift (KASIR — shift miliknya sendiri)
+            'shift.reopen',   // buka kembali shift yg tak sengaja ditutup (OWNER/ADMIN — koreksi)
         ];
 
         // Create all permissions
@@ -113,6 +115,9 @@ class RolePermissionSeeder extends Seeder
             'report.sales', 'report.items',
             // Aksi sensitif khusus owner (admin/kasir TIDAK diberi).
             'order.delete', 'sales.clear', 'sales.target',
+            // Owner LIHAT-SAJA shift (tak buka/tutup), tapi boleh membuka kembali shift kasir
+            // yang tak sengaja ditutup (koreksi supervisor).
+            'shift.reopen',
         ];
         $roleOwner->syncPermissions($ownerPermissions);
 
@@ -129,6 +134,8 @@ class RolePermissionSeeder extends Seeder
             'menu.show', 'menu.create', 'menu.edit', 'menu.delete',
             'promo.show', 'promo.create', 'promo.edit', 'promo.delete',
             'report.sales', 'report.items',
+            // Admin LIHAT-SAJA shift (tak buka/tutup), tapi boleh membuka kembali shift kasir.
+            'shift.reopen',
         ];
         $roleAdmin->syncPermissions($adminPermissions);
 
@@ -141,6 +148,8 @@ class RolePermissionSeeder extends Seeder
             'view_expense',
             'report.sales',
             'report.items',
+            // Kasir MENGOPERASIKAN shift-nya sendiri (buka/tutup). TIDAK boleh reopen.
+            'shift.operate',
         ];
         $roleKasir->syncPermissions($kasirPermissions);
 

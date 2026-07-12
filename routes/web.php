@@ -128,11 +128,13 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     // KASIR (POS satu-halaman, tanpa meja) : view_kasir — Superadmin, admin, kasir
     // ====================================================
     Route::middleware(['can:view_kasir', 'subscribed'])->group(function () {
-        // Shift
+        // Shift — halaman bisa dilihat semua (view_kasir); AKSI dibatasi permission:
+        //  - buka/tutup  : kasir (shift.operate)
+        //  - buka kembali: owner/admin (shift.reopen)
         Route::get('/admin/shifts', [ShiftController::class, 'index'])->name('shifts.index');
-        Route::post('/admin/shifts/open', [ShiftController::class, 'openShift'])->name('shifts.open');
-        Route::post('/admin/shifts/close/{id}', [ShiftController::class, 'closeShift'])->name('shifts.close');
-        Route::post('/admin/shifts/reopen/{id}', [ShiftController::class, 'reopenShift'])->name('shifts.reopen');
+        Route::post('/admin/shifts/open', [ShiftController::class, 'openShift'])->middleware('can:shift.operate')->name('shifts.open');
+        Route::post('/admin/shifts/close/{id}', [ShiftController::class, 'closeShift'])->middleware('can:shift.operate')->name('shifts.close');
+        Route::post('/admin/shifts/reopen/{id}', [ShiftController::class, 'reopenShift'])->middleware('can:shift.reopen')->name('shifts.reopen');
 
         // Kasir single-page
         Route::get('/admin/kasir', [KasirController::class, 'index'])->name('kasir.index');

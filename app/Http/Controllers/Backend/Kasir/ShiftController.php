@@ -17,53 +17,81 @@ class ShiftController extends Controller
 {
     public function index()
     {
-        $userId = Auth::id();
-        $currentShift = Shift::where('user_id', $userId)->where('status', 'open')->first();
-        $cashSales = 0;
+        $user = Auth::user();
+
+        // Hak akses:
+        // - kasir       : buka/tutup shift-nya sendiri ('shift.operate').
+        // - owner/admin : LIHAT-SAJA seluruh shift toko + boleh "Buka Kembali" (reopen)
+        //                 shift kasir yang tak sengaja ditutup ('shift.reopen'). TIDAK buka/tutup.
+        // - Superadmin  : semua (via Gate::before), melihat lintas tenant.
+        $canOperate = $user->can('shift.operate');
+        $canReopen  = $user->can('shift.reopen');
+        $ownOnly    = $user->hasRole('kasir') && ! $user->hasRole('Superadmin');
+
+        $currentShift  = null;
+        $cashSales     = 0;
         $shiftExpenses = 0;
+        $shiftBudget   = 0;
 
-        if ($currentShift) {
-            // PERBAIKAN: Gunakan tabel Order dan kolom grand_total
-            $cashSales = Order::where('payment_method', 'cash')
-                ->where('payment_status', 'paid')
-                ->where('created_at', '>=', $currentShift->start_time)
-                ->sum('grand_total');
+        // Panel operasional (kartu shift berjalan + form tutup) hanya untuk operator (kasir).
+        if ($canOperate) {
+            $currentShift = Shift::where('user_id', $user->id)->where('status', 'open')->first();
 
-            // Pengeluaran yang dicatat selama shift ini (mengurangi uang laci)
-            $shiftExpenses = Expense::where('created_at', '>=', $currentShift->start_time)->sum('amount');
+            if ($currentShift) {
+                $cashSales = Order::where('payment_method', 'cash')
+                    ->where('payment_status', 'paid')
+                    ->where('created_at', '>=', $currentShift->start_time)
+                    ->sum('grand_total');
+
+                $shiftExpenses = Expense::where('created_at', '>=', $currentShift->start_time)->sum('amount');
+
+                // Anggaran pengeluaran hari itu (ikut dihitung sebagai kas fisik yang ditaruh di laci).
+                $scopeDate   = Carbon::parse($currentShift->start_time)->toDateString();
+                $shiftBudget = (float) (DailyBudget::whereDate('date', $scopeDate)->value('amount') ?? 0);
+            }
         }
 
-        $history = Shift::where('user_id', $userId)
+        // Riwayat: kasir -> shift miliknya saja; owner/admin/superadmin -> SEMUA shift toko.
+        $history = Shift::with('user')
             ->where('status', 'closed')
+            ->when($ownOnly, fn ($q) => $q->where('user_id', $user->id))
             ->orderBy('id', 'desc')
-            ->limit(10)
+            ->limit(15)
             ->get();
 
-        // PERBAIKAN: Gunakan kolom 'date' sesuai yang ada di Model/Database
+        // Untuk peninjau (owner/admin): daftar shift yang SEDANG berjalan (memantau siapa yang buka).
+        $openShiftsAll = collect();
+        if (! $canOperate) {
+            $openShiftsAll = Shift::with('user')->where('status', 'open')->orderBy('start_time')->get();
+        }
+
+        // Setup harian dipisah: minta TARGET bila hari ini belum punya target,
+        // minta ANGGARAN bila hari ini belum punya anggaran (independen satu sama lain).
         $today = Carbon::today();
-        $isFirstShiftOfDay = !DailySalesTarget::whereDate('date', $today)->exists();
+        $needTarget = ! DailySalesTarget::whereDate('date', $today)->exists();
+        $needBudget = ! DailyBudget::whereDate('date', $today)->exists();
 
-        // Shift/kas yang ditutup HARI INI (untuk tombol "Buka Kembali" / undo).
-        $lastClosedToday = Shift::where('user_id', $userId)
-            ->where('status', 'closed')
-            ->whereDate('end_time', Carbon::today())
-            ->orderByDesc('id')
-            ->first();
-
-        return view('backend.kasir.shift.index', compact('currentShift', 'cashSales', 'shiftExpenses', 'history', 'isFirstShiftOfDay', 'lastClosedToday'));
+        return view('backend.kasir.shift.index', compact(
+            'currentShift', 'cashSales', 'shiftExpenses', 'shiftBudget', 'history',
+            'canOperate', 'canReopen', 'ownOnly', 'openShiftsAll', 'needTarget', 'needBudget'
+        ));
     }
 
     public function openShift(Request $request)
     {
         $today = Carbon::today();
-        $isFirstShiftOfDay = !DailySalesTarget::whereDate('date', $today)->exists();
+        // Dipisah: minta TARGET bila hari ini belum ada target; minta ANGGARAN bila belum ada anggaran.
+        // (Sebelumnya keduanya digabung "shift pertama" -> anggaran terlewat bila target diset manual.)
+        $needTarget = !DailySalesTarget::whereDate('date', $today)->exists();
+        $needBudget = !DailyBudget::whereDate('date', $today)->exists();
 
         // 1. Validasi Dinamis
         $rules = ['starting_cash' => 'required|numeric|min:0'];
-
-        if ($isFirstShiftOfDay) {
+        if ($needTarget) {
             $rules['target_penjualan'] = 'required|numeric|min:0';
-            $rules['daily_budget']     = 'required|numeric|min:0'; // anggaran/modal pengeluaran hari ini
+        }
+        if ($needBudget) {
+            $rules['daily_budget'] = 'required|numeric|min:0'; // anggaran pengeluaran hari ini
         }
 
         // Bersihkan pemisah ribuan pada input uang (mis. "300.000" -> "300000") sebelum validasi.
@@ -209,18 +237,24 @@ class ShiftController extends Controller
                 ->where('created_at', '>=', $shift->start_time)
                 ->sum('grand_total');
 
-            // Pengeluaran selama shift ini mengurangi uang di laci (fix selisih).
+            // Pengeluaran selama shift ini (uang keluar dari laci).
             $shiftExpenses = Expense::where('created_at', '>=', $shift->start_time)->sum('amount');
 
-            // Kalkulasi: kas seharusnya = modal + tunai masuk - pengeluaran
-            $expectedCash = $shift->starting_cash + $cashSales - $shiftExpenses;
+            // Anggaran pengeluaran hari itu = kas belanja yang ikut ditaruh fisik di laci saat buka.
+            $scopeDate   = Carbon::parse($shift->start_time)->toDateString();
+            $shiftBudget = (float) (DailyBudget::whereDate('date', $scopeDate)->value('amount') ?? 0);
+
+            // Uang fisik SEHARUSNYA = Modal + Anggaran (kas belanja) + Penjualan Tunai - Pengeluaran
+            $expectedCash = $shift->starting_cash + $shiftBudget + $cashSales - $shiftExpenses;
             $actualCash   = $request->actual_cash;
             $difference   = $actualCash - $expectedCash;
 
-            // Tutup Shift
+            // Tutup Shift (simpan rincian anggaran & pengeluaran utk info tutup + sales report)
             $shift->update([
                 'end_time'      => Carbon::now(),
                 'cash_sales'    => $cashSales,
+                'budget_amount' => $shiftBudget,
+                'expense_total' => $shiftExpenses,
                 'expected_cash' => $expectedCash,
                 'actual_cash'   => $actualCash,
                 'difference'    => $difference,
@@ -242,16 +276,19 @@ class ShiftController extends Controller
      */
     public function reopenShift($id)
     {
-        $shift = Shift::where('user_id', Auth::id())->where('status', 'closed')->findOrFail($id);
+        // Hanya owner/admin (punya 'shift.reopen') — untuk mengoreksi shift kasir yang
+        // tak sengaja ditutup. Route juga dijaga middleware can:shift.reopen.
+        // Tenant-scoped otomatis (owner/admin: tenant sendiri; Superadmin: lintas tenant).
+        $shift = Shift::where('status', 'closed')->findOrFail($id);
 
-        // Hanya boleh membuka kembali yang ditutup hari ini (jangan ubah histori lama).
+        // Hanya boleh membuka kembali yang ditutup HARI INI (jangan ubah histori lama).
         if (!$shift->end_time || !Carbon::parse($shift->end_time)->isToday()) {
             return redirect()->back()->with('error', 'Hanya kas/shift yang ditutup hari ini yang bisa dibuka kembali.');
         }
 
-        // Tidak boleh ada shift/kas lain yang masih terbuka.
-        if (Shift::where('user_id', Auth::id())->where('status', 'open')->exists()) {
-            return redirect()->back()->with('error', 'Masih ada kas/shift yang terbuka. Tutup dulu sebelum membuka kembali yang lain.');
+        // Kasir pemilik shift tidak boleh sedang punya shift lain yang terbuka.
+        if (Shift::where('user_id', $shift->user_id)->where('status', 'open')->exists()) {
+            return redirect()->back()->with('error', 'Kasir pemilik shift ini masih punya shift lain yang terbuka. Tutup dulu shift itu.');
         }
 
         $shift->update([
@@ -261,11 +298,13 @@ class ShiftController extends Controller
             // dengan shift yang baru dibuka & tidak melanggar constraint. Nilai sebenarnya
             // dihitung ulang dari Order saat shift ditutup kembali.
             'cash_sales'    => 0,
+            'budget_amount' => null,
+            'expense_total' => null,
             'expected_cash' => null,
             'actual_cash'   => null,
             'difference'    => null,
         ]);
 
-        return redirect()->route('shifts.index')->with('success', 'Kas/shift dibuka kembali. Silakan lanjutkan transaksi.');
+        return redirect()->route('shifts.index')->with('success', 'Kas/shift kasir dibuka kembali. Kasir dapat melanjutkan transaksi.');
     }
 }

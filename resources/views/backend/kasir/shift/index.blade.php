@@ -30,118 +30,145 @@
 
             <div class="row g-5 g-xl-10">
                 <div class="col-xl-5">
-                    @if (!$currentShift)
-                        <div class="card shadow-sm border-0">
-                            <div class="card-body text-center p-10">
-                                <i class="ki-outline ki-time fs-5x text-primary mb-5"></i>
-                                <h2 class="fs-2x fw-bold text-gray-800 mb-2">{{ $L }} Belum Dibuka</h2>
-                                <p class="text-gray-500 fs-5 mb-8">Anda harus membuka {{ strtolower($L) }} dan memasukkan modal
-                                    sebelum dapat menggunakan mesin kasir.</p>
+                    @if ($canOperate)
+                        {{-- ================= OPERATOR (KASIR) ================= --}}
+                        @if (!$currentShift)
+                            <div class="card shadow-sm border-0">
+                                <div class="card-body text-center p-10">
+                                    <i class="ki-outline ki-time fs-5x text-primary mb-5"></i>
+                                    <h2 class="fs-2x fw-bold text-gray-800 mb-2">{{ $L }} Belum Dibuka</h2>
+                                    <p class="text-gray-500 fs-5 mb-8">Anda harus membuka {{ strtolower($L) }} dan memasukkan modal
+                                        sebelum dapat menggunakan mesin kasir.</p>
 
-                                @if (!empty($lastClosedToday))
-                                    <form action="{{ route('shifts.reopen', $lastClosedToday->id) }}" method="POST" class="mb-3">
+                                    <form action="{{ route('shifts.open') }}" method="POST" id="formOpenShift">
                                         @csrf
-                                        <button type="submit" class="btn btn-light-warning w-100 fw-bold">
-                                            <i class="ki-outline ki-arrow-circle-left fs-3 me-1"></i> Buka Kembali {{ $L }} Terakhir
-                                            <span class="fs-8 fw-normal">(ditutup {{ \Carbon\Carbon::parse($lastClosedToday->end_time)->format('H:i') }})</span>
+
+                                        @if ($needTarget || $needBudget)
+                                            <div class="bg-light-primary rounded p-5 mb-6 text-start">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <i class="ki-outline ki-sun fs-1 text-primary me-2"></i>
+                                                    <span class="fw-bold text-primary fs-5">Setup Harian</span>
+                                                </div>
+
+                                                @if ($needTarget)
+                                                    <div class="mb-4">
+                                                        <label class="required fw-semibold fs-6 mb-1">Target Penjualan Hari Ini (Rp)</label>
+                                                        <input type="number" name="target_penjualan"
+                                                            class="form-control form-control-solid" placeholder="Contoh: 3000000"
+                                                            min="0" required>
+                                                    </div>
+                                                @endif
+
+                                                @if ($needBudget)
+                                                    <div class="mb-1">
+                                                        <label class="required fw-semibold fs-6 mb-1">Anggaran Pengeluaran Hari Ini (Rp)</label>
+                                                        <input type="number" name="daily_budget"
+                                                            class="form-control form-control-solid" placeholder="Contoh: 500000"
+                                                            min="0" required>
+                                                        <div class="form-text fs-8">Kas belanja operasional hari ini (beli bahan, dll).
+                                                            Ikut dihitung sebagai uang fisik di laci.</div>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @endif
+
+                                        <div class="text-start mb-6">
+                                            <label class="required fw-semibold fs-5 mb-2">Modal Uang Kembalian Laci (Rp)</label>
+                                            <input type="number" name="starting_cash"
+                                                class="form-control form-control-lg form-control-solid text-center fs-3 fw-bold"
+                                                placeholder="Contoh: 500000" min="0" required autofocus>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-lg w-100 fs-4 fw-bold">
+                                            <i class="ki-outline ki-unlock fs-2 me-2"></i> Buka {{ $L }} Sekarang
                                         </button>
                                     </form>
-                                    <div class="text-muted fs-8 mb-6">Tak sengaja tertutup? Buka kembali agar lanjut tanpa input ulang modal.</div>
-                                @endif
-
-                                <form action="{{ route('shifts.open') }}" method="POST" id="formOpenShift">
-                                    @csrf
-
-                                    @if ($isFirstShiftOfDay)
-                                        <div class="bg-light-primary rounded p-5 mb-6 text-start">
-                                            <div class="d-flex align-items-center mb-3">
-                                                <i class="ki-outline ki-sun fs-1 text-primary me-2"></i>
-                                                <span class="fw-bold text-primary fs-5">Setup Harian (Awal Hari)</span>
-                                            </div>
-                                            <p class="text-muted fs-7 mb-4">Karena Anda membuka shift pertama hari ini,
-                                                mohon tentukan target penjualan harian.</p>
-
-                                            <div class="mb-4">
-                                                <label class="required fw-semibold fs-6 mb-1">Target Penjualan Hari Ini
-                                                    (Rp)</label>
-                                                <input type="number" name="target_penjualan"
-                                                    class="form-control form-control-solid" placeholder="Contoh: 3000000"
-                                                    min="0" required>
-                                            </div>
-                                            <div class="mb-1">
-                                                <label class="required fw-semibold fs-6 mb-1">Anggaran Pengeluaran Hari Ini
-                                                    (Rp)</label>
-                                                <input type="number" name="daily_budget"
-                                                    class="form-control form-control-solid" placeholder="Contoh: 500000"
-                                                    min="0" required>
-                                                <div class="form-text fs-8">Modal/anggaran pengeluaran operasional hari ini
-                                                    (untuk pembelian bahan, dll).</div>
-                                            </div>
-                                        </div>
-                                    @endif
-                                    <div class="text-start mb-6">
-                                        <label class="required fw-semibold fs-5 mb-2">Modal Uang Kembalian Laci (Rp)</label>
-                                        <input type="number" name="starting_cash"
-                                            class="form-control form-control-lg form-control-solid text-center fs-3 fw-bold"
-                                            placeholder="Contoh: 500000" min="0" required autofocus>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary btn-lg w-100 fs-4 fw-bold">
-                                        <i class="ki-outline ki-unlock fs-2 me-2"></i> Buka {{ $L }} Sekarang
-                                    </button>
-                                </form>
+                                </div>
                             </div>
-                        </div>
+                        @else
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-light-primary pt-7 border-0">
+                                    <h3 class="card-title align-items-start flex-column">
+                                        <span class="card-label fw-bold text-primary fs-3"><i
+                                                class="ki-outline ki-security-user fs-2 text-primary me-2"></i> {{ $L }} Sedang
+                                            Berjalan</span>
+                                        <span class="text-primary mt-1 fw-semibold fs-7">Dimulai:
+                                            {{ \Carbon\Carbon::parse($currentShift->start_time)->translatedFormat('d M Y, H:i') }}</span>
+                                    </h3>
+                                </div>
+                                <div class="card-body p-8">
+                                    <div class="d-flex flex-stack mb-5">
+                                        <span class="text-gray-600 fs-5">Modal Awal Laci</span>
+                                        <span class="text-gray-800 fw-bold fs-4">Rp
+                                            {{ number_format($currentShift->starting_cash, 0, ',', '.') }}</span>
+                                    </div>
+                                    <div class="d-flex flex-stack mb-5">
+                                        <span class="text-gray-600 fs-5">Anggaran Pengeluaran</span>
+                                        <span class="text-gray-800 fw-bold fs-4">Rp
+                                            {{ number_format($shiftBudget, 0, ',', '.') }}</span>
+                                    </div>
+                                    <div class="d-flex flex-stack mb-5">
+                                        <span class="text-gray-600 fs-5">Total Penjualan Tunai (Masuk)</span>
+                                        <span class="text-success fw-bold fs-4">+ Rp
+                                            {{ number_format($cashSales, 0, ',', '.') }}</span>
+                                    </div>
+                                    <div class="d-flex flex-stack mb-5">
+                                        <span class="text-gray-600 fs-5">Pengeluaran (Keluar)</span>
+                                        <span class="text-danger fw-bold fs-4">- Rp
+                                            {{ number_format($shiftExpenses ?? 0, 0, ',', '.') }}</span>
+                                    </div>
+                                    <div class="separator separator-dashed my-5"></div>
+                                    <div class="d-flex flex-stack mb-8">
+                                        <span class="text-gray-800 fw-bolder fs-4">Uang Fisik Seharusnya</span>
+                                        <span class="text-primary fw-bolder fs-2qx">Rp
+                                            {{ number_format($currentShift->starting_cash + $shiftBudget + $cashSales - ($shiftExpenses ?? 0), 0, ',', '.') }}</span>
+                                    </div>
+
+                                    <form action="{{ route('shifts.close', $currentShift->id) }}" method="POST"
+                                        id="formCloseShift">
+                                        @csrf
+                                        <div class="bg-light-warning rounded p-6 mb-6">
+                                            <label class="required fw-bold fs-5 text-gray-800 mb-2">Uang Fisik Aktual (Rp)</label>
+                                            <p class="text-muted fs-7 mb-4">Hitung SEMUA uang tunai di laci sekarang (termasuk kas
+                                                belanja), lalu masukkan totalnya untuk menutup {{ strtolower($L) }}.</p>
+                                            <input type="number" name="actual_cash"
+                                                class="form-control form-control-lg text-center fs-2x fw-bold" placeholder="0"
+                                                min="0" required>
+                                        </div>
+                                        <button type="button" onclick="confirmClose()"
+                                            class="btn btn-danger btn-lg w-100 fs-4 fw-bold">
+                                            <i class="ki-outline ki-lock-3 fs-2 me-2"></i> Tutup {{ $L }}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        @endif
                     @else
+                        {{-- ================= PENINJAU (OWNER/ADMIN) — LIHAT-SAJA ================= --}}
                         <div class="card shadow-sm border-0">
-                            <div class="card-header bg-light-primary pt-7 border-0">
-                                <h3 class="card-title align-items-start flex-column">
-                                    <span class="card-label fw-bold text-primary fs-3"><i
-                                            class="ki-outline ki-security-user fs-2 text-primary me-2"></i> {{ $L }} Sedang
-                                        Berjalan</span>
-                                    <span class="text-primary mt-1 fw-semibold fs-7">Dimulai:
-                                        {{ \Carbon\Carbon::parse($currentShift->start_time)->translatedFormat('d M Y, H:i') }}</span>
+                            <div class="card-header bg-light-info pt-7 border-0">
+                                <h3 class="card-title fw-bold text-info fs-3">
+                                    <i class="ki-outline ki-eye fs-2 text-info me-2"></i> Mode Lihat-Saja
                                 </h3>
                             </div>
                             <div class="card-body p-8">
-                                <div class="d-flex flex-stack mb-5">
-                                    <span class="text-gray-600 fs-5">Modal Awal Laci</span>
-                                    <span class="text-gray-800 fw-bold fs-4">Rp
-                                        {{ number_format($currentShift->starting_cash, 0, ',', '.') }}</span>
-                                </div>
-                                <div class="d-flex flex-stack mb-5">
-                                    <span class="text-gray-600 fs-5">Total Penjualan Tunai (Masuk)</span>
-                                    <span class="text-success fw-bold fs-4">+ Rp
-                                        {{ number_format($cashSales, 0, ',', '.') }}</span>
-                                </div>
-                                <div class="d-flex flex-stack mb-5">
-                                    <span class="text-gray-600 fs-5">Pengeluaran (Keluar)</span>
-                                    <span class="text-danger fw-bold fs-4">- Rp
-                                        {{ number_format($shiftExpenses ?? 0, 0, ',', '.') }}</span>
-                                </div>
-                                <div class="separator separator-dashed my-5"></div>
-                                <div class="d-flex flex-stack mb-8">
-                                    <span class="text-gray-800 fw-bolder fs-4">Harapan Uang di Laci</span>
-                                    <span class="text-primary fw-bolder fs-2qx">Rp
-                                        {{ number_format($currentShift->starting_cash + $cashSales - ($shiftExpenses ?? 0), 0, ',', '.') }}</span>
-                                </div>
-
-                                <form action="{{ route('shifts.close', $currentShift->id) }}" method="POST"
-                                    id="formCloseShift">
-                                    @csrf
-                                    <div class="bg-light-warning rounded p-6 mb-6">
-                                        <label class="required fw-bold fs-5 text-gray-800 mb-2">Uang Fisik Aktual di Laci
-                                            (Rp)</label>
-                                        <p class="text-muted fs-7 mb-4">Hitung uang fisik di laci kasir dan masukkan
-                                            totalnya di bawah ini untuk menutup shift.</p>
-                                        <input type="number" name="actual_cash"
-                                            class="form-control form-control-lg text-center fs-2x fw-bold" placeholder="0"
-                                            min="0" required>
+                                <p class="text-gray-600 fs-6 mb-6">Buka/tutup {{ strtolower($L) }} dilakukan oleh <b>kasir</b>.
+                                    Di sini Anda memantau seluruh {{ strtolower($L) }} toko, dan dapat
+                                    <b>membuka kembali</b> {{ strtolower($L) }} yang tak sengaja ditutup lewat daftar riwayat di
+                                    samping.</p>
+                                <h4 class="fw-bold text-gray-800 fs-5 mb-4">{{ $L }} Sedang Berjalan</h4>
+                                @forelse($openShiftsAll as $os)
+                                    <div class="d-flex flex-stack border border-dashed rounded p-4 mb-3">
+                                        <div>
+                                            <span class="d-block fw-bold text-gray-800">{{ optional($os->user)->name ?? 'Kasir' }}</span>
+                                            <span class="d-block text-muted fs-8">Sejak
+                                                {{ \Carbon\Carbon::parse($os->start_time)->translatedFormat('d M Y, H:i') }}</span>
+                                        </div>
+                                        <span class="badge badge-light-success align-self-center">Modal Rp
+                                            {{ number_format($os->starting_cash, 0, ',', '.') }}</span>
                                     </div>
-                                    <button type="button" onclick="confirmClose()"
-                                        class="btn btn-danger btn-lg w-100 fs-4 fw-bold">
-                                        <i class="ki-outline ki-lock-3 fs-2 me-2"></i> Tutup {{ $L }}
-                                    </button>
-                                </form>
+                                @empty
+                                    <div class="text-muted text-center py-6">Tidak ada {{ strtolower($L) }} yang sedang berjalan.</div>
+                                @endforelse
                             </div>
                         </div>
                     @endif
@@ -150,7 +177,9 @@
                 <div class="col-xl-7">
                     <div class="card shadow-sm border-0 h-100">
                         <div class="card-header pt-7 border-0">
-                            <h3 class="card-title fw-bold text-gray-800 fs-3">Riwayat {{ $L }} Anda</h3>
+                            <h3 class="card-title fw-bold text-gray-800 fs-3">
+                                Riwayat {{ $L }} {{ $ownOnly ? 'Anda' : 'Toko' }}
+                            </h3>
                         </div>
                         <div class="card-body pt-3">
                             <div class="table-responsive">
@@ -158,20 +187,28 @@
                                     <thead>
                                         <tr class="text-start text-gray-400 fw-bold fs-7 text-uppercase gs-0">
                                             <th>Waktu Buka - Tutup</th>
+                                            @if (!$ownOnly)
+                                                <th>Kasir</th>
+                                            @endif
                                             <th class="text-end">Modal</th>
                                             <th class="text-end">Aktual</th>
                                             <th class="text-end">Selisih</th>
+                                            @if ($canReopen)
+                                                <th class="text-end">Aksi</th>
+                                            @endif
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @forelse($history as $hist)
                                             <tr>
                                                 <td>
-                                                    <span
-                                                        class="d-block fw-bold text-gray-800">{{ \Carbon\Carbon::parse($hist->start_time)->format('d/m/Y H:i') }}</span>
+                                                    <span class="d-block fw-bold text-gray-800">{{ \Carbon\Carbon::parse($hist->start_time)->format('d/m/Y H:i') }}</span>
                                                     <span class="d-block text-muted fs-8">s/d
                                                         {{ \Carbon\Carbon::parse($hist->end_time)->format('H:i') }}</span>
                                                 </td>
+                                                @if (!$ownOnly)
+                                                    <td><span class="fw-semibold text-gray-700">{{ optional($hist->user)->name ?? '-' }}</span></td>
+                                                @endif
                                                 <td class="text-end">Rp
                                                     {{ number_format($hist->starting_cash, 0, ',', '.') }}</td>
                                                 <td class="text-end fw-semibold">Rp
@@ -187,11 +224,27 @@
                                                             {{ number_format(abs($hist->difference), 0, ',', '.') }}</span>
                                                     @endif
                                                 </td>
+                                                @if ($canReopen)
+                                                    <td class="text-end">
+                                                        @if ($hist->end_time && \Carbon\Carbon::parse($hist->end_time)->isToday())
+                                                            <form action="{{ route('shifts.reopen', $hist->id) }}" method="POST"
+                                                                class="d-inline"
+                                                                onsubmit="return confirm('Buka kembali shift {{ optional($hist->user)->name }} yang ditutup {{ \Carbon\Carbon::parse($hist->end_time)->format('H:i') }}? Kasir dapat melanjutkan transaksi di shift ini.');">
+                                                                @csrf
+                                                                <button type="submit" class="btn btn-sm btn-light-warning fw-bold">
+                                                                    <i class="ki-outline ki-arrow-circle-left fs-5"></i> Buka Kembali
+                                                                </button>
+                                                            </form>
+                                                        @else
+                                                            <span class="text-muted fs-8">—</span>
+                                                        @endif
+                                                    </td>
+                                                @endif
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="4" class="text-center text-muted py-5">Belum ada riwayat
-                                                    shift.</td>
+                                                <td colspan="6" class="text-center text-muted py-5">Belum ada riwayat
+                                                    {{ strtolower($L) }}.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -208,7 +261,6 @@
     @push('scripts')
         <script>
             $(document).ready(function() {
-                // Notifikasi SweetAlert untuk Success
                 @if (session('success'))
                     Swal.fire({
                         icon: 'success',
@@ -219,7 +271,6 @@
                     });
                 @endif
 
-                // Notifikasi SweetAlert untuk Error
                 @if (session('error'))
                     Swal.fire({
                         icon: 'error',
@@ -229,18 +280,11 @@
                     });
                 @endif
 
-                // Animasi Loading & Spinner saat Buka Shift
+                // Animasi Loading saat Buka Shift
                 $('#formOpenShift').on('submit', function() {
-                    let btn = $('#btn-open-shift');
-
-                    // Nonaktifkan tombol dan ganti teksnya jadi spinner
-                    btn.prop('disabled', true);
-                    btn.html('<span class="spinner-border spinner-border-sm me-2"></span> Membuka Shift...');
-
-                    // Munculkan Pop-up Loading
                     Swal.fire({
                         title: 'Memproses...',
-                        text: 'Sedang mengatur target dan membuka laci kasir.',
+                        text: 'Sedang mengatur setup harian dan membuka laci kasir.',
                         allowOutsideClick: false,
                         didOpen: () => {
                             Swal.showLoading();
@@ -249,11 +293,11 @@
                 });
             });
 
-            // Logika Tutup Shift Lama
+            // Logika Tutup Shift
             function confirmClose() {
                 Swal.fire({
                     title: "Yakin tutup {{ strtolower($L) }}?",
-                    text: "Pastikan uang fisik yang dihitung sudah benar. Kalau tak sengaja tertutup, bisa dibuka kembali (undo) di hari yang sama.",
+                    text: "Pastikan uang fisik yang dihitung sudah benar. Kalau tak sengaja tertutup, owner/admin bisa membukanya kembali (undo) di hari yang sama.",
                     icon: "warning",
                     showCancelButton: true,
                     confirmButtonText: "Ya, Tutup Shift!",
