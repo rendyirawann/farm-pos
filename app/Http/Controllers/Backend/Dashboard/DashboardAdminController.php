@@ -115,9 +115,31 @@ class DashboardAdminController extends Controller
     public function switchMode(string $mode)
     {
         abort_unless(auth()->user()->hasRole('Superadmin'), 403);
-        session(['sa_mode' => $mode === 'pos' ? 'pos' : 'analytics']);
+        $mode = $mode === 'pos' ? 'pos' : 'analytics';
+        session(['sa_mode' => $mode]);
+
+        // Saat masuk mode POS: pastikan ADA tenant terpilih (default tenant pertama) agar
+        // data ter-scope ke satu toko & tidak agregat/yatim (tenant_id NULL).
+        if ($mode === 'pos' && ! session('sa_pos_tenant_id')) {
+            $firstTenant = Tenant::orderBy('id')->value('id');
+            if ($firstTenant) {
+                session(['sa_pos_tenant_id' => $firstTenant]);
+            }
+        }
 
         return redirect()->route('dashboard');
+    }
+
+    /** Superadmin memilih toko/tenant untuk dioperasikan di mode POS/kasir. */
+    public function setPosTenant($id)
+    {
+        abort_unless(auth()->user()->hasRole('Superadmin'), 403);
+        $tenant = Tenant::find($id);
+        abort_if(! $tenant, 404, 'Toko tidak ditemukan.');
+
+        session(['sa_pos_tenant_id' => $tenant->id, 'sa_mode' => 'pos']);
+
+        return redirect()->route('dashboard')->with('success', 'Mode kasir kini untuk toko: ' . $tenant->name);
     }
 
     /** Dashboard analitik platform untuk Superadmin (lintas tenant). */

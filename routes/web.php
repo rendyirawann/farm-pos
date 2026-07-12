@@ -68,6 +68,8 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     Route::get('/admin/dashboard', [DashboardAdminController::class, 'index'])->name('dashboard');
     // Toggle mode tampilan Superadmin: analytics (platform) <-> pos (kasir)
     Route::get('/admin/view-mode/{mode}', [DashboardAdminController::class, 'switchMode'])->name('view-mode.switch');
+    // Superadmin memilih toko yang dioperasikan di mode POS
+    Route::get('/admin/pos-tenant/{id}', [DashboardAdminController::class, 'setPosTenant'])->name('pos-tenant.set');
 
     // --- MY ACCOUNT / PROFILE (accessible by ALL authenticated users) ---
     Route::get('/admin/my-account', [AccountController::class, 'index'])->name('account.index');

@@ -209,15 +209,29 @@
             </div>
         @endcan
 
-        {{-- TOGGLE MODE (Superadmin): Analitik <-> Kasir --}}
+        {{-- TOGGLE MODE (Superadmin): Analitik <-> Kasir + pemilih toko utk mode POS --}}
         @if ($isSuperadminView ?? false)
-            <div class="menu-item d-flex align-items-center ms-lg-2 my-2 my-lg-0">
+            <div class="menu-item d-flex align-items-center ms-lg-2 my-2 my-lg-0 gap-2 flex-wrap">
+                @if (($saMode ?? 'analytics') === 'pos' && !empty($saTenants) && count($saTenants))
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-light-warning fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="ki-outline ki-shop fs-5 me-1"></i> Toko: {{ $saPosTenantName ?? 'Pilih' }}
+                        </button>
+                        <div class="dropdown-menu p-2" style="max-height: 320px; overflow-y: auto;">
+                            <div class="text-muted fw-semibold fs-8 px-3 pb-2">Operasikan kasir untuk toko:</div>
+                            @foreach ($saTenants as $t)
+                                <a class="dropdown-item rounded {{ ($saPosTenantId == $t->id) ? 'active' : '' }}"
+                                    href="{{ route('pos-tenant.set', $t->id) }}">{{ $t->name }}</a>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
                 @if (($saMode ?? 'analytics') === 'analytics')
-                    <a href="{{ route('view-mode.switch', 'pos') }}" class="btn btn-sm btn-light-primary fw-bold w-100">
+                    <a href="{{ route('view-mode.switch', 'pos') }}" class="btn btn-sm btn-light-primary fw-bold">
                         <i class="ki-outline ki-handcart fs-4 me-1"></i> Mode Kasir
                     </a>
                 @else
-                    <a href="{{ route('view-mode.switch', 'analytics') }}" class="btn btn-sm btn-light-primary fw-bold w-100">
+                    <a href="{{ route('view-mode.switch', 'analytics') }}" class="btn btn-sm btn-light-primary fw-bold">
                         <i class="ki-outline ki-chart-simple fs-4 me-1"></i> Mode Analitik
                     </a>
                 @endif

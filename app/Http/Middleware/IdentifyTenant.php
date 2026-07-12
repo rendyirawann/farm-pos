@@ -18,7 +18,14 @@ class IdentifyTenant
         if (Auth::check()) {
             $user = Auth::user();
 
-            if (!$user->isSuperadmin() && $user->tenant_id) {
+            if ($user->isSuperadmin()) {
+                // Superadmin di mode POS/kasir beroperasi atas SATU toko terpilih (scoped baca+tulis,
+                // tak yatim). Di mode analytics: tetap tanpa tenant (lihat semua lintas tenant).
+                $saTenant = session('sa_pos_tenant_id');
+                if ($saTenant && session('sa_mode', 'analytics') === 'pos') {
+                    app(TenantManager::class)->set((int) $saTenant);
+                }
+            } elseif ($user->tenant_id) {
                 app(TenantManager::class)->set((int) $user->tenant_id);
             }
         }

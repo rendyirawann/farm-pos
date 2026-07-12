@@ -62,9 +62,22 @@ class AppServiceProvider extends ServiceProvider
         // Untuk non-Superadmin selalu 'pos' (tampilan operasional biasa).
         View::composer('backend.*', function ($view) {
             $isSA = auth()->check() && auth()->user()->hasRole('Superadmin');
+
+            $saTenants = null;
+            $saPosTenantId = null;
+            $saPosTenantName = null;
+            if ($isSA) {
+                $saTenants = \App\Models\Tenant::orderBy('name')->get(['id', 'name']);
+                $saPosTenantId = session('sa_pos_tenant_id');
+                $saPosTenantName = optional($saTenants->firstWhere('id', $saPosTenantId))->name;
+            }
+
             $view->with([
                 'isSuperadminView' => $isSA,
                 'saMode'           => $isSA ? session('sa_mode', 'analytics') : 'pos',
+                'saTenants'        => $saTenants,
+                'saPosTenantId'    => $saPosTenantId,
+                'saPosTenantName'  => $saPosTenantName,
             ]);
         });
 
