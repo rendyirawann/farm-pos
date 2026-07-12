@@ -121,12 +121,17 @@ class ShiftController extends Controller
 
         DB::beginTransaction();
         try {
-            // 3. JIKA SHIFT PERTAMA: Simpan Target Penjualan Harian
-            if ($isFirstShiftOfDay) {
+            // 3. Simpan target penjualan & anggaran pengeluaran harian bila hari ini
+            //    belum punya (independen, cocok dgn validasi dinamis di atas). Untuk
+            //    shift ke-2+ pada hari yang sama keduanya sudah ada -> dilewati,
+            //    shift langsung dibuka tanpa minta target/anggaran lagi.
+            if ($needTarget) {
                 DailySalesTarget::create([
                     'date'   => $today,
                     'amount' => $request->target_penjualan,
                 ]);
+            }
+            if ($needBudget) {
                 DailyBudget::create([
                     'date'   => $today,
                     'amount' => $request->daily_budget,
