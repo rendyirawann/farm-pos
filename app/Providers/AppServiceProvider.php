@@ -82,8 +82,15 @@ class AppServiceProvider extends ServiceProvider
                 // Angka sidebar MENGIKUTI shift yang sedang TERBUKA (per user): tidak reset saat
                 // ganti hari selama shift belum ditutup. Bila tak ada shift terbuka -> kalender
                 // hari ini (perilaku lama, aman untuk tenant yang tak memakai shift).
-                $openShift = \App\Models\Shift::where('user_id', auth()->id())
-                    ->where('status', 'open')->latest('start_time')->first();
+                //
+                // HANYA untuk OPERATOR (kasir, punya 'shift.operate'). Peninjau (owner/admin) tidak
+                // memegang laci -> jangan menempel ke shift pribadi mereka yang mungkin basi; mereka
+                // melihat angka TOKO hari ini (kalender). Ini juga menyembunyikan banner shift-basi
+                // untuk owner/admin.
+                $openShift = auth()->user()->can('shift.operate')
+                    ? \App\Models\Shift::where('user_id', auth()->id())
+                        ->where('status', 'open')->latest('start_time')->first()
+                    : null;
 
                 $shiftStale = false; // shift terbuka dari hari sebelumnya (lupa ditutup)
 
