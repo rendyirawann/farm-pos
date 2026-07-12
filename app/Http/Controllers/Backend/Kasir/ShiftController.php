@@ -257,7 +257,10 @@ class ShiftController extends Controller
         $shift->update([
             'status'        => 'open',
             'end_time'      => null,
-            'cash_sales'    => null,
+            // cash_sales kolom NOT NULL (default 0). Pakai 0 (bukan null) agar identik
+            // dengan shift yang baru dibuka & tidak melanggar constraint. Nilai sebenarnya
+            // dihitung ulang dari Order saat shift ditutup kembali.
+            'cash_sales'    => 0,
             'expected_cash' => null,
             'actual_cash'   => null,
             'difference'    => null,
