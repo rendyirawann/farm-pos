@@ -194,6 +194,11 @@
                     {{ number_format($totalRevenue, 0, ',', '.') }}</td>
             </tr>
             <tr>
+                <td style="border: none; padding-top: 5px; color: #8a6d3b;">Anggaran Pengeluaran</td>
+                <td style="border: none; padding-top: 5px; color: #8a6d3b;" class="text-right">Rp
+                    {{ number_format($totalBudget ?? 0, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
                 <td style="border: none; padding-top: 5px;">Total Pengeluaran</td>
                 <td style="border: none; padding-top: 5px; color: #d9534f;" class="text-right bold">- Rp
                     {{ number_format($totalExpense, 0, ',', '.') }}</td>

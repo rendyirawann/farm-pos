@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\Expense;
+use App\Models\DailyBudget;
 use App\Models\Setting;
 use Carbon\Carbon;
 use Yajra\DataTables\Facades\DataTables;
@@ -48,6 +49,13 @@ class SalesReportController extends Controller
             $totalExpense = (float) $expenseQuery->sum('amount');
             $netRevenue = $totalRevenue - $totalExpense;
 
+            // Total anggaran pengeluaran pada rentang tanggal yang sama (informasi vs realisasi).
+            $budgetQuery = DailyBudget::query();
+            if ($request->start_date && $request->end_date) {
+                $budgetQuery->whereBetween('date', [$request->start_date, $request->end_date]);
+            }
+            $totalBudget = (float) $budgetQuery->sum('amount');
+
             // Urutkan dari yang terbaru
             $query->orderBy('created_at', 'desc');
 
@@ -83,6 +91,7 @@ class SalesReportController extends Controller
                 ->with('totalDiscount', 'Rp ' . number_format($totalDiscount, 0, ',', '.'))
                 ->with('totalOrders', number_format($totalOrders, 0, ',', '.'))
                 ->with('totalExpense', 'Rp ' . number_format($totalExpense, 0, ',', '.'))
+                ->with('totalBudget', 'Rp ' . number_format($totalBudget, 0, ',', '.'))
                 ->with('netRevenue', 'Rp ' . number_format($netRevenue, 0, ',', '.'))
                 ->rawColumns(['invoice', 'customer', 'payment_method', 'discount', 'grand_total'])
                 ->make(true);
@@ -114,11 +123,18 @@ class SalesReportController extends Controller
         $totalExpense = (float) $expenseQuery->sum('amount');
         $netRevenue = $totalRevenue - $totalExpense;
 
+        // Total anggaran pengeluaran pada rentang tanggal yang sama.
+        $budgetQuery = DailyBudget::query();
+        if ($request->start_date && $request->end_date) {
+            $budgetQuery->whereBetween('date', [$request->start_date, $request->end_date]);
+        }
+        $totalBudget = (float) $budgetQuery->sum('amount');
+
         $setting = Setting::first();
 
         $filterDate = Carbon::parse($request->start_date)->translatedFormat('d M Y') . ' - ' . Carbon::parse($request->end_date)->translatedFormat('d M Y');
         $filterPayment = $request->payment_method == 'all' ? 'Semua Metode' : strtoupper($request->payment_method);
 
-        return view('backend.reports.sales.print', compact('orders', 'totalRevenue', 'totalDiscount', 'totalOrders', 'totalExpense', 'netRevenue', 'setting', 'filterDate', 'filterPayment'));
+        return view('backend.reports.sales.print', compact('orders', 'totalRevenue', 'totalDiscount', 'totalOrders', 'totalExpense', 'totalBudget', 'netRevenue', 'setting', 'filterDate', 'filterPayment'));
     }
 }
