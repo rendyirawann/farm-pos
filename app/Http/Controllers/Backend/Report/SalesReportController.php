@@ -48,7 +48,8 @@ class SalesReportController extends Controller
             if ($expenseApplies) {
                 $expenseQuery = Expense::query();
                 if ($request->start_date && $request->end_date) {
-                    $expenseQuery->whereBetween('date', [$request->start_date, $request->end_date]);
+                    // Basis created_at (SAMA dgn revenue & kas shift) -> konsisten, tak beda hari.
+                $expenseQuery->whereBetween('created_at', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
                 }
                 $totalExpense = (float) $expenseQuery->sum('amount');
             }
@@ -119,7 +120,8 @@ class SalesReportController extends Controller
         if ($expenseApplies) {
             $expenseQuery = Expense::query();
             if ($request->start_date && $request->end_date) {
-                $expenseQuery->whereBetween('date', [$request->start_date, $request->end_date]);
+                // Basis created_at (SAMA dgn revenue & kas shift) -> konsisten, tak beda hari.
+                $expenseQuery->whereBetween('created_at', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
             }
             $totalExpense = (float) $expenseQuery->sum('amount');
         }

@@ -18,7 +18,8 @@ class ExpenseController extends Controller
     public function index()
     {
         $today = Carbon::today()->toDateString();
-        $spent = (float) Expense::whereDate('date', $today)->sum('amount');
+        // Basis created_at agar konsisten dgn kas shift & sales report (hindari beda hari saat backdate).
+        $spent = (float) Expense::whereDate('created_at', $today)->sum('amount');
 
         return view('backend.finance.expenses.index', compact('spent'));
     }

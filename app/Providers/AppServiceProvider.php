@@ -122,7 +122,7 @@ class AppServiceProvider extends ServiceProvider
                     $income      = (float) Order::whereDate('created_at', $today)
                         ->where('payment_status', 'paid')->sum('grand_total');
                     $salesTarget = (float) (DailySalesTarget::where('date', $today)->value('amount') ?? 0);
-                    $dailySpent  = (float) \App\Models\Expense::whereDate('date', $today)->sum('amount');
+                    $dailySpent  = (float) \App\Models\Expense::whereDate('created_at', $today)->sum('amount');
                 }
 
                 // Kalkulasi Persentase Penjualan vs Target
