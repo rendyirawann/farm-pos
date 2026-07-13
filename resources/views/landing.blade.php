@@ -218,6 +218,14 @@
         @media (min-width: 992px) {
             html.lp-mobile .mooda-price-carousel .swiper-wrapper { display: flex !important; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 22px; }
             html.lp-mobile .mooda-price-carousel .swiper-slide { width: 330px !important; max-width: 90vw; margin-bottom: 0 !important; }
+
+            /* Section IKUT TINGGI KONTEN (tak dipaksa setinggi layar) -> hilangkan gap putih berlebih. */
+            html.lp-mobile .lp-slide { min-height: auto !important; }
+            html.lp-mobile .lp-content { padding-top: 4.5rem !important; padding-bottom: 4.5rem !important; }
+            html.lp-mobile .lp-content > :first-child { margin-top: 0 !important; }
+            html.lp-mobile .lp-content > :last-child { margin-bottom: 0 !important; }
+            /* Hero tetap besar & teks terpusat (hindari gap kosong besar di bawah). */
+            html.lp-mobile .lp-hero { min-height: 90vh; justify-content: center !important; padding-top: 5rem !important; padding-bottom: 4rem !important; }
         }
 
         /* ===== MODE MOBILE/TABLET: scroll VERTIKAL (bukan swiper horizontal) ===== */
