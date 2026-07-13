@@ -28,11 +28,23 @@ class Order extends Model
         'order_status',
         'promo_id',
         'discount_amount',
+        'voided_at',
+        'voided_by',
+    ];
+
+    protected $casts = [
+        'voided_at' => 'datetime',
     ];
 
     public function uniqueIds(): array
     {
         return ['uuid'];
+    }
+
+    /** Pesanan ditandai salah (tidak dihitung ke omzet/kas). */
+    public function isVoided(): bool
+    {
+        return $this->voided_at !== null;
     }
 
     public function details()

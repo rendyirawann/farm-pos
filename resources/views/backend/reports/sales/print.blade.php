@@ -151,7 +151,11 @@
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td>{{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</td>
-                    <td class="bold">{{ $order->invoice_no }}</td>
+                    <td class="bold">{{ $order->invoice_no }}
+                        @if ($order->voided_at)
+                            <br><span class="text-danger" style="font-size:9px;">● SALAH — tidak dihitung</span>
+                        @endif
+                    </td>
                     <td>
                         {{ $order->customer_name }} <br>
                         <i style="color: #666; font-size: 10px;">{{ $order->queue_number ? 'No. Antrian ' . $order->queue_number : '-' }}</i>
@@ -166,7 +170,13 @@
                             -
                         @endif
                     </td>
-                    <td class="text-right bold">Rp {{ number_format($order->grand_total, 0, ',', '.') }}</td>
+                    <td class="text-right bold">
+                        @if ($order->voided_at)
+                            <span style="text-decoration: line-through; color:#999;">Rp {{ number_format($order->grand_total, 0, ',', '.') }}</span>
+                        @else
+                            Rp {{ number_format($order->grand_total, 0, ',', '.') }}
+                        @endif
+                    </td>
                 </tr>
             @empty
                 <tr>
@@ -188,6 +198,12 @@
                 <td style="border: none; padding-top: 5px; color: #d9534f;" class="text-right bold">- Rp
                     {{ number_format($totalDiscount, 0, ',', '.') }}</td>
             </tr>
+            @if (($voidedCount ?? 0) > 0)
+            <tr>
+                <td style="border: none; padding-top: 5px;">Pesanan Salah ({{ $voidedCount }})<br><i style="font-size: 9px; color:#999;">tidak dihitung ke omzet</i></td>
+                <td style="border: none; padding-top: 5px; color: #d9534f;" class="text-right bold">(Rp {{ number_format($voidedAmount, 0, ',', '.') }})</td>
+            </tr>
+            @endif
             <tr>
                 <td style="border: none; padding-top: 8px;" class="bold">Total Pendapatan</td>
                 <td style="border: none; padding-top: 8px;" class="text-right bold">Rp

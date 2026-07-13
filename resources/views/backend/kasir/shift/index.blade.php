@@ -169,6 +169,12 @@
                                 @empty
                                     <div class="text-muted text-center py-6">Tidak ada {{ strtolower($L) }} yang sedang berjalan.</div>
                                 @endforelse
+
+                                <div class="separator separator-dashed my-6"></div>
+<a href="{{ route('kasir.index') }}" class="btn btn-primary btn-lg w-100 fs-4 fw-bold">
+    <i class="ki-outline ki-handcart fs-2 me-2"></i> Lihat Layar Kasir
+</a>
+
                             </div>
                         </div>
                     @endif

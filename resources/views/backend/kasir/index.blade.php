@@ -45,7 +45,8 @@
             </div>
 
             <div class="row g-4">
-                {{-- =============== KIRI: NAMA + MENU =============== --}}
+                {{-- =============== KIRI: NAMA + MENU (hanya OPERATOR/kasir) =============== --}}
+                @if ($isOperator)
                 <div class="col-12 col-md-7 col-xl-8">
                     <div class="card card-flush shadow-sm mb-4">
                         <div class="card-body py-4">
@@ -109,9 +110,11 @@
                         </div>
                     </div>
                 </div>
+                @endif
 
                 {{-- =============== KANAN: PESANAN BERJALAN + KERANJANG =============== --}}
-                <div class="col-12 col-md-5 col-xl-4">
+                {{-- Non-operator (owner/admin): full-width, hanya lihat + Tandai Salah/Hapus. --}}
+                <div class="col-12 {{ $isOperator ? 'col-md-5 col-xl-4' : '' }}">
                     <div class="pos-right-col">
                         {{-- Pesanan berjalan --}}
                         <div class="card card-flush shadow-sm mb-4">
@@ -154,6 +157,14 @@
                                         <div id="list-processing"></div>
                                     </div>
                                     <div class="tab-pane fade pos-orders-scroll" id="tab-completed">
+                                        {{-- Kartu penanda pesanan SALAH (tidak dihitung ke omzet). --}}
+                                        <div id="completed-voided-card" class="d-none alert bg-light-danger border border-danger border-dashed d-flex align-items-center p-3 mb-3">
+                                            <i class="ki-outline ki-information-5 fs-2x text-danger me-3"></i>
+                                            <div class="fs-8 text-gray-800">
+                                                <b><span id="completed-voided-count">0</span> pesanan ditandai SALAH</b> —
+                                                tidak dihitung ke penjualan/omzet hari ini.
+                                            </div>
+                                        </div>
                                         <div id="list-completed"></div>
                                     </div>
                                     <div class="tab-pane fade pos-orders-scroll" id="tab-offline">
@@ -163,7 +174,8 @@
                             </div>
                         </div>
 
-                        {{-- Keranjang + Checkout : mengambang (offcanvas) di layar kecil, inline di md+ --}}
+                        {{-- Keranjang + Checkout (hanya OPERATOR/kasir): offcanvas di layar kecil, inline di md+ --}}
+                        @if ($isOperator)
                         <div class="offcanvas-md offcanvas-end" tabindex="-1" id="cart-offcanvas" style="--bs-offcanvas-width: min(430px, 92vw);">
                             <div class="offcanvas-header border-bottom d-flex justify-content-between align-items-center py-3 d-md-none">
                                 <h4 class="fw-bold mb-0 text-gray-800"><i class="ki-outline ki-basket fs-2 me-2 text-primary"></i>Keranjang</h4>
@@ -241,13 +253,15 @@
                                 </div>{{-- /card --}}
                             </div>{{-- /offcanvas-body --}}
                         </div>{{-- /offcanvas keranjang --}}
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- FAB Keranjang (hanya layar kecil): buka keranjang mengambang tanpa scroll ke bawah --}}
+    {{-- FAB Keranjang (hanya OPERATOR/kasir, layar kecil): buka keranjang mengambang --}}
+    @if ($isOperator)
     <button type="button" class="btn btn-primary d-md-none shadow-lg" id="cart-fab"
         data-bs-toggle="offcanvas" data-bs-target="#cart-offcanvas"
         style="position:fixed; left:50%; transform:translateX(-50%); bottom:16px; z-index:1030; border-radius:999px; padding:.7rem 1.15rem;">
@@ -256,6 +270,7 @@
         <span class="mx-1 opacity-50">·</span>
         <span class="fw-bold" id="cart-fab-total">Rp 0</span>
     </button>
+    @endif
     <script>
         // Sembunyikan FAB keranjang saat sidebar drawer (mobile) terbuka agar tidak menutupi
         // tombol Setelan di footer sidebar.
@@ -394,8 +409,10 @@
             setTarget:  "{{ route('kasir.sales.target') }}",
         };
         const CSRF = "{{ csrf_token() }}";
-        // Hak akses owner: tampilkan tombol hapus pesanan (server tetap menjaga via can:order.delete).
+        // Hak akses owner: tombol HAPUS pesanan (hanya tab "Sedang Diproses"). Server jaga via can:order.delete.
         const CAN_DELETE = @json(auth()->user()->can('order.delete'));
+        // Hak akses owner + kasir: tombol TANDAI SALAH (hanya tab "Selesai"). Server jaga via can:order.void.
+        const CAN_VOID = @json(auth()->user()->can('order.void'));
 
         // ================= STATE =================
         let cart = [];
@@ -803,33 +820,49 @@
         $('#btn-pay-later').on('click', () => submitOrder(false));
 
         // ================= PESANAN BERJALAN =================
-        function orderCard(o) {
+        // tab: 'processing' | 'completed' — menentukan tombol yang muncul.
+        function orderCard(o, tab) {
             const paid = o.payment_status === 'paid';
             const payBadge = paid
                 ? '<span class="badge badge-light-success">Lunas</span>'
                 : '<span class="badge badge-light-danger">Belum Lunas</span>';
             const done = o.order_status === 'completed';
+            const voided = !!o.voided;
             const selesaiBtn = done ? '' :
                 `<button class="btn btn-sm btn-light-success flex-fill fw-bold btn-complete" data-id="${o.id}" data-paid="${paid ? 1 : 0}" data-total="${o.grand_total}">
                     <i class="ki-outline ki-check fs-5"></i> Selesai</button>`;
-            const delBtn = CAN_DELETE
+            // HAPUS: hanya di tab "Sedang Diproses" & khusus owner.
+            const delBtn = (tab === 'processing' && CAN_DELETE)
                 ? `<button class="btn btn-sm btn-light-danger btn-del-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" title="Hapus pesanan"><i class="ki-outline ki-trash fs-5"></i></button>`
                 : '';
+            // TANDAI SALAH: hanya di tab "Selesai" (owner + kasir). Toggle.
+            const voidBtn = (tab === 'completed' && CAN_VOID)
+                ? (voided
+                    ? `<button class="btn btn-sm btn-light-warning flex-fill fw-bold btn-void-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" data-voided="1"><i class="ki-outline ki-arrows-circle fs-5"></i> Batalkan Tanda</button>`
+                    : `<button class="btn btn-sm btn-light-danger flex-fill fw-bold btn-void-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" data-voided="0"><i class="ki-outline ki-cross-circle fs-5"></i> Tandai Salah</button>`)
+                : '';
+            const salahBadge = voided
+                ? '<span class="badge badge-danger ms-1">SALAH</span>'
+                : '';
+            const totalHtml = voided
+                ? `<div class="fw-bold text-muted text-decoration-line-through">${rupiah(o.grand_total)}</div>`
+                : `<div class="fw-bold text-gray-800">${rupiah(o.grand_total)}</div>`;
             return `
-                <div class="d-flex flex-column border rounded p-3 mb-2">
+                <div class="d-flex flex-column border rounded p-3 mb-2 ${voided ? 'border-danger bg-light-danger' : ''}">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <span class="fw-bold fs-5 text-gray-800">No. ${o.queue_number ?? '-'}</span>
+                            <span class="fw-bold fs-5 text-gray-800">No. ${o.queue_number ?? '-'}</span>${salahBadge}
                             <div class="fs-8 text-muted">${o.table_no ? '<span class="badge badge-light-primary">Meja ' + esc(o.table_no) + '</span> ' : ''}${esc(o.customer_name || '')} • ${o.items_count} item • ${o.created_at ?? ''}</div>
                         </div>
                         <div class="text-end">
-                            <div class="fw-bold text-gray-800">${rupiah(o.grand_total)}</div>
+                            ${totalHtml}
                             ${payBadge}
                         </div>
                     </div>
                     <div class="d-flex gap-2 mt-2">
                         <button class="btn btn-sm btn-light flex-fill btn-view" data-id="${o.id}"><i class="ki-outline ki-eye fs-5"></i> View</button>
                         ${selesaiBtn}
+                        ${voidBtn}
                         ${delBtn}
                     </div>
                 </div>`;
@@ -839,10 +872,17 @@
             $.get(ROUTES.orders).done(res => {
                 $('#count-processing').text(res.processing.length);
                 $('#count-completed').text(res.completed.length);
-                $('#list-processing').html(res.processing.length ? res.processing.map(orderCard).join('') :
+                $('#list-processing').html(res.processing.length ? res.processing.map(o => orderCard(o, 'processing')).join('') :
                     '<div class="text-center text-muted py-6">Belum ada pesanan berjalan.</div>');
-                $('#list-completed').html(res.completed.length ? res.completed.map(orderCard).join('') :
+                $('#list-completed').html(res.completed.length ? res.completed.map(o => orderCard(o, 'completed')).join('') :
                     '<div class="text-center text-muted py-6">Belum ada pesanan selesai hari ini.</div>');
+                // Kartu penanda: berapa pesanan SALAH di antara yang selesai (tak dihitung omzet).
+                const vc = res.voided_count || 0;
+                if (vc > 0) {
+                    $('#completed-voided-card').removeClass('d-none').find('#completed-voided-count').text(vc);
+                } else {
+                    $('#completed-voided-card').addClass('d-none');
+                }
             });
         }
         $('#btn-refresh-orders').on('click', loadOrders);
@@ -881,6 +921,34 @@
                         } else { Swal.fire('Gagal', res.error || 'Gagal menghapus pesanan.', 'error'); }
                     })
                     .fail(xhr => Swal.fire('Gagal', (xhr.responseJSON && xhr.responseJSON.error) || 'Gagal menghapus pesanan.', 'error'));
+            });
+        });
+
+        // ===== Tandai / batalkan tanda SALAH (owner + kasir) — hanya tab "Selesai" =====
+        // Pesanan salah tidak dihitung ke omzet/kas, tetapi tetap tampil di laporan.
+        $('body').on('click', '.btn-void-order', function() {
+            const id = $(this).data('id');
+            const q = $(this).data('q');
+            const isVoided = String($(this).data('voided')) === '1';
+            Swal.fire({
+                title: isVoided ? 'Batalkan tanda salah?' : 'Tandai pesanan salah?',
+                html: isVoided
+                    ? `Pesanan <b>No. ${q || '-'}</b> akan <b>dihitung kembali</b> ke penjualan/omzet.`
+                    : `Pesanan <b>No. ${q || '-'}</b> akan <b>tidak dihitung</b> ke penjualan hari ini, omzet, & kas laci.<br>Tetap tersimpan di laporan dengan penanda <b>SALAH</b>.`,
+                icon: 'warning', showCancelButton: true,
+                confirmButtonText: isVoided ? 'Ya, Batalkan Tanda' : '<i class="ki-outline ki-cross-circle"></i> Ya, Tandai Salah',
+                cancelButtonText: 'Batal', confirmButtonColor: isVoided ? '#f1c40f' : '#d33',
+            }).then(r => {
+                if (!r.isConfirmed) return;
+                $.ajax({ url: ROUTES.base + '/' + id + '/void', method: 'POST', data: { _token: CSRF } })
+                    .done(res => {
+                        if (res.success) {
+                            applyWidget(res.widget);
+                            loadOrders();
+                            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.voided ? 'Ditandai salah' : 'Tanda salah dibatalkan', showConfirmButton: false, timer: 1800 });
+                        } else { Swal.fire('Gagal', res.error || 'Gagal memproses.', 'error'); }
+                    })
+                    .fail(xhr => Swal.fire('Gagal', (xhr.responseJSON && xhr.responseJSON.error) || 'Gagal memproses pesanan.', 'error'));
             });
         });
 

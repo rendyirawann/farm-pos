@@ -115,12 +115,16 @@ class AppServiceProvider extends ServiceProvider
                     $shiftStale = $isOperator && ! Carbon::parse($start)->isToday();
 
                     $income      = (float) Order::where('payment_status', 'paid')
-                        ->where('created_at', '>=', $start)->sum('grand_total');
+                        ->where('created_at', '>=', $start)
+                        ->whereNull('voided_at') // pesanan salah tak dihitung ke omzet
+                        ->sum('grand_total');
                     $salesTarget = (float) (DailySalesTarget::where('date', $scopeDate)->value('amount') ?? 0);
                     $dailySpent  = (float) \App\Models\Expense::where('created_at', '>=', $start)->sum('amount');
                 } else {
                     $income      = (float) Order::whereDate('created_at', $today)
-                        ->where('payment_status', 'paid')->sum('grand_total');
+                        ->where('payment_status', 'paid')
+                        ->whereNull('voided_at') // pesanan salah tak dihitung ke omzet
+                        ->sum('grand_total');
                     $salesTarget = (float) (DailySalesTarget::where('date', $today)->value('amount') ?? 0);
                     $dailySpent  = (float) \App\Models\Expense::whereDate('created_at', $today)->sum('amount');
                 }

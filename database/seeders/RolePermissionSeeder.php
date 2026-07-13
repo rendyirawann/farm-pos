@@ -66,7 +66,8 @@ class RolePermissionSeeder extends Seeder
 
         // --- Kontrol Order / Penjualan (aksi sensitif, khusus owner) ---
         $orderPermissions = [
-            'order.delete',   // hapus pesanan (berjalan/selesai)
+            'order.delete',   // hapus pesanan (khusus tab "Sedang Diproses" — OWNER)
+            'order.void',     // tandai pesanan SALAH di tab "Selesai" (OWNER + KASIR) — keluar dari omzet & kas
             'sales.clear',    // reset/kosongkan penjualan hari ini
             'sales.target',   // set/ubah target penjualan hari ini
             'shift.operate',  // buka/tutup shift (KASIR — shift miliknya sendiri)
@@ -115,6 +116,8 @@ class RolePermissionSeeder extends Seeder
             'report.sales', 'report.items',
             // Aksi sensitif khusus owner (admin/kasir TIDAK diberi).
             'order.delete', 'sales.clear', 'sales.target',
+            // Tandai pesanan salah di tab Selesai (owner juga boleh).
+            'order.void',
             // Owner LIHAT-SAJA shift (tak buka/tutup), tapi boleh membuka kembali shift kasir
             // yang tak sengaja ditutup (koreksi supervisor).
             'shift.reopen',
@@ -150,6 +153,8 @@ class RolePermissionSeeder extends Seeder
             'report.items',
             // Kasir MENGOPERASIKAN shift-nya sendiri (buka/tutup). TIDAK boleh reopen.
             'shift.operate',
+            // Kasir boleh menandai pesanan SALAH di tab Selesai (bukan hapus).
+            'order.void',
         ];
         $roleKasir->syncPermissions($kasirPermissions);
 

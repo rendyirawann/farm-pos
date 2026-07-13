@@ -49,7 +49,8 @@ class DashboardAdminController extends Controller
         $topProducts = OrderDetail::with(['menu.category'])
             ->whereHas('order', function ($q) use ($monthStart, $monthEnd) {
                 $q->whereBetween('created_at', [$monthStart, $monthEnd])
-                    ->where('payment_status', 'paid');
+                    ->where('payment_status', 'paid')
+                    ->whereNull('voided_at'); // pesanan salah tak dihitung
             })
             ->select('menu_id', DB::raw('SUM(qty) as total_qty'), DB::raw('SUM(subtotal) as total_revenue'))
             ->groupBy('menu_id')
@@ -61,6 +62,7 @@ class DashboardAdminController extends Controller
         // Ambil total penjualan per hari
         $actualSales = Order::whereBetween('created_at', [$monthStart, $monthEnd])
             ->where('payment_status', 'paid')
+            ->whereNull('voided_at') // pesanan salah tak dihitung ke grafik penjualan
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(grand_total) as total'))
             ->groupBy(DB::raw('DATE(created_at)'))
             ->pluck('total', 'date');
@@ -91,15 +93,18 @@ class DashboardAdminController extends Controller
         // 4. Quick Summary Widget - Real-time
         $revenue = Order::whereBetween('created_at', [$monthStart, $monthEnd])
             ->where('payment_status', 'paid')
+            ->whereNull('voided_at') // pesanan salah tak dihitung ke omzet
             ->sum('grand_total');
 
         $ordersCount = Order::whereBetween('created_at', [$monthStart, $monthEnd])
             ->where('payment_status', 'paid')
+            ->whereNull('voided_at') // pesanan salah tak dihitung
             ->count();
 
         $itemsSold = OrderDetail::whereHas('order', function ($q) use ($monthStart, $monthEnd) {
             $q->whereBetween('created_at', [$monthStart, $monthEnd])
-                ->where('payment_status', 'paid');
+                ->where('payment_status', 'paid')
+                ->whereNull('voided_at'); // pesanan salah tak dihitung
         })->sum('qty');
 
         $summary = [
@@ -167,8 +172,8 @@ class DashboardAdminController extends Controller
             'monthly_tenants'     => Tenant::where('billing_mode', '!=', 'deposit')->count(),
             'monthly_active'      => $monthlyActive,
             'new_this_month'      => Tenant::whereBetween('created_at', [$monthStart, $monthEnd])->count(),
-            'platform_revenue'    => (float) Order::whereBetween('created_at', [$monthStart, $monthEnd])->where('payment_status', 'paid')->sum('grand_total'),
-            'platform_tx'         => (int) Order::whereBetween('created_at', [$monthStart, $monthEnd])->where('payment_status', 'paid')->count(),
+            'platform_revenue'    => (float) Order::whereBetween('created_at', [$monthStart, $monthEnd])->where('payment_status', 'paid')->whereNull('voided_at')->sum('grand_total'),
+            'platform_tx'         => (int) Order::whereBetween('created_at', [$monthStart, $monthEnd])->where('payment_status', 'paid')->whereNull('voided_at')->count(),
             'sub_revenue'         => (float) Subscription::where('status', 'paid')->whereBetween('paid_at', [$monthStart, $monthEnd])->sum('amount'),
             'deposit_outstanding' => (float) Tenant::sum('deposit_points'),
         ];
@@ -176,6 +181,7 @@ class DashboardAdminController extends Controller
         // Grafik omzet platform harian (bulan ini)
         $dailyOmzet = Order::whereBetween('created_at', [$monthStart, $monthEnd])
             ->where('payment_status', 'paid')
+            ->whereNull('voided_at') // pesanan salah tak dihitung ke omzet platform
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(grand_total) as total'))
             ->groupBy(DB::raw('DATE(created_at)'))
             ->pluck('total', 'date');
@@ -192,6 +198,7 @@ class DashboardAdminController extends Controller
         // Top tenant berdasarkan omzet bulan ini
         $topRows = Order::whereBetween('created_at', [$monthStart, $monthEnd])
             ->where('payment_status', 'paid')
+            ->whereNull('voided_at') // pesanan salah tak dihitung ke ranking omzet tenant
             ->whereNotNull('tenant_id')
             ->select('tenant_id', DB::raw('SUM(grand_total) as omzet'), DB::raw('COUNT(*) as tx'))
             ->groupBy('tenant_id')

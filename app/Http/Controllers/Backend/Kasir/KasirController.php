@@ -30,10 +30,18 @@ class KasirController extends Controller
     /** Halaman utama kasir (single page). */
     public function index()
     {
-        $activeShift = Shift::where('user_id', Auth::id())->where('status', 'open')->first();
+        // OPERATOR (kasir): wajib membuka shift MILIKNYA sendiri sebelum masuk kasir (mode POS penuh).
+        // PENINJAU (owner/admin): boleh masuk HANYA bila ADA shift kasir yang sedang berjalan di toko,
+        // dan hanya dalam mode LIHAT + Tandai Salah/Hapus (panel POS: menu/keranjang/bayar disembunyikan).
+        $isOperator = Auth::user()->can('shift.operate');
+        $activeShift = $isOperator
+            ? Shift::where('user_id', Auth::id())->where('status', 'open')->first()
+            : Shift::where('status', 'open')->latest('start_time')->first();
+
         if (!$activeShift) {
-            return redirect()->route('shifts.index')
-                ->with('warning', '⚠️ Akses ditolak! Anda wajib membuka shift dan mengisi modal kasir terlebih dahulu.');
+            return redirect()->route('shifts.index')->with('warning', $isOperator
+                ? '⚠️ Akses ditolak! Anda wajib membuka shift dan mengisi modal kasir terlebih dahulu.'
+                : 'ℹ️ Belum ada shift kasir yang sedang berjalan. Layar kasir bisa dibuka saat ada shift aktif.');
         }
 
         $categories = Category::orderBy('name', 'asc')->get();
@@ -51,7 +59,7 @@ class KasirController extends Controller
             ? \App\Models\DiningTable::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get()
             : collect();
 
-        return view('backend.kasir.index', compact('categories', 'menus', 'promos', 'setting', 'activeShift', 'useDynamicTables', 'diningTables'));
+        return view('backend.kasir.index', compact('categories', 'menus', 'promos', 'setting', 'activeShift', 'useDynamicTables', 'diningTables', 'isOperator'));
     }
 
     /** JSON daftar order untuk panel kanan (tab Sedang Diproses / Selesai). */
@@ -72,8 +80,10 @@ class KasirController extends Controller
             ->map(fn($o) => $this->orderSummary($o));
 
         return response()->json([
-            'processing' => $processing,
-            'completed'  => $completed,
+            'processing'   => $processing,
+            'completed'    => $completed,
+            // Jumlah pesanan SALAH di antara yang selesai hari ini (untuk kartu penanda).
+            'voided_count' => $completed->where('voided', true)->count(),
         ]);
     }
 
@@ -90,6 +100,7 @@ class KasirController extends Controller
             'order_status'   => $o->order_status,
             'items_count'    => $o->details_count,
             'created_at'     => optional($o->created_at)->format('H:i'),
+            'voided'         => $o->voided_at !== null, // ditandai SALAH (tak dihitung omzet)
         ];
     }
 
@@ -277,8 +288,10 @@ class KasirController extends Controller
     }
 
     /**
-     * Hapus 1 pesanan (khusus OWNER). Boleh untuk pesanan berjalan maupun selesai,
-     * baik yang belum lunas maupun sudah lunas. order_details ikut terhapus (cascade FK).
+     * Hapus 1 pesanan yang MASIH BERJALAN (khusus OWNER — hanya tab "Sedang Diproses").
+     * Pesanan yang sudah SELESAI TIDAK boleh dihapus (harus tetap terekam & auditable) —
+     * untuk pesanan selesai yang salah, gunakan "Tandai Salah" (void). order_details ikut
+     * terhapus (cascade FK).
      */
     public function destroyOrder($id)
     {
@@ -287,11 +300,67 @@ class KasirController extends Controller
         try {
             DB::beginTransaction();
             $order = Order::findOrFail($id); // ter-scope per-tenant
+
+            // Server-side guard (jangan cuma andalkan UI): HANYA pesanan berjalan yang boleh dihapus.
+            // Pesanan 'completed' harus dipertahankan demi audit -> pakai Tandai Salah (voidOrder).
+            if (! in_array($order->order_status, ['pending', 'cooking', 'served'], true)) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'error'   => 'Pesanan yang sudah selesai tidak boleh dihapus. Gunakan "Tandai Salah".',
+                ], 422);
+            }
+
             $order->delete();                // order_details terhapus otomatis via cascadeOnDelete
             DB::commit();
 
             return response()->json([
                 'success' => true,
+                'widget'  => $this->todaySalesWidget(),
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Tandai / batalkan tanda "SALAH" pada pesanan SELESAI (OWNER + KASIR).
+     * Pesanan salah TIDAK dihitung ke omzet & kas laci (refund penuh), tetapi
+     * TETAP tersimpan & tampil di laporan dengan penanda "SALAH". Bersifat toggle
+     * agar salah-tandai bisa dibatalkan.
+     */
+    public function voidOrder($id)
+    {
+        abort_unless(auth()->user()->can('order.void'), 403);
+
+        try {
+            DB::beginTransaction();
+            $order = Order::findOrFail($id); // ter-scope per-tenant
+
+            // Hanya pesanan yang SUDAH SELESAI yang bisa ditandai salah (fitur tab "Selesai").
+            if ($order->order_status !== 'completed') {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'error'   => 'Hanya pesanan yang sudah selesai yang bisa ditandai salah.',
+                ], 422);
+            }
+
+            if ($order->voided_at === null) {
+                $order->voided_at = now();
+                $order->voided_by = auth()->id();
+            } else {
+                // Batalkan tanda salah.
+                $order->voided_at = null;
+                $order->voided_by = null;
+            }
+            $order->save();
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'voided'  => $order->voided_at !== null,
                 'widget'  => $this->todaySalesWidget(),
             ]);
         } catch (\Throwable $e) {
@@ -391,6 +460,7 @@ class KasirController extends Controller
 
         $income = (float) Order::whereDate('created_at', $today)
             ->where('payment_status', 'paid')
+            ->whereNull('voided_at') // pesanan ditandai salah tidak dihitung ke omzet
             ->sum('grand_total');
 
         $targetObj = DailySalesTarget::where('date', $today)->first();

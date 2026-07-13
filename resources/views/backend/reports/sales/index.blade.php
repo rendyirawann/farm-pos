@@ -66,6 +66,16 @@
                 </div>
             </div>
 
+            {{-- Penanda pesanan SALAH (voided): TIDAK dihitung ke omzet, tetap muncul di daftar. --}}
+            <div class="alert alert-dismissible bg-light-danger border border-danger border-dashed d-flex align-items-center p-5 mb-8 d-none"
+                 id="voided-banner">
+                <i class="ki-outline ki-information-5 fs-2hx text-danger me-4"></i>
+                <div class="d-flex flex-column">
+                    <span class="fw-bold fs-5 text-gray-900"><span id="voided-count">0</span> pesanan ditandai <span class="badge badge-danger">SALAH</span></span>
+                    <span class="fs-7 text-gray-700">Senilai <b id="voided-amount">Rp 0</b> — TIDAK dihitung ke omzet/pendapatan, tetapi tetap tampil di daftar sebagai riwayat.</span>
+                </div>
+            </div>
+
             <div class="card card-flush">
                 <div class="card-body">
                     <div class="table-responsive">
@@ -79,6 +89,7 @@
                                     <th>Metode</th>
                                     <th class="text-end">Potongan Diskon</th>
                                     <th class="text-end">Total Belanja</th>
+                                    <th class="text-center">Status</th>
                                 </tr>
                             </thead>
                             <tbody class="fw-semibold text-gray-600">
@@ -146,6 +157,15 @@
                             } else {
                                 $('#card-expense').show();
                             }
+                            // Banner pesanan salah (voided) — tampil hanya bila ada.
+                            var vCount = parseInt((json.voidedCount || '0').replace(/[^\d]/g, ''), 10) || 0;
+                            if (vCount > 0) {
+                                $('#voided-count').text(json.voidedCount);
+                                $('#voided-amount').text(json.voidedAmount);
+                                $('#voided-banner').removeClass('d-none');
+                            } else {
+                                $('#voided-banner').addClass('d-none');
+                            }
                             return json.data;
                         }
                     },
@@ -180,6 +200,13 @@
                             data: 'grand_total',
                             name: 'grand_total',
                             className: 'text-end'
+                        },
+                        {
+                            data: 'status',
+                            name: 'voided_at',
+                            className: 'text-center',
+                            orderable: false,
+                            searchable: false
                         }
                     ]
                 });

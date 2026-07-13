@@ -159,6 +159,10 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         // hapus pesanan & reset penjualan hari ini.
         Route::delete('/admin/kasir/order/{id}', [KasirController::class, 'destroyOrder'])
             ->middleware('can:order.delete')->name('kasir.order.destroy');
+        // Tandai / batalkan tanda "SALAH" pada pesanan SELESAI (OWNER + KASIR).
+        // Toggle: pesanan salah tidak dihitung ke omzet & kas, tetap tampil di laporan.
+        Route::post('/admin/kasir/order/{id}/void', [KasirController::class, 'voidOrder'])
+            ->middleware('can:order.void')->name('kasir.order.void');
         Route::post('/admin/kasir/sales/reset-today', [KasirController::class, 'resetToday'])
             ->middleware('can:sales.clear')->name('kasir.sales.reset-today');
         Route::post('/admin/kasir/sales/target', [KasirController::class, 'setTarget'])

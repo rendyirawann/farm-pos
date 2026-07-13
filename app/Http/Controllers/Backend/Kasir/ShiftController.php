@@ -41,11 +41,13 @@ class ShiftController extends Controller
                 $cashSales = Order::where('payment_method', 'cash')
                     ->where('payment_status', 'paid')
                     ->where('created_at', '>=', $currentShift->start_time)
+                    ->whereNull('voided_at') // pesanan salah = refund penuh, tak masuk kas
                     ->sum('grand_total');
 
                 $qrisSales = Order::where('payment_method', 'qris')
                     ->where('payment_status', 'paid')
                     ->where('created_at', '>=', $currentShift->start_time)
+                    ->whereNull('voided_at') // pesanan salah tak dihitung
                     ->sum('grand_total');
 
                 // Pengeluaran diambil dari uang laci -> mengurangi kas fisik.
@@ -173,6 +175,7 @@ class ShiftController extends Controller
             $cashSales = Order::where('payment_method', 'cash')
                 ->where('payment_status', 'paid')
                 ->where('created_at', '>=', $shift->start_time)
+                ->whereNull('voided_at') // pesanan salah = refund penuh, tak masuk kas laci
                 ->sum('grand_total');
 
             // Pengeluaran selama shift ini (uang keluar dari laci).

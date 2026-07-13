@@ -32,13 +32,23 @@ class SalesReportController extends Controller
                 $query->where('payment_method', $request->payment_method);
             }
 
-            // Hitung ringkasan (Summary) dalam 1 query agregat (sebelumnya 3 query terpisah)
+            // Hitung ringkasan (Summary) dalam 1 query agregat.
+            // Pesanan SALAH (voided) DIKECUALIKAN dari omzet, jumlah nota, & diskon —
+            // tetapi dihitung terpisah untuk kartu "Pesanan Salah". FILTER = sintaks Postgres.
             $summary = (clone $query)->toBase()
-                ->selectRaw('COUNT(*) as total_orders, COALESCE(SUM(grand_total), 0) as total_revenue, COALESCE(SUM(discount_amount), 0) as total_discount')
+                ->selectRaw("
+                    COUNT(*) FILTER (WHERE voided_at IS NULL) as total_orders,
+                    COALESCE(SUM(grand_total) FILTER (WHERE voided_at IS NULL), 0) as total_revenue,
+                    COALESCE(SUM(discount_amount) FILTER (WHERE voided_at IS NULL), 0) as total_discount,
+                    COUNT(*) FILTER (WHERE voided_at IS NOT NULL) as voided_count,
+                    COALESCE(SUM(grand_total) FILTER (WHERE voided_at IS NOT NULL), 0) as voided_amount
+                ")
                 ->first();
-            $totalRevenue = $summary->total_revenue;   // Total Uang Promo Terpakai dihitung dari discount
+            $totalRevenue  = $summary->total_revenue;   // omzet TANPA pesanan salah
             $totalDiscount = $summary->total_discount;
-            $totalOrders = $summary->total_orders;
+            $totalOrders   = $summary->total_orders;
+            $voidedCount   = $summary->voided_count;     // jumlah pesanan salah
+            $voidedAmount  = $summary->voided_amount;    // nominal pesanan salah (tak dihitung)
 
             // Pengeluaran diambil dari KAS/UANG TUNAI (laci) -> hanya relevan untuk tampilan
             // Tunai atau Semua Metode. Untuk filter QRIS: pengeluaran TIDAK ditampilkan &
@@ -83,7 +93,16 @@ class SalesReportController extends Controller
                     return '<span class="text-muted">-</span>';
                 })
                 ->addColumn('grand_total', function ($row) {
+                    // Pesanan salah: tampilkan dicoret & redup (tidak masuk omzet).
+                    if ($row->voided_at) {
+                        return '<span class="text-muted text-decoration-line-through fs-6">Rp ' . number_format($row->grand_total, 0, ',', '.') . '</span>';
+                    }
                     return '<span class="fw-bold text-success fs-5">Rp ' . number_format($row->grand_total, 0, ',', '.') . '</span>';
+                })
+                ->addColumn('status', function ($row) {
+                    return $row->voided_at
+                        ? '<span class="badge badge-light-danger">SALAH</span>'
+                        : '<span class="badge badge-light-success">Sah</span>';
                 })
                 // Kirim data tambahan ke frontend
                 ->with('totalRevenue', 'Rp ' . number_format($totalRevenue, 0, ',', '.'))
@@ -92,7 +111,9 @@ class SalesReportController extends Controller
                 ->with('totalExpense', 'Rp ' . number_format($totalExpense, 0, ',', '.'))
                 ->with('showExpense', $expenseApplies)
                 ->with('netRevenue', 'Rp ' . number_format($netRevenue, 0, ',', '.'))
-                ->rawColumns(['invoice', 'customer', 'payment_method', 'discount', 'grand_total'])
+                ->with('voidedCount', number_format($voidedCount, 0, ',', '.'))
+                ->with('voidedAmount', 'Rp ' . number_format($voidedAmount, 0, ',', '.'))
+                ->rawColumns(['invoice', 'customer', 'payment_method', 'discount', 'grand_total', 'status'])
                 ->make(true);
         }
     }
@@ -110,9 +131,15 @@ class SalesReportController extends Controller
         }
 
         $orders = $query->orderBy('created_at', 'asc')->get();
-        $totalRevenue = $orders->sum('grand_total');
-        $totalDiscount = $orders->sum('discount_amount'); // Kalkulasi diskon untuk print
-        $totalOrders = $orders->count();
+        // Pesanan SALAH (voided) tetap tampil di daftar (dengan penanda) tapi
+        // TIDAK dihitung ke omzet/nota/diskon; dihitung terpisah.
+        $validOrders   = $orders->whereNull('voided_at');
+        $voidedOrders  = $orders->whereNotNull('voided_at');
+        $totalRevenue  = $validOrders->sum('grand_total');
+        $totalDiscount = $validOrders->sum('discount_amount');
+        $totalOrders   = $validOrders->count();
+        $voidedCount   = $voidedOrders->count();
+        $voidedAmount  = $voidedOrders->sum('grand_total');
 
         // Pengeluaran (kas tunai) hanya relevan utk Tunai/Semua Metode; QRIS: tak dikurangkan.
         $expenseApplies = ($request->payment_method !== 'qris');
@@ -132,6 +159,6 @@ class SalesReportController extends Controller
         $filterDate = Carbon::parse($request->start_date)->translatedFormat('d M Y') . ' - ' . Carbon::parse($request->end_date)->translatedFormat('d M Y');
         $filterPayment = $request->payment_method == 'all' ? 'Semua Metode' : strtoupper($request->payment_method);
 
-        return view('backend.reports.sales.print', compact('orders', 'totalRevenue', 'totalDiscount', 'totalOrders', 'totalExpense', 'expenseApplies', 'netRevenue', 'setting', 'filterDate', 'filterPayment'));
+        return view('backend.reports.sales.print', compact('orders', 'totalRevenue', 'totalDiscount', 'totalOrders', 'totalExpense', 'expenseApplies', 'netRevenue', 'setting', 'filterDate', 'filterPayment', 'voidedCount', 'voidedAmount'));
     }
 }

@@ -27,6 +27,7 @@ class ItemSalesReportController extends Controller
                 ->join('menus', 'order_details.menu_id', '=', 'menus.id')
                 ->leftJoin('categories', 'menus.category_id', '=', 'categories.id')
                 ->where('orders.payment_status', 'paid')
+                ->whereNull('orders.voided_at') // item dari pesanan salah tak dihitung
                 ->select(
                     'menus.id',
                     'menus.name as menu_name',
@@ -85,6 +86,7 @@ class ItemSalesReportController extends Controller
             ->join('menus', 'order_details.menu_id', '=', 'menus.id')
             ->leftJoin('categories', 'menus.category_id', '=', 'categories.id')
             ->where('orders.payment_status', 'paid')
+            ->whereNull('orders.voided_at') // item dari pesanan salah tak dihitung (samakan dgn getData)
             ->select(
                 'menus.name as menu_name',
                 'menus.discount_percent', // 🔥 TAMBAHAN
