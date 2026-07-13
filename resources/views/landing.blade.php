@@ -214,19 +214,7 @@
         html.lp-mobile .mooda-price-carousel .swiper-slide { margin-bottom: 16px; }
         html.lp-mobile .price-nav { display: none !important; }
 
-        /* Desktop/tablet lebar: kartu harga BERJAJAR (grid responsif) di tengah, bukan menumpuk 1 kolom. */
-        @media (min-width: 992px) {
-            html.lp-mobile .mooda-price-carousel .swiper-wrapper { display: flex !important; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 22px; }
-            html.lp-mobile .mooda-price-carousel .swiper-slide { width: 330px !important; max-width: 90vw; margin-bottom: 0 !important; }
-
-            /* Section IKUT TINGGI KONTEN (tak dipaksa setinggi layar) -> hilangkan gap putih berlebih. */
-            html.lp-mobile .lp-slide { min-height: auto !important; }
-            html.lp-mobile .lp-content { padding-top: 4.5rem !important; padding-bottom: 4.5rem !important; }
-            html.lp-mobile .lp-content > :first-child { margin-top: 0 !important; }
-            html.lp-mobile .lp-content > :last-child { margin-bottom: 0 !important; }
-            /* Hero tetap besar & teks terpusat (hindari gap kosong besar di bawah). */
-            html.lp-mobile .lp-hero { min-height: 90vh; justify-content: center !important; padding-top: 5rem !important; padding-bottom: 4rem !important; }
-        }
+        /* (Override desktop dipindah ke bawah — SETELAH aturan lp-mobile — agar tak tertimpa.) */
 
         /* ===== MODE MOBILE/TABLET: scroll VERTIKAL (bukan swiper horizontal) ===== */
         html.lp-mobile, html.lp-mobile body { height: auto; overflow-x: hidden; overflow-y: auto; }
@@ -244,6 +232,24 @@
         html.lp-mobile .landing-prev,
         html.lp-mobile .landing-next,
         html.lp-mobile .lp-scrollhint { display: none !important; }
+
+        /* ===== OVERRIDE DESKTOP (>=992px) — diletakkan SETELAH aturan lp-mobile agar menang ===== */
+        @media (min-width: 992px) {
+            /* Kartu harga BERJAJAR (grid responsif) di tengah, bukan menumpuk 1 kolom. */
+            html.lp-mobile .mooda-price-carousel .swiper-wrapper { display: flex !important; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 22px; }
+            html.lp-mobile .mooda-price-carousel .swiper-slide { width: 330px !important; max-width: 90vw; margin-bottom: 0 !important; }
+
+            /* Section ikut TINGGI KONTEN (tak dipaksa setinggi layar) -> hilangkan gap putih berlebih. */
+            html.lp-mobile .lp-slide { min-height: auto !important; }
+            html.lp-mobile .lp-content { padding-top: 4.5rem !important; padding-bottom: 4.5rem !important; }
+            html.lp-mobile .lp-content > :first-child { margin-top: 0 !important; }
+            html.lp-mobile .lp-content > :last-child { margin-bottom: 0 !important; }
+
+            /* Hero: teks TERPUSAT vertikal di dalam hero ~90vh (bukan mepet atas). */
+            html.lp-mobile .lp-hero { min-height: 90vh !important; justify-content: center !important; padding-top: 5rem !important; padding-bottom: 4rem !important; }
+            html.lp-mobile .lp-hero > :first-child { margin-top: auto !important; }
+            html.lp-mobile .lp-hero > :last-child { margin-bottom: auto !important; }
+        }
 
         /* ===== FLOATING BUTTONS (semua device, tersusun atas-bawah di pojok kanan bawah) ===== */
         /* Desktop: ikon bulat, memanjang jadi tombol saat hover. Mobile: pill kecil berteks (tanpa hover). */
