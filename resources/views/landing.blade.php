@@ -245,10 +245,10 @@
             html.lp-mobile .lp-content > :first-child { margin-top: 0 !important; }
             html.lp-mobile .lp-content > :last-child { margin-bottom: 0 !important; }
 
-            /* Hero: teks TERPUSAT vertikal di dalam hero ~90vh (bukan mepet atas). */
-            html.lp-mobile .lp-hero { min-height: 90vh !important; justify-content: center !important; padding-top: 5rem !important; padding-bottom: 4rem !important; }
-            html.lp-mobile .lp-hero > :first-child { margin-top: auto !important; }
-            html.lp-mobile .lp-hero > :last-child { margin-bottom: auto !important; }
+            /* Hero: teks di TENGAH vertikal (flex center murni; tanpa auto-margin yang bikin turun). */
+            html.lp-mobile .lp-hero { min-height: 86vh !important; justify-content: center !important; padding-top: 4rem !important; padding-bottom: 4rem !important; }
+            html.lp-mobile .lp-hero > :first-child { margin-top: 0 !important; }
+            html.lp-mobile .lp-hero > :last-child { margin-bottom: 0 !important; }
         }
 
         /* ===== FLOATING BUTTONS (semua device, tersusun atas-bawah di pojok kanan bawah) ===== */
