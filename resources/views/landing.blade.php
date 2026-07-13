@@ -214,6 +214,12 @@
         html.lp-mobile .mooda-price-carousel .swiper-slide { margin-bottom: 16px; }
         html.lp-mobile .price-nav { display: none !important; }
 
+        /* Desktop/tablet lebar: kartu harga BERJAJAR (grid responsif) di tengah, bukan menumpuk 1 kolom. */
+        @media (min-width: 992px) {
+            html.lp-mobile .mooda-price-carousel .swiper-wrapper { display: flex !important; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 22px; }
+            html.lp-mobile .mooda-price-carousel .swiper-slide { width: 330px !important; max-width: 90vw; margin-bottom: 0 !important; }
+        }
+
         /* ===== MODE MOBILE/TABLET: scroll VERTIKAL (bukan swiper horizontal) ===== */
         html.lp-mobile, html.lp-mobile body { height: auto; overflow-x: hidden; overflow-y: auto; }
         html.lp-mobile { scroll-padding-top: 72px; scroll-behavior: smooth; }
