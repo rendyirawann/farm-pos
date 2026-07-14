@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="scroll-smooth">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'Blog Mooda — Tips Bisnis Kuliner & POS')</title>
-    <meta name="description" content="@yield('meta_description', 'Tips, panduan, & cerita seputar bisnis kuliner dan sistem kasir dari Mooda.')">
+    <title>@yield('title', 'Blog Mooda — Wawasan Bisnis & Produk Digital')</title>
+    <meta name="description" content="@yield('meta_description', 'Wawasan, tips, dan panduan praktis mengembangkan bisnis Anda di era digital — dari operasional, keuangan, hingga memilih produk digital yang tepat, bersama Mooda.')">
     @hasSection('canonical')<link rel="canonical" href="@yield('canonical')">@endif
     @stack('head')
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,45 +13,130 @@
     @vite(['resources/css/app.css'])
     <style>
         body { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; }
-        /* Tipografi isi artikel (mandiri, tak butuh plugin typography) */
-        .article-body { line-height: 1.8; color: #334155; font-size: 1.05rem; }
-        .article-body h1, .article-body h2 { font-size: 1.6rem; font-weight: 800; margin: 2rem 0 .75rem; color: #0f172a; }
-        .article-body h3 { font-size: 1.25rem; font-weight: 700; margin: 1.5rem 0 .5rem; color: #0f172a; }
-        .article-body p { margin: 0 0 1.1rem; }
-        .article-body ul, .article-body ol { margin: 0 0 1.1rem 1.4rem; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Tipografi isi artikel — selaras landing (indigo), mandiri tanpa plugin */
+        .article-body { line-height: 1.85; color: #334155; font-size: 1.075rem; }
+        .article-body > *:first-child { margin-top: 0; }
+        .article-body h2 { font-size: 1.7rem; font-weight: 800; margin: 2.4rem 0 .9rem; color: #0f172a; letter-spacing: -.01em; }
+        .article-body h3 { font-size: 1.3rem; font-weight: 700; margin: 1.8rem 0 .6rem; color: #1e293b; }
+        .article-body p { margin: 0 0 1.25rem; }
+        .article-body ul, .article-body ol { margin: 0 0 1.25rem 1.5rem; }
         .article-body ul { list-style: disc; } .article-body ol { list-style: decimal; }
-        .article-body li { margin: .35rem 0; }
-        .article-body a { color: #059669; text-decoration: underline; }
-        .article-body img { max-width: 100%; height: auto; border-radius: .75rem; margin: 1.25rem 0; }
-        .article-body blockquote { border-left: 4px solid #10b981; padding-left: 1rem; color: #475569; font-style: italic; margin: 1.25rem 0; }
+        .article-body li { margin: .45rem 0; padding-left: .25rem; }
+        .article-body a { color: #4f46e5; text-decoration: underline; text-underline-offset: 2px; font-weight: 600; }
+        .article-body img { max-width: 100%; height: auto; border-radius: 1rem; margin: 1.75rem 0; }
+        .article-body blockquote { border-left: 4px solid #4f46e5; background: #eef2ff; padding: 1rem 1.25rem; border-radius: 0 .75rem .75rem 0; color: #3730a3; font-style: italic; margin: 1.75rem 0; font-size: 1.1rem; }
         .article-body strong { font-weight: 700; color: #0f172a; }
-        .article-body figure { margin: 1.25rem 0; }
-        .article-body table { width: 100%; border-collapse: collapse; margin: 1.25rem 0; }
-        .article-body th, .article-body td { border: 1px solid #e2e8f0; padding: .5rem .75rem; }
+        .article-body table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; display: block; overflow-x: auto; }
+        .article-body th, .article-body td { border: 1px solid #e2e8f0; padding: .6rem .85rem; text-align: left; }
+        .article-body th { background: #f1f5f9; }
+        /* Tipografi artikel di layar kecil (HP) */
+        @media (max-width: 640px) {
+            .article-body { font-size: 1rem; line-height: 1.75; }
+            .article-body h2 { font-size: 1.35rem; margin: 1.8rem 0 .7rem; }
+            .article-body h3 { font-size: 1.12rem; }
+            .article-body blockquote { font-size: 1rem; padding: .85rem 1rem; }
+        }
+        img { max-width: 100%; height: auto; }
     </style>
 </head>
-<body class="bg-white text-slate-800 antialiased">
-    <header class="border-b border-slate-100 sticky top-0 bg-white/90 backdrop-blur z-30">
-        <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-            <a href="{{ route('blog.home') }}" class="flex items-center gap-2 font-extrabold text-lg text-slate-900">
-                <span class="text-emerald-500">Mooda</span><span class="text-slate-400 font-semibold">Blog</span>
-            </a>
-            <nav class="flex items-center gap-3 text-sm font-semibold">
-                <a href="{{ route('blog.home') }}" class="text-slate-600 hover:text-emerald-600 hidden sm:inline">Semua Artikel</a>
-                <a href="https://mooda.id" class="text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg px-4 py-2 transition">Coba Mooda</a>
-            </nav>
+<body class="min-h-screen flex flex-col bg-white text-slate-800 antialiased selection:bg-indigo-200/60">
+
+    {{-- ===================== NAVBAR ===================== --}}
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-100">
+        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
+            <div class="h-16 flex items-center justify-between gap-4">
+                <a href="{{ route('blog.home') }}" class="flex items-center gap-2 shrink-0">
+                    <span class="grid place-items-center w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white font-black text-lg shadow-lg shadow-indigo-500/25">M</span>
+                    <span class="font-extrabold text-lg text-slate-900">Mooda <span class="text-indigo-600">Blog</span></span>
+                </a>
+
+                <nav class="hidden lg:flex items-center gap-1 text-sm font-semibold text-slate-600">
+                    <a href="{{ route('blog.home') }}" class="rounded-full px-4 py-1.5 hover:bg-indigo-50 hover:text-indigo-700 transition {{ request()->routeIs('blog.home') ? 'text-indigo-700 bg-indigo-50' : '' }}">Beranda</a>
+                    @foreach (($navCategories ?? collect())->take(5) as $c)
+                        <a href="{{ route('blog.category', $c->slug) }}" class="rounded-full px-4 py-1.5 hover:bg-indigo-50 hover:text-indigo-700 transition">{{ $c->name }}</a>
+                    @endforeach
+                </nav>
+
+                <div class="flex items-center gap-2">
+                    <a href="https://mooda.id" class="hidden sm:inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl px-4 py-2.5 shadow-lg shadow-indigo-600/25 transition">
+                        Coba Mooda gratis
+                    </a>
+                    <button id="navToggle" class="lg:hidden grid place-items-center w-10 h-10 rounded-xl text-slate-700 hover:bg-slate-100 ring-1 ring-black/5" aria-label="Menu">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="navMobile" class="hidden lg:hidden pb-4">
+                <div class="flex flex-col gap-1 text-sm font-semibold text-slate-700">
+                    <a href="{{ route('blog.home') }}" class="rounded-xl px-4 py-2.5 hover:bg-indigo-50 hover:text-indigo-700">Beranda</a>
+                    @foreach (($navCategories ?? collect()) as $c)
+                        <a href="{{ route('blog.category', $c->slug) }}" class="rounded-xl px-4 py-2.5 hover:bg-indigo-50 hover:text-indigo-700">{{ $c->name }}</a>
+                    @endforeach
+                    <a href="https://mooda.id" class="mt-2 text-center bg-indigo-600 text-white rounded-xl px-4 py-2.5">Coba Mooda gratis</a>
+                </div>
+            </div>
         </div>
     </header>
 
-    <main class="max-w-5xl mx-auto px-4 py-10 min-h-[60vh]">
+    {{-- ===================== KONTEN ===================== --}}
+    <main class="flex-1 w-full">
         @yield('content')
     </main>
 
-    <footer class="border-t border-slate-100 mt-16">
-        <div class="max-w-5xl mx-auto px-4 py-8 text-sm text-slate-500 flex flex-wrap items-center justify-between gap-3">
-            <span>&copy; {{ date('Y') }} Mooda — Aplikasi Kasir &amp; POS Restoran, Cafe &amp; Warung</span>
-            <a href="https://mooda.id" class="hover:text-emerald-600 font-semibold">mooda.id</a>
+    {{-- ===================== FOOTER ===================== --}}
+    <footer class="mt-20 bg-slate-950 text-slate-300">
+        <div class="h-1 bg-gradient-to-r from-indigo-500 to-emerald-500"></div>
+        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-14">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+                <div class="sm:col-span-2 lg:col-span-1">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="grid place-items-center w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white font-black">M</span>
+                        <span class="font-extrabold text-lg text-white">Mooda <span class="text-indigo-400">Blog</span></span>
+                    </div>
+                    <p class="text-sm leading-relaxed text-slate-400">Wawasan & tips praktis mengembangkan bisnis Anda di era digital — dari operasional sampai memilih produk digital yang tepat.</p>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-4 text-sm uppercase tracking-wide">Kategori</h4>
+                    <ul class="space-y-2.5 text-sm">
+                        @forelse (($navCategories ?? collect())->take(6) as $c)
+                            <li><a href="{{ route('blog.category', $c->slug) }}" class="hover:text-indigo-400 transition">{{ $c->name }}</a></li>
+                        @empty
+                            <li class="text-slate-500">—</li>
+                        @endforelse
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-4 text-sm uppercase tracking-wide">Navigasi</h4>
+                    <ul class="space-y-2.5 text-sm">
+                        <li><a href="{{ route('blog.home') }}" class="hover:text-indigo-400 transition">Semua Artikel</a></li>
+                        <li><a href="https://mooda.id" class="hover:text-indigo-400 transition">Tentang Mooda</a></li>
+                        <li><a href="https://mooda.id" class="hover:text-indigo-400 transition">Produk & Harga</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-4 text-sm uppercase tracking-wide">Mulai sekarang</h4>
+                    <p class="text-sm text-slate-400 mb-4">Digitalkan & kelola bisnis Anda lebih rapi bersama Mooda.</p>
+                    <a href="https://mooda.id" class="inline-flex bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl px-5 py-2.5 transition">Coba gratis</a>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-white/10">
+            <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-400">
+                <span>&copy; {{ date('Y') }} Mooda — Produk Digital untuk Bisnis Anda</span>
+                <a href="https://mooda.id" class="font-semibold text-slate-300 hover:text-indigo-400">mooda.id</a>
+            </div>
         </div>
     </footer>
+
+    <script>
+        (function () {
+            var btn = document.getElementById('navToggle');
+            var menu = document.getElementById('navMobile');
+            if (btn && menu) btn.addEventListener('click', function () { menu.classList.toggle('hidden'); });
+        })();
+    </script>
 </body>
 </html>

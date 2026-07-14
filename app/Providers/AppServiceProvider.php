@@ -39,6 +39,14 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasRole('Superadmin') ? true : null;
         });
 
+        // Blog publik (blog.mooda.id): daftar kategori untuk navbar & footer (1 query/halaman).
+        View::composer('blog.layout', function ($view) {
+            $view->with('navCategories', \App\Models\Blog\Category::query()
+                ->whereHas('posts', fn ($q) => $q->published())
+                ->withCount(['posts as published_count' => fn ($q) => $q->published()])
+                ->orderByDesc('published_count')->orderBy('name')->get());
+        });
+
         // Bagikan tenant aktif + status langganan ke semua view backend (untuk banner billing & gating menu)
         View::composer('backend.*', function ($view) {
             $tenant = null;

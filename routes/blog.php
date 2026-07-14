@@ -13,6 +13,12 @@ use Illuminate\Support\Facades\Route;
 | tertangkap sebagai slug.
 */
 
+// Panel ADMIN & login TIDAK dilayani di subdomain blog (blog = situs baca publik saja).
+// Alihkan /admin* ke domain utama mooda.id agar admin tak diakses via host blog
+// (host blog ber-WAF DetectionOnly). Didaftarkan SEBELUM '/{slug}'.
+Route::any('admin/{any?}', fn () => redirect()->away('https://mooda.id/' . request()->path()))
+    ->where('any', '.*');
+
 Route::get('/', [PublicController::class, 'index'])->name('blog.home');
 Route::get('/sitemap.xml', [PublicController::class, 'sitemap'])->name('blog.sitemap');
 Route::get('/kategori/{slug}', [PublicController::class, 'category'])->name('blog.category');
