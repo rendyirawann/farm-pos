@@ -42,6 +42,12 @@ use App\Http\Controllers\Backend\Superadmin\DepositSettingController;
 |--------------------------------------------------------------------------
 */
 
+// ===== Subdomain: Blog (blog.mooda.id) & Affiliate (affiliate.mooda.id) =====
+// Dilayani app yang sama via Octane. Didaftarkan SEBELUM route '/' landing agar
+// request ke host subdomain diprioritaskan; mooda.id sendiri tetap ke landing.
+Route::domain('blog.mooda.id')->group(base_path('routes/blog.php'));
+Route::domain('affiliate.mooda.id')->group(base_path('routes/affiliate.php'));
+
 // Halaman Depan: Landing Page SaaS
 Route::get('/', function () {
     return view('landing');
