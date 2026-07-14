@@ -48,6 +48,11 @@ use App\Http\Controllers\Backend\Superadmin\DepositSettingController;
 Route::domain('blog.mooda.id')->group(base_path('routes/blog.php'));
 Route::domain('affiliate.mooda.id')->group(base_path('routes/affiliate.php'));
 
+// Modul BLOG — ADMIN (host utama, /admin/blog*). File route terpisah, khusus
+// Superadmin (can:blog.manage). Bukan fitur tenant -> TANPA 'subscribed'.
+Route::middleware(['auth', 'forbid-banned-user', 'can:blog.manage'])
+    ->group(base_path('routes/blog_admin.php'));
+
 // Halaman Depan: Landing Page SaaS
 Route::get('/', function () {
     return view('landing');

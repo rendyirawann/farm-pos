@@ -30,6 +30,7 @@ class RolePermissionSeeder extends Seeder
             'view_help',
             'view_billing',   // Langganan (untuk owner/admin tenant)
             'view_tenants',   // Manajemen tenant (khusus Superadmin)
+            'blog.manage',    // Kelola blog marketing (khusus Superadmin, bukan per-tenant)
         ];
 
         // --- Granular User Management ---

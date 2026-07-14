@@ -1,19 +1,19 @@
 <?php
 
+use App\Http\Controllers\Blog\PublicController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Subdomain BLOG — blog.mooda.id
+| Subdomain BLOG — PUBLIK (blog.mooda.id)
 |--------------------------------------------------------------------------
-| Dilayani oleh app yang sama via Octane (bukan stack terpisah).
-| Sementara: halaman "segera hadir". Modul blog menyusul
-| (posts, kategori/tag, admin CRUD, halaman publik list+detail, SEO/sitemap).
+| Dilayani app yang sama via Octane. Hanya menampilkan artikel PUBLISHED.
+| Route admin (kelola artikel) ada di routes/blog_admin.php.
+| Catatan urutan: route spesifik didaftarkan SEBELUM '/{slug}' agar tidak
+| tertangkap sebagai slug.
 */
 
-Route::get('/', fn () => view('subdomain.coming-soon', [
-    'brand'     => 'Blog Mooda',
-    'tagline'   => 'Tips, panduan, & cerita seputar bisnis kuliner dan sistem kasir.',
-    'icon'      => '📝',
-    'subdomain' => 'blog.mooda.id',
-]))->name('blog.home');
+Route::get('/', [PublicController::class, 'index'])->name('blog.home');
+Route::get('/sitemap.xml', [PublicController::class, 'sitemap'])->name('blog.sitemap');
+Route::get('/kategori/{slug}', [PublicController::class, 'category'])->name('blog.category');
+Route::get('/{slug}', [PublicController::class, 'show'])->name('blog.show');
