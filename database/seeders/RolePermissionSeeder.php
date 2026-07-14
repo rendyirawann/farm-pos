@@ -75,10 +75,17 @@ class RolePermissionSeeder extends Seeder
             'shift.reopen',   // buka kembali shift yg tak sengaja ditutup (OWNER/ADMIN — koreksi)
         ];
 
+        // --- Affiliate (program referral) ---
+        $affiliatePermissions = [
+            'affiliate.manage', // kelola program afiliasi (khusus Superadmin, di admin mooda.id)
+            'affiliate.portal', // akses portal afiliator (role 'affiliate' eksternal di affiliate.mooda.id)
+        ];
+
         // Create all permissions
         $allPermissions = array_merge(
             $navPermissions, $userPermissions, $rolePermissions,
-            $masterPermissions, $reportPermissions, $orderPermissions
+            $masterPermissions, $reportPermissions, $orderPermissions,
+            $affiliatePermissions
         );
 
         foreach ($allPermissions as $permission) {
@@ -93,6 +100,7 @@ class RolePermissionSeeder extends Seeder
         $roleAdmin      = Role::firstOrCreate(['name' => 'admin']);
         $roleKasir      = Role::firstOrCreate(['name' => 'kasir']);
         $roleKitchen    = Role::firstOrCreate(['name' => 'kitchen']);
+        $roleAffiliate  = Role::firstOrCreate(['name' => 'affiliate']); // afiliator eksternal (portal)
 
         // ================================================
         // 3. ASSIGN PERMISSIONS TO ROLES
@@ -165,5 +173,8 @@ class RolePermissionSeeder extends Seeder
             'view_kitchen',
         ];
         $roleKitchen->syncPermissions($kitchenPermissions);
+
+        // AFFILIATE — afiliator eksternal (portal affiliate.mooda.id). Hanya akses portal sendiri.
+        $roleAffiliate->syncPermissions(['affiliate.portal']);
     }
 }

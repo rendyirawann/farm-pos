@@ -53,6 +53,10 @@ Route::domain('affiliate.mooda.id')->group(base_path('routes/affiliate.php'));
 Route::middleware(['auth', 'forbid-banned-user', 'can:blog.manage'])
     ->group(base_path('routes/blog_admin.php'));
 
+// Modul AFFILIATE — ADMIN (host utama, /admin/affiliates*). Khusus Superadmin.
+Route::middleware(['auth', 'forbid-banned-user', 'can:affiliate.manage'])
+    ->group(base_path('routes/affiliate_admin.php'));
+
 // Halaman Depan: Landing Page SaaS
 Route::get('/', function () {
     return view('landing');

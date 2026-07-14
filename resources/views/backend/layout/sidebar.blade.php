@@ -315,6 +315,11 @@
                             <i class="ki-outline ki-category fs-3 me-2"></i> Kategori Blog
                         </a>
                     @endcan
+                    @can('affiliate.manage')
+                        <a href="{{ route('affiliates.index') }}" class="btn btn-flex btn-light-success fw-bold justify-content-start">
+                            <i class="ki-outline ki-share fs-3 me-2"></i> Affiliate
+                        </a>
+                    @endcan
                     @can('view_resources')
                         <a href="{{ route('users.index') }}" class="btn btn-flex btn-light fw-bold justify-content-start">
                             <i class="ki-outline ki-people fs-3 me-2"></i> User Management

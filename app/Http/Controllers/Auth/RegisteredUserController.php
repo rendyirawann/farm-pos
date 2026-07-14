@@ -74,6 +74,9 @@ class RegisteredUserController extends Controller
             $user->assignRole('owner');
             $tenant->update(['owner_id' => $user->id]);
 
+            // Catat referral bila tenant daftar lewat kode afiliator (cookie mooda_ref).
+            $this->attachReferral($tenant, $request);
+
             return $user;
         });
 
@@ -84,6 +87,31 @@ class RegisteredUserController extends Controller
         // Arahkan ke halaman billing: wajib berlangganan dulu sebelum memakai fitur.
         return redirect()->route('billing.index')
             ->with('warning', 'Akun & data bisnis Anda berhasil dibuat. Silakan pilih paket & lakukan pembayaran untuk mengaktifkan sistem.');
+    }
+
+    /** Catat pemakaian kode referral (cookie mooda_ref) oleh tenant yang baru daftar. */
+    private function attachReferral(Tenant $tenant, Request $request): void
+    {
+        try {
+            $code = $request->cookie(config('affiliate.cookie_name', 'mooda_ref'));
+            if (! $code) {
+                return;
+            }
+            $affiliate = \App\Models\Affiliate::where('code', $code)->first();
+            if (! $affiliate) {
+                return;
+            }
+            \App\Models\Referral::firstOrCreate(
+                ['tenant_id' => $tenant->id],
+                [
+                    'affiliate_id' => $affiliate->id,
+                    'tenant_name'  => $tenant->name,
+                    'status'       => 'signup',
+                ]
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('attachReferral gagal: ' . $e->getMessage());
+        }
     }
 
     private function uniqueSlug(string $name): string
