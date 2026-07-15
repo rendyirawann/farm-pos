@@ -13,6 +13,7 @@ License: Proprietary - Mooda System
     <base href="{{ url('/') }}/" />
     <title>@yield('title')</title>
     <meta charset="utf-8" />
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
     <meta name="description" content="Mooda - Dashboard Manajemen Restoran Berbasis Awan." />
     <meta name="keywords" content="dashboard pos, admin mooda, manajemen restoran, laporan penjualan" />
     <meta name="author" content="Rendy Irawan" />
@@ -249,6 +250,14 @@ License: Proprietary - Mooda System
     </script>
     <script src="{{ asset('assets/plugins/global/plugins.bundle.js') }}"></script>
     <script src="{{ asset('assets/js/scripts.bundle.js') }}"></script>
+    {{-- CSRF untuk SEMUA AJAX via header X-CSRF-TOKEN (cara resmi Laravel).
+         Penting: request DELETE/PUT dgn _token di body TIDAK dibaca Laravel -> 419;
+         header ini membuat tombol Hapus/Edit (DELETE/PUT) lolos CSRF di semua halaman. --}}
+    <script>
+        if (window.jQuery) {
+            jQuery.ajaxSetup({ headers: { 'X-CSRF-TOKEN': jQuery('meta[name="csrf-token"]').attr('content') } });
+        }
+    </script>
     {{-- fullcalendar dihapus: tidak dipakai di halaman mana pun. --}}
     {{-- datatables.bundle.js (2.4MB) kini di-load PER-HALAMAN via @push('scripts')
          hanya di halaman tabel — Kasir/Dapur/Dashboard tak lagi memuatnya. --}}
