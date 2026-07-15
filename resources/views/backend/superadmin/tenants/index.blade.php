@@ -131,6 +131,43 @@
                         });
                     });
                 });
+
+                // RESET DATA tenant (Superadmin) — konfirmasi ketik nama tenant.
+                $(document).on('click', '.btn-reset-tenant', function () {
+                    const id = $(this).data('id');
+                    const name = $(this).data('name');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Reset data tenant?',
+                        html: 'Semua <b>data operasional</b> tenant <b>' + $('<div>').text(name).html() + '</b> — pesanan, menu, kategori, promo, shift, pengeluaran, target, meja — akan <b>dihapus permanen</b> agar bersih.<br><span class="text-muted fs-8">Akun user, langganan, & setelan toko TETAP dipertahankan.</span><br><br>Ketik nama tenant untuk konfirmasi:',
+                        input: 'text',
+                        inputPlaceholder: name,
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, Reset Data',
+                        cancelButtonText: 'Batal',
+                        buttonsStyling: false,
+                        customClass: { confirmButton: 'btn btn-danger', cancelButton: 'btn btn-light' },
+                        preConfirm: (val) => {
+                            if ((val || '').trim() !== name) { Swal.showValidationMessage('Nama tenant tidak cocok.'); return false; }
+                            return val;
+                        }
+                    }).then((r) => {
+                        if (!r.isConfirmed) return;
+                        $.ajax({
+                            url: "{{ url('admin/tenants') }}/" + id + "/reset-data",
+                            method: 'POST',
+                            data: { confirm: name, _token: '{{ csrf_token() }}' },
+                            success: function (res) {
+                                table.ajax.reload(null, false);
+                                Swal.fire({ icon: 'success', title: 'Direset', text: (res && res.success) || 'Data tenant berhasil direset.', timer: 3000, showConfirmButton: false });
+                            },
+                            error: function (xhr) {
+                                const msg = (xhr.responseJSON && (xhr.responseJSON.error || xhr.responseJSON.message)) || 'Gagal reset data.';
+                                Swal.fire('Gagal', msg, 'error');
+                            }
+                        });
+                    });
+                });
             });
         </script>
     @endpush

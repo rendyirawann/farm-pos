@@ -144,6 +144,7 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         Route::post('/admin/tenants/{id}/users', [TenantController::class, 'storeUser'])->name('tenants.users.store');
         Route::get('/admin/tenants/{id}', [TenantController::class, 'show'])->name('tenants.show');
         Route::post('/admin/tenants/{id}/toggle-active', [TenantController::class, 'toggleActive'])->name('tenants.toggle-active');
+        Route::post('/admin/tenants/{id}/reset-data', [TenantController::class, 'resetData'])->name('tenants.reset-data');
         Route::post('/admin/tenants/{id}/subscription', [TenantController::class, 'updateSubscription'])->name('tenants.subscription.update');
         Route::delete('/admin/tenants/{id}', [TenantController::class, 'destroy'])->name('tenants.destroy');
 
@@ -211,6 +212,7 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         Route::get('/admin/menus/template', [MenuController::class, 'downloadTemplate'])->name('menus.template');
         Route::post('/admin/menus/import', [MenuController::class, 'importCsv'])->name('menus.import');
 
+        Route::post('/admin/menus/mass-delete', [MenuController::class, 'massDestroy'])->name('menus.mass-delete');
         Route::resource('/admin/menus', MenuController::class);
         Route::get('/admin/get-datamenus', [MenuController::class, 'getDataMenus'])->name('get-datamenus');
         // Add-ons per menu (untuk form kelola & untuk kasir)

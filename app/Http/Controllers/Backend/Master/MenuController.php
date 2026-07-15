@@ -26,6 +26,7 @@ class MenuController extends Controller
 
             return DataTables::of($data)
                 ->addIndexColumn()
+                ->addColumn('checkbox', fn ($row) => '<input type="checkbox" class="form-check-input row-check" value="' . $row->id . '">')
                 ->addColumn('image_view', function ($row) {
                     $imgUrl = $row->image ? asset('storage/menus/' . $row->image) : asset('assets/media/svg/files/blank-image.svg');
                     return '<div class="symbol symbol-50px"><img src="' . $imgUrl . '" alt="foto" style="object-fit:cover;"/></div>';
@@ -57,7 +58,7 @@ class MenuController extends Controller
                     $btn .= '<button class="btn btn-sm btn-icon btn-light-danger btn-delete" data-id="' . $row->id . '" data-name="' . $row->name . '" title="Hapus"><i class="ki-outline ki-trash fs-4"></i></button>';
                     return $btn;
                 })
-                ->rawColumns(['image_view', 'menu_info', 'price_format', 'status_badge', 'action'])
+                ->rawColumns(['checkbox', 'image_view', 'menu_info', 'price_format', 'status_badge', 'action'])
                 ->make(true);
         }
     }
@@ -182,6 +183,33 @@ class MenuController extends Controller
         }
         $menu->delete();
         return response()->json(['success' => 'Menu berhasil dihapus!']);
+    }
+
+    /** Hapus banyak menu sekaligus (batch). POST -> aman dari blokir metode WAF. */
+    public function massDestroy(Request $request)
+    {
+        abort_unless(auth()->user()->can('menu.delete'), 403);
+
+        $ids = array_filter((array) $request->input('ids', []));
+        if (empty($ids)) {
+            return response()->json(['error' => 'Tidak ada menu yang dipilih.'], 422);
+        }
+
+        try {
+            \DB::beginTransaction();
+            $menus = Menu::whereIn('id', $ids)->get(); // ter-scope per tenant
+            foreach ($menus as $menu) {
+                if ($menu->image && Storage::disk('public')->exists('menus/' . $menu->image)) {
+                    Storage::disk('public')->delete('menus/' . $menu->image);
+                }
+                $menu->delete();
+            }
+            \DB::commit();
+            return response()->json(['success' => $menus->count() . ' menu berhasil dihapus.']);
+        } catch (\Throwable $e) {
+            \DB::rollBack();
+            return response()->json(['error' => 'Gagal menghapus: ' . $e->getMessage()], 500);
+        }
     }
 
     // ============================================================

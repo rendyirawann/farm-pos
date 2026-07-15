@@ -71,7 +71,8 @@ class TenantController extends Controller
                     $html = '<div class="d-flex gap-2 flex-wrap">'
                         . '<a href="' . route('tenants.show', $row->id) . '" class="btn btn-sm btn-light-primary">Detail</a>'
                         . '<a href="' . route('tenants.edit', $row->id) . '" class="btn btn-sm btn-light-info">Edit</a>'
-                        . '<button class="btn btn-sm btn-light-' . $toggleColor . ' btn-toggle-active" data-id="' . $row->id . '">' . $toggleLabel . '</button>';
+                        . '<button class="btn btn-sm btn-light-' . $toggleColor . ' btn-toggle-active" data-id="' . $row->id . '">' . $toggleLabel . '</button>'
+                        . '<button class="btn btn-sm btn-light-danger btn-reset-tenant" data-id="' . $row->id . '" data-name="' . e($row->name) . '" title="Hapus semua data operasional tenant"><i class="ki-outline ki-eraser fs-5"></i> Reset Data</button>';
                     if (! $row->is_active) {
                         $html .= '<button class="btn btn-sm btn-light-danger btn-delete-tenant" data-id="' . $row->id . '" data-name="' . e($row->name) . '">Hapus</button>';
                     }
@@ -327,6 +328,57 @@ class TenantController extends Controller
         }
 
         return back()->with('success', 'Langganan tenant diperbarui.');
+    }
+
+    /**
+     * RESET DATA tenant (KHUSUS SUPERADMIN): hapus semua data OPERASIONAL tenant terpilih
+     * (pesanan, menu, kategori, promo, shift, pengeluaran, target, meja) agar bersih.
+     * TETAP dipertahankan: akun user, langganan, deposit, & setelan toko.
+     * Konfirmasi nama tenant wajib cocok (double-check destruktif).
+     */
+    public function resetData(Request $request, $id)
+    {
+        abort_unless(Auth::user()->isSuperadmin(), 403);
+
+        $tenant = Tenant::findOrFail($id);
+
+        if (trim((string) $request->input('confirm')) !== $tenant->name) {
+            return response()->json(['error' => 'Konfirmasi nama tenant tidak cocok. Reset dibatalkan.'], 422);
+        }
+
+        // order_details & menu_addons ikut terhapus otomatis (FK CASCADE).
+        // Urutan: hapus menus SEBELUM categories (FK menus.category_id).
+        $tables = ['orders', 'menus', 'categories', 'promos', 'shifts', 'expenses', 'daily_sales_targets', 'dining_tables'];
+
+        try {
+            DB::beginTransaction();
+
+            // Hapus file gambar menu dari storage.
+            $imgs = DB::table('menus')->where('tenant_id', $id)->whereNotNull('image')->pluck('image');
+            foreach ($imgs as $im) {
+                if (\Illuminate\Support\Facades\Storage::disk('public')->exists('menus/' . $im)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete('menus/' . $im);
+                }
+            }
+
+            $deleted = [];
+            foreach ($tables as $tbl) {
+                if (\Illuminate\Support\Facades\Schema::hasTable($tbl) && \Illuminate\Support\Facades\Schema::hasColumn($tbl, 'tenant_id')) {
+                    $deleted[$tbl] = DB::table($tbl)->where('tenant_id', $id)->delete();
+                }
+            }
+
+            DB::commit();
+
+            activity()->useLog('tenant')->causedBy(Auth::user())->performedOn($tenant)
+                ->withProperties(['tenant' => $tenant->name, 'deleted' => $deleted])
+                ->log('RESET DATA tenant: ' . $tenant->name);
+
+            return response()->json(['success' => 'Data tenant "' . $tenant->name . '" berhasil direset (bersih). Akun, langganan, & setelan tetap.']);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Gagal reset: ' . $e->getMessage()], 500);
+        }
     }
 
     public function destroy($id)

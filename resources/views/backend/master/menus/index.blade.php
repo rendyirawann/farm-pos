@@ -28,6 +28,11 @@
                                 <i class="ki-outline ki-file-up fs-3"></i> Import CSV
                             </button>
                         @endcan
+                        @can('menu.delete')
+                            <button type="button" class="btn btn-sm btn-light-danger d-none" id="btn-bulk-delete">
+                                <i class="ki-outline ki-trash fs-3"></i> Hapus Terpilih (<span id="bulk-count">0</span>)
+                            </button>
+                        @endcan
                         <button type="button" class="btn btn-sm btn-primary" id="btn_tambah_data">
                             <i class="ki-outline ki-plus fs-2"></i> Tambah Menu
                         </button>
@@ -37,6 +42,7 @@
                     <table class="table align-middle table-row-dashed fs-6 gy-5" id="table-menus">
                         <thead>
                             <tr class="text-start text-gray-400 fw-bold fs-7 text-uppercase gs-0">
+                                <th class="w-30px pe-2"><input type="checkbox" id="check-all" class="form-check-input" /></th>
                                 <th class="w-10px pe-2">No</th>
                                 <th class="min-w-50px">Foto</th>
                                 <th class="min-w-200px">Nama Menu & Kategori</th>
@@ -260,6 +266,12 @@
                     serverSide: true,
                     ajax: "{{ route('get-datamenus') }}",
                     columns: [{
+                            data: 'checkbox',
+                            name: 'checkbox',
+                            orderable: false,
+                            searchable: false
+                        },
+                        {
                             data: 'DT_RowIndex',
                             name: 'DT_RowIndex',
                             orderable: false,
@@ -296,6 +308,40 @@
 
                 $('#search').on('keyup', function() {
                     table.search(this.value).draw();
+                });
+
+                // ===== Batch delete (hapus terpilih) — POST, aman dari blokir metode WAF =====
+                function updateBulk() {
+                    var n = $('.row-check:checked').length;
+                    $('#bulk-count').text(n);
+                    $('#btn-bulk-delete').toggleClass('d-none', n === 0);
+                }
+                $('body').on('change', '#check-all', function() {
+                    $('.row-check').prop('checked', this.checked);
+                    updateBulk();
+                });
+                $('body').on('change', '.row-check', updateBulk);
+                table.on('draw', function() { $('#check-all').prop('checked', false); updateBulk(); });
+
+                $('#btn-bulk-delete').on('click', function() {
+                    var ids = $('.row-check:checked').map(function() { return this.value; }).get();
+                    if (!ids.length) return;
+                    Swal.fire({
+                        title: 'Hapus ' + ids.length + ' menu?',
+                        text: 'Menu terpilih akan dihapus permanen.',
+                        icon: 'warning', showCancelButton: true,
+                        confirmButtonText: 'Ya, Hapus!', cancelButtonText: 'Batal',
+                        customClass: { confirmButton: 'btn btn-danger', cancelButton: 'btn btn-secondary' }
+                    }).then(function(r) {
+                        if (!r.isConfirmed) return;
+                        $.ajax({
+                            url: "{{ route('menus.mass-delete') }}",
+                            type: 'POST',
+                            data: { ids: ids, _token: $('meta[name="csrf-token"]').attr('content') },
+                            success: function(res) { table.ajax.reload(); updateBulk(); Swal.fire('Terhapus!', res.success, 'success'); },
+                            error: function(xhr) { Swal.fire('Gagal', (xhr.responseJSON && xhr.responseJSON.error) || 'Gagal menghapus.', 'error'); }
+                        });
+                    });
                 });
 
                 // Buka Modal Tambah
