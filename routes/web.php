@@ -57,6 +57,12 @@ Route::middleware(['auth', 'forbid-banned-user', 'can:blog.manage'])
 Route::middleware(['auth', 'forbid-banned-user', 'can:affiliate.manage'])
     ->group(base_path('routes/affiliate_admin.php'));
 
+// Program Affiliate untuk OWNER tenant (gabung + dashboard di dalam POS mooda.id/admin).
+Route::middleware(['auth', 'forbid-banned-user', 'can:affiliate.refer'])->group(function () {
+    Route::get('/admin/affiliate-saya', [\App\Http\Controllers\Backend\Affiliate\MyAffiliateController::class, 'index'])->name('affiliate.my');
+    Route::post('/admin/affiliate-saya/join', [\App\Http\Controllers\Backend\Affiliate\MyAffiliateController::class, 'join'])->name('affiliate.my.join');
+});
+
 // Halaman Depan: Landing Page SaaS
 Route::get('/', function () {
     return view('landing');

@@ -79,6 +79,7 @@ class RolePermissionSeeder extends Seeder
         $affiliatePermissions = [
             'affiliate.manage', // kelola program afiliasi (khusus Superadmin, di admin mooda.id)
             'affiliate.portal', // akses portal afiliator (role 'affiliate' eksternal di affiliate.mooda.id)
+            'affiliate.refer',  // owner tenant gabung + lihat dashboard afiliasi dari dalam POS
         ];
 
         // Create all permissions
@@ -127,6 +128,8 @@ class RolePermissionSeeder extends Seeder
             'order.delete', 'sales.clear', 'sales.target',
             // Tandai pesanan salah di tab Selesai (owner juga boleh).
             'order.void',
+            // Gabung program affiliate + lihat dashboard referral dari dalam POS.
+            'affiliate.refer',
             // Owner LIHAT-SAJA shift (tak buka/tutup), tapi boleh membuka kembali shift kasir
             // yang tak sengaja ditutup (koreksi supervisor).
             'shift.reopen',

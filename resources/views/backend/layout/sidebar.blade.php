@@ -294,6 +294,17 @@
                     </div>
                     @endcan
 
+                    {{-- PROGRAM AFFILIATE: owner tenant (gabung + dashboard referral) --}}
+                    @can('affiliate.refer')
+                    <div class="col mb-4">
+                        <a href="{{ route('affiliate.my') }}"
+                            class="btn btn-icon btn-outline btn-bg-light btn-active-light-success btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200">
+                            <span class="mb-2"><i class="ki-outline ki-share fs-2x text-success"></i></span>
+                            <span class="fs-7 fw-bold">Affiliate</span>
+                        </a>
+                    </div>
+                    @endcan
+
                 </div>{{-- END .row --}}
             </div>{{-- END .mb-6 --}}
             @else
