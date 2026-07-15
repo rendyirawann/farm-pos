@@ -113,6 +113,14 @@
                                 class="form-control bg-transparent" placeholder="Ulangi password" />
                         </div>
 
+                        {{-- Kode Referral (opsional) — terisi otomatis dari link referral, atau isi manual --}}
+                        <div class="fv-row mb-6">
+                            <label class="form-label fw-semibold">Kode Referral <span class="text-muted fw-normal">(opsional)</span></label>
+                            <input type="text" name="ref" value="{{ old('ref', $ref ?? '') }}"
+                                class="form-control bg-transparent text-uppercase" placeholder="cth: RENDYENKW" style="text-transform:uppercase" />
+                            <div class="form-text">Punya kode dari teman/affiliate? Isi di sini. Otomatis terisi bila Anda datang lewat link referral.</div>
+                        </div>
+
                         <div class="d-grid mb-6">
                             <button type="submit" class="btn btn-primary">
                                 Daftar &amp; Lanjut Bayar

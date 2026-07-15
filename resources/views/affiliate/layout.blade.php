@@ -16,7 +16,7 @@
     @php($isAff = auth()->check() && auth()->user()->hasRole('affiliate'))
 
     <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-100">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between gap-4">
             <a href="{{ route('affiliate.home') }}" class="flex items-center gap-2">
                 <span class="grid place-items-center w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white font-black text-lg shadow-lg shadow-indigo-500/25">M</span>
                 <span class="font-extrabold text-lg text-slate-900">Mooda <span class="text-indigo-600">Affiliate</span></span>
@@ -41,7 +41,7 @@
 
     <footer class="mt-20 bg-slate-950 text-slate-300">
         <div class="h-1 bg-gradient-to-r from-indigo-500 to-emerald-500"></div>
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
             <div class="flex items-center gap-2">
                 <span class="grid place-items-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-500 text-white font-black">M</span>
                 <span class="font-bold text-white">Mooda Affiliate</span>

@@ -4,7 +4,7 @@
 @php($rupiah = fn ($n) => 'Rp ' . number_format((float) $n, 0, ',', '.'))
 
 @section('content')
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-10">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-8">
             <div>
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Halo, {{ auth()->user()->name }} 👋</h1>

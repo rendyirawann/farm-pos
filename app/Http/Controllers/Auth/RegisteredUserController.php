@@ -20,9 +20,11 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('auth.register');
+        // Pra-isi kode referral dari ?ref= atau cookie (bila datang lewat link referral).
+        $ref = $request->query('ref') ?: $request->cookie(config('affiliate.cookie_name', 'mooda_ref'));
+        return view('auth.register', ['ref' => $ref]);
     }
 
     /**
@@ -93,11 +95,12 @@ class RegisteredUserController extends Controller
     private function attachReferral(Tenant $tenant, Request $request): void
     {
         try {
-            $code = $request->cookie(config('affiliate.cookie_name', 'mooda_ref'));
-            if (! $code) {
+            // Prioritas: kode yang diketik/terisi di form; fallback ke cookie link referral.
+            $code = trim((string) ($request->input('ref') ?: $request->cookie(config('affiliate.cookie_name', 'mooda_ref'))));
+            if ($code === '') {
                 return;
             }
-            $affiliate = \App\Models\Affiliate::where('code', $code)->first();
+            $affiliate = \App\Models\Affiliate::whereRaw('UPPER(code) = ?', [strtoupper($code)])->first();
             if (! $affiliate) {
                 return;
             }
