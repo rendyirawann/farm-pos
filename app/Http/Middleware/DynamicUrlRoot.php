@@ -21,14 +21,15 @@ class DynamicUrlRoot
     public function handle(Request $request, Closure $next): Response
     {
         if (config('app.env') === 'production') {
-            $host = $request->getHost();
-            $isPrimary = $host === 'mooda.id' || str_ends_with($host, '.mooda.id');
+            // Host produksi utama (domain hidup): kunci ke APP_URL + https.
+            $primaryHosts = ['mooda.id', 'www.mooda.id', 'blog.mooda.id', 'affiliate.mooda.id'];
 
-            if ($isPrimary) {
+            if (in_array($request->getHost(), $primaryHosts, true)) {
                 URL::forceRootUrl(config('app.url'));
                 URL::forceScheme('https');
             } else {
-                // Akses via IP / host lain -> ikuti permintaan apa adanya.
+                // Host lain (akses via IP, atau alias server lama spt lama.mooda.id):
+                // ikuti host permintaan apa adanya -> link tidak melompat ke mooda.id.
                 URL::forceRootUrl($request->getSchemeAndHttpHost());
                 URL::forceScheme($request->getScheme());
             }
