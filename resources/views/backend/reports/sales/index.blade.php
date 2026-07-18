@@ -86,6 +86,7 @@
                                     <th>Tanggal & Waktu</th>
                                     <th>Invoice</th>
                                     <th>Pelanggan / No. Antrian</th>
+                                    <th>Kasir</th>
                                     <th>Metode</th>
                                     <th class="text-end">Potongan Diskon</th>
                                     <th class="text-end">Total Belanja</th>
@@ -202,6 +203,12 @@
                         {
                             data: 'customer',
                             name: 'customer_name'
+                        },
+                        {
+                            data: 'kasir',
+                            name: 'kasir',
+                            orderable: false,
+                            searchable: false
                         },
                         {
                             data: 'payment_method',

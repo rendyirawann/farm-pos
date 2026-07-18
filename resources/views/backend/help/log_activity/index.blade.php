@@ -123,7 +123,7 @@
                                 <thead>
                                     <tr class="text-start text-muted fw-bold fs-7 text-uppercase gs-0">
                                         <th class="min-w-125px">Log Name</th>
-                                        <th class="min-w-125px">Causer ID</th>
+                                        <th class="min-w-175px">Pengguna (Email &amp; Tenant)</th>
                                         <th class="min-w-125px">Description</th>
                                         <th class="min-w-125px">IP Address</th>
                                         <th class="min-w-125px">Operating System</th>

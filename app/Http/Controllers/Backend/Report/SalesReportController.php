@@ -20,7 +20,7 @@ class SalesReportController extends Controller
     public function getData(Request $request)
     {
         if ($request->ajax()) {
-            $query = Order::with(['promo'])->where('payment_status', 'paid');
+            $query = Order::with(['promo', 'shift.user'])->where('payment_status', 'paid');
 
             // Filter Rentang Tanggal
             if ($request->start_date && $request->end_date) {
@@ -77,6 +77,13 @@ class SalesReportController extends Controller
                 ->addColumn('invoice', function ($row) {
                     return '<span class="fw-bold text-primary">#' . $row->invoice_no . '</span>';
                 })
+                ->addColumn('kasir', function ($row) {
+                    // Kasir = user pemilik shift tempat order dibuat (via shift_id).
+                    $name = $row->shift?->user?->name;
+                    return $name
+                        ? '<span class="badge badge-light-primary">' . e($name) . '</span>'
+                        : '<span class="text-muted">-</span>';
+                })
                 ->addColumn('customer', function ($row) {
                     $queue = $row->queue_number ? ' (No. Antrian ' . $row->queue_number . ')' : '';
                     return e($row->customer_name) . '<br><span class="text-muted fs-8">' . $queue . '</span>';
@@ -119,7 +126,7 @@ class SalesReportController extends Controller
                 ->with('netRevenue', 'Rp ' . number_format($netRevenue, 0, ',', '.'))
                 ->with('voidedCount', number_format($voidedCount, 0, ',', '.'))
                 ->with('voidedAmount', 'Rp ' . number_format($voidedAmount, 0, ',', '.'))
-                ->rawColumns(['invoice', 'customer', 'payment_method', 'discount', 'grand_total', 'status', 'action'])
+                ->rawColumns(['invoice', 'customer', 'kasir', 'payment_method', 'discount', 'grand_total', 'status', 'action'])
                 ->make(true);
         }
     }

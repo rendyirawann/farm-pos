@@ -15,6 +15,7 @@ class Order extends Model
         'uuid',
         'client_txn_id',
         'tenant_id',
+        'shift_id',
         'invoice_no',
         'queue_number',
         'customer_name',
@@ -56,5 +57,26 @@ class Order extends Model
     public function promo()
     {
         return $this->belongsTo(Promo::class);
+    }
+
+    /** Shift kasir yang membuat order ini (laporan penjualan per-kasir + rekonsiliasi laci). */
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
+    /**
+     * Saat order dibuat, tautkan otomatis ke shift kasir yang sedang TERBUKA (per-tenant).
+     * Menggantikan atribusi via created_at yang dobel-hitung antar-shift tumpang-tindih.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function ($order) {
+            if (empty($order->shift_id)) {
+                $order->shift_id = Shift::where('user_id', \Illuminate\Support\Facades\Auth::id())
+                    ->where('status', 'open')
+                    ->value('id');
+            }
+        });
     }
 }

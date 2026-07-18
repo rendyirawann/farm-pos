@@ -51,7 +51,7 @@ class LogActivityController extends Controller implements HasMiddleware
         $user = auth()->user(); // Ambil user yang sedang login
 
         // Query Utama
-        $postsQuery = Activity::with('causer')
+        $postsQuery = Activity::with('causer.tenant')
             ->select('activity_log.*')
             ->orderBy('created_at', 'desc');
 
@@ -77,7 +77,16 @@ class LogActivityController extends Controller implements HasMiddleware
         return DataTables::of($postsQuery)
             ->addIndexColumn()
             ->addColumn('causer_id', function ($data) {
-                return $data->causer->name ?? 'System';
+                // Tampilkan nama + email + tenant pelaku (causer). 'System' bila tak ada causer.
+                if (! $data->causer) {
+                    return '<span class="text-muted">System</span>';
+                }
+                $name   = e($data->causer->name ?? '-');
+                $email  = e($data->causer->email ?? '-');
+                $tenant = e(optional($data->causer->tenant)->name ?? '—');
+                return '<div class="fw-bold">' . $name . '</div>'
+                    . '<div class="text-muted fs-8">' . $email . '</div>'
+                    . '<span class="badge badge-light-info fs-9 mt-1">Tenant: ' . $tenant . '</span>';
             })
             ->addColumn('created_at', function ($data) {
                 return Carbon::parse($data->created_at)

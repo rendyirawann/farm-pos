@@ -12,7 +12,7 @@ class Expense extends Model
 {
     use BelongsToTenant, LogsAllActivity;
 
-    protected $fillable = ['uuid', 'tenant_id', 'date', 'category', 'notes', 'amount', 'user_id'];
+    protected $fillable = ['uuid', 'tenant_id', 'shift_id', 'date', 'category', 'notes', 'amount', 'user_id'];
 
     protected $casts = [
         'date'   => 'date',
@@ -26,12 +26,26 @@ class Expense extends Model
             if (empty($model->uuid)) {
                 $model->uuid = (string) Str::uuid();
             }
+            // Tautkan ke shift kasir yang sedang TERBUKA. Bisa diedit/dikosongkan bila
+            // pengeluaran ini bukan dari laci shift tsb (mis. input susulan / dibayar terpisah)
+            // -> maka tak mengurangi laci shift itu, tapi tetap masuk laporan by `date`.
+            if (empty($model->shift_id)) {
+                $model->shift_id = Shift::where('user_id', \Illuminate\Support\Facades\Auth::id())
+                    ->where('status', 'open')
+                    ->value('id');
+            }
         });
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Shift/laci tempat pengeluaran ini dibebankan (null = tak mengurangi laci mana pun). */
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
     }
 
     /**

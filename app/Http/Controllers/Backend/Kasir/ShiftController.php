@@ -40,18 +40,19 @@ class ShiftController extends Controller
                 // Pendapatan TUNAI (masuk laci) & QRIS (info saja, tidak masuk laci) sejak shift dibuka.
                 $cashSales = Order::where('payment_method', 'cash')
                     ->where('payment_status', 'paid')
-                    ->where('created_at', '>=', $currentShift->start_time)
+                    ->where('shift_id', $currentShift->id)
                     ->whereNull('voided_at') // pesanan salah = refund penuh, tak masuk kas
                     ->sum('grand_total');
 
                 $qrisSales = Order::where('payment_method', 'qris')
                     ->where('payment_status', 'paid')
-                    ->where('created_at', '>=', $currentShift->start_time)
+                    ->where('shift_id', $currentShift->id)
                     ->whereNull('voided_at') // pesanan salah tak dihitung
                     ->sum('grand_total');
 
-                // Pengeluaran diambil dari uang laci -> mengurangi kas fisik.
-                $shiftExpenses = Expense::where('created_at', '>=', $currentShift->start_time)->sum('amount');
+                // Pengeluaran laci: yang dibebankan ke shift ini (shift_id). Entri yang
+                // shift_id-nya dikosongkan (mis. backdated/susulan) tak mengurangi laci.
+                $shiftExpenses = Expense::where('shift_id', $currentShift->id)->sum('amount');
             }
         }
 
@@ -158,7 +159,7 @@ class ShiftController extends Controller
             $shift = Shift::where('user_id', Auth::id())->where('status', 'open')->findOrFail($id);
 
             // 2. Cegat order menggantung KHUSUS shift ini (where(function) agar orWhere tak menabrak filter waktu).
-            $pendingOrders = Order::where('created_at', '>=', $shift->start_time)
+            $pendingOrders = Order::where('shift_id', $shift->id)
                 ->where(function ($query) {
                     $query->whereIn('order_status', ['pending', 'cooking', 'served'])
                         ->orWhere('payment_status', 'unpaid');
@@ -174,12 +175,13 @@ class ShiftController extends Controller
             // Penjualan TUNAI (masuk laci) selama shift ini.
             $cashSales = Order::where('payment_method', 'cash')
                 ->where('payment_status', 'paid')
-                ->where('created_at', '>=', $shift->start_time)
+                ->where('shift_id', $shift->id)
                 ->whereNull('voided_at') // pesanan salah = refund penuh, tak masuk kas laci
                 ->sum('grand_total');
 
-            // Pengeluaran selama shift ini (uang keluar dari laci).
-            $shiftExpenses = Expense::where('created_at', '>=', $shift->start_time)->sum('amount');
+            // Pengeluaran laci shift ini (by shift_id). Entri yang shift_id-nya dikosongkan
+            // (mis. backdated/susulan) tak mengurangi laci -> hanya masuk laporan by date.
+            $shiftExpenses = Expense::where('shift_id', $shift->id)->sum('amount');
 
             // Uang fisik SEHARUSNYA di laci = Modal Laci + Penjualan TUNAI - Pengeluaran.
             // (QRIS tidak masuk laci; konsep anggaran terpisah sudah dihapus -> modal laci menyatu.)
