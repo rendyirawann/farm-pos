@@ -13,12 +13,12 @@
 | | Server LAMA (sumber) | Server BARU (tujuan) |
 |---|---|---|
 | IPv4 (origin) | **187.77.125.157** (Hostinger, Jakarta) | `IP_BARU` (isi) |
-| Domain | mooda.id, www, blog, affiliate — **di belakang Cloudflare (proxied)** | sama (tinggal ubah A record di Cloudflare) |
+| Domain | mooda.id, www, blog, affiliate — **DNS langsung (A record → IP origin)** | sama (ubah A record ke `IP_BARU` di panel DNS/registrar) |
 | OS | Ubuntu 24.04.4 LTS | disarankan sama (Ubuntu 24.04) |
 
-**Sifat migrasi:** angkat-pindah (lift & shift) full-stack: app Laravel + PostgreSQL + Redis + nginx + Octane/RoadRunner + Reverb + 2 payment gateway + konfigurasi security. Karena domain sudah di **Cloudflare**, cutover DNS = cukup ubah **A record di Cloudflare** ke `IP_BARU` (bukan di registrar) → downtime minimal.
+**Sifat migrasi:** angkat-pindah (lift & shift) full-stack: app Laravel + PostgreSQL + Redis + nginx + Octane/RoadRunner + Reverb + 2 payment gateway + konfigurasi security. Cutover DNS = ubah **A record** domain (`mooda.id`, `www`, `blog`, `affiliate`) ke `IP_BARU` di panel DNS/registrar. **Turunkan TTL** jadi 300 detik beberapa jam sebelum cutover agar perpindahan cepat & downtime minimal.
 
-> ⚠️ **PALING KRITIS:** ada **43 file berubah yang BELUM di-commit/push ke git** (seluruh pekerjaan terbaru: integrasi DOKU, logo partner, animasi kasir, deposit, onboarding, dll). **`git clone` akan KETINGGALAN.** Migrasi WAJIB menyalin file dari filesystem server lama (rsync), bukan clone dari GitHub. (Atau: commit + push dulu semua, baru clone — lihat Langkah 3.)
+> ✅ **CATATAN GIT:** seluruh pekerjaan terbaru sudah di-**commit & push** ke `main` (commit `9758f53`, 2026-07-18) — integrasi DOKU, logo partner, animasi kasir, deposit, onboarding, dll. Jadi `git clone` sudah lengkap. **Tapi** file di luar git tetap WAJIB disalin manual: `.env`, kunci `.pem` (DOKU), `vendor/`, `public/build/`, `storage/app/`, gateway payment, dan config server (nginx/WAF/systemd/fail2ban). Cara paling aman & lengkap tetap **rsync filesystem** (lihat Tahap B).
 
 ---
 
@@ -56,11 +56,11 @@
 - **Framework:** Laravel 12 + Octane (RoadRunner). Real-time: Reverb (Echo via `@vite`, channel `orders.{tenantId}`).
 - **Git:** `git@github.com:rendyirawann/stakko-pos.git`, branch `main`, commit terakhir `8153b2f` (2026-07-15). Deploy key SSH di `/root/.ssh/github_deploy`.
 - **Aset build:** `public/build/` (Vite, **gitignored** → wajib ikut disalin ATAU `npm ci && npm run build` di server baru).
-- **`bootstrap/app.php`:** `trustProxies(at:'*')` (wajib di belakang Octane + Cloudflare); CSRF except: `api/subscription-webhook`, `api/doku-webhook`.
+- **`bootstrap/app.php`:** `trustProxies(at:'*')` (wajib karena di belakang Octane/RoadRunner); CSRF except: `api/subscription-webhook`, `api/doku-webhook`.
 
-### ⚠️ Perubahan belum ter-commit (WAJIB ikut pindah)
-43 file M (modified) belum di-commit — antara lain: `BillingController`, `DepositController`, `KasirController`, `TenantController`, `DepositSettingController`, `DepositService`, `config/billing.php`, `config/services.php`, `public/assets/js/mooda-print.js`, banyak blade (kasir, dashboard, menu, kategori, layout, deposit), + **file baru** (belum masuk `git status -M`): `app/Services/Doku/DokuSnap.php`, `app/Models/{DokuVaChannel,SiteOption,PartnerLogo}.php`, controller `DokuChannelController`/`PartnerLogoController`, migration `2026_07_16_*`, view `backend/superadmin/{doku-channels,partner-logos}`, `backend/layout/bare.blade.php`, dll.
-→ **Pilih salah satu:** (a) `git add -A && git commit && git push` dulu lalu clone di server baru, **atau** (b) rsync folder apa adanya (lebih aman & lengkap).
+### ✅ Status git (sudah sinkron)
+Semua pekerjaan terbaru sudah ter-commit & push ke `main` (`9758f53`): integrasi DOKU (`app/Services/Doku/DokuSnap.php`, `DokuChannelController`, `DokuVaChannel`), logo partner (`PartnerLogo`, `SiteOption`, `PartnerLogoController`), animasi kasir, deposit Starter, onboarding, gabung tab Kategori, migration `2026_07_16_*`, dll. Jadi kode aman di GitHub.
+→ Untuk server baru boleh **`git clone`** (kode lengkap), **tapi wajib tetap** salin manual file di luar git (`.env`, `.pem`, `vendor/`, `public/build/`, `storage/app/`, gateway, config server). Rekomendasi: rsync filesystem apa adanya (Tahap B) — paling lengkap.
 
 ---
 
@@ -132,14 +132,14 @@ Izinkan: **80, 443, 2707/tcp**. (Sisanya default deny.)
 
 ---
 
-## 7. 🌐 CLOUDFLARE (penting untuk cutover DNS)
+## 7. 🌐 DNS & SSL (koneksi langsung — TANPA proxy/CDN)
 
-- Domain **mooda.id (+www, blog, affiliate)** sudah di Cloudflare (nameserver Cloudflare: `paige.ns.cloudflare.com`, `valentin.ns.cloudflare.com`). Record web **Proxied (oranye)**.
-- **A record** menunjuk ke origin **187.77.125.157** → saat cutover, **ubah A record ini ke `IP_BARU`** di dashboard Cloudflare (bukan di Rumahweb).
-- SSL/TLS mode: **Full (strict)**.
-- **Real-IP nginx:** `/etc/nginx/conf.d/00-cloudflare-realip.conf` (22 rentang IP Cloudflare + `real_ip_header CF-Connecting-IP`) — WAJIB ikut disalin, kalau tidak semua trafik tampak dari IP Cloudflare (WAF/fail2ban/log salah).
-- MX/email `mooda.id` = **Titan** (`mx1/mx2.titan.email`, DNS-only) — DNS di Cloudflare, **tak terpengaruh** migrasi server (email tak di server ini).
-- SSL origin: certbot Let's Encrypt (`mooda.id` + 3 subdomain, expiry 2026-10-12). Di server baru: bisa terbitkan certbot baru, ATAU pakai **Cloudflare Origin Certificate** (lebih simpel di belakang CF).
+- Domain **mooda.id (+www, blog, affiliate)** memakai **A record langsung** ke IP server (saat ini `187.77.125.157`). DNS dikelola di panel registrar (Rumahweb).
+- **Cutover:** ubah **A record** keempat host tersebut → `IP_BARU`. Turunkan **TTL ke 300 detik** beberapa jam sebelum cutover supaya propagasi cepat.
+- **SSL origin:** certbot Let's Encrypt (`mooda.id` + 3 subdomain, expiry 2026-10-12). Di server baru terbitkan sertifikat baru:
+  `sudo certbot --nginx -d mooda.id -d www.mooda.id -d blog.mooda.id -d affiliate.mooda.id` (setelah A record menunjuk ke IP_BARU).
+- **Karena tanpa proxy/CDN**, nginx melihat langsung IP asli pengunjung — **tidak perlu** config real-IP (`set_real_ip_from`/`CF-Connecting-IP`). Kalau di server lama masih ada `/etc/nginx/conf.d/00-cloudflare-realip.conf`, **JANGAN disalin** ke server baru (kalau ikut, semua IP klien salah terbaca → WAF/fail2ban/log kacau).
+- MX/email `mooda.id` = **Titan** (`mx1/mx2.titan.email`) — hanya record DNS, **tak terpengaruh** migrasi server (email tidak di server ini). Jangan diubah saat cutover.
 
 ---
 
@@ -170,7 +170,7 @@ Izinkan: **80, 443, 2707/tcp**. (Sisanya default deny.)
    # di server BARU
    gunzip -c /tmp/stakko_pos.sql.gz | sudo -u postgres psql stakko_pos
    ```
-5. **Aplikasi (rsync — termasuk perubahan belum di-commit + vendor + storage + .env + keys):**
+5. **Aplikasi (rsync seluruh folder — termasuk vendor + public/build + storage + .env + keys):**
    ```bash
    rsync -az -e "ssh -p 2707" --delete \
      --exclude '.git' --exclude 'node_modules' \
@@ -185,7 +185,7 @@ Izinkan: **80, 443, 2707/tcp**. (Sisanya default deny.)
    > pastikan `midtrans-gateway/config.php` (600) + `doku-gateway/keys/*.pem` ikut. Cek juga `storage/app/doku/*.pem` (ikut lewat rsync app di langkah 5).
 7. **Konfigurasi server (di luar git — salin manual):**
    - `/etc/nginx/sites-available/mooda.id.conf` (+ symlink di sites-enabled) — berisi server block, proxy Octane, lokasi `/app` (Reverb), `/midtrans/*`, `/doku/snap/*`.
-   - `/etc/nginx/conf.d/*.conf` (modsecurity, compression, **00-cloudflare-realip.conf**).
+   - `/etc/nginx/conf.d/*.conf` (modsecurity, compression). **JANGAN salin `00-cloudflare-realip.conf`** bila ada — tak dipakai lagi (tanpa proxy/CDN).
    - `/etc/nginx/modsec/` (main.conf, **exclusions.conf**, crs-setup.conf).
    - systemd unit: `/etc/systemd/system/octane-stakko-pos.service`, `reverb-stakko-pos.service`, `stakko-scheduler.*`, `mooda-db-backup.*` + `/usr/local/bin/mooda-db-backup.sh`.
    - fail2ban: `/etc/fail2ban/jail.local` + `jail.d/*` (**ignoreip whitelist**).
@@ -197,11 +197,11 @@ Izinkan: **80, 443, 2707/tcp**. (Sisanya default deny.)
 10. `systemctl daemon-reload` → enable+start `octane-stakko-pos`, `reverb-stakko-pos`, timer. `nginx -t && systemctl restart nginx`. Aktifkan UFW + fail2ban.
 11. **Uji lewat IP / /etc/hosts sementara** (arahkan mooda.id → IP_BARU di laptop): landing 200, login, kasir, dashboard, upload gambar, WebSocket (Reverb).
 
-### Tahap D — Cutover DNS (Cloudflare) + payment
-12. Di **Cloudflare** → DNS → ubah **A record** `mooda.id`, `www`, `blog`, `affiliate` dari `187.77.125.157` → **`IP_BARU`** (tetap Proxied/oranye). TTL rendah biar cepat.
-13. Karena webhook berbasis domain, **URL Midtrans/DOKU tak berubah** — tapi **uji**: lakukan 1 transaksi kecil → pastikan notifikasi masuk (`midtrans-gateway/logs`, `doku-gateway/logs`, `storage/logs/laravel.log`).
-14. Update **fail2ban ignoreip** bila IP admin berubah; whitelist IP baru bila perlu.
-15. Terbitkan SSL di server baru (certbot) ATAU pasang **Cloudflare Origin Certificate** + set SSL **Full (strict)**.
+### Tahap D — Cutover DNS + SSL + payment
+12. Di **panel DNS/registrar (Rumahweb)** → ubah **A record** `mooda.id`, `www`, `blog`, `affiliate` dari `187.77.125.157` → **`IP_BARU`**. (TTL sudah diturunkan ke 300s sebelumnya.)
+13. Terbitkan SSL di server baru: `sudo certbot --nginx -d mooda.id -d www.mooda.id -d blog.mooda.id -d affiliate.mooda.id` (setelah DNS menunjuk ke IP_BARU & port 80 terbuka).
+14. Karena webhook berbasis domain, **URL Midtrans/DOKU tak berubah** — tapi **uji**: lakukan 1 transaksi kecil → pastikan notifikasi masuk (`midtrans-gateway/logs`, `doku-gateway/logs`, `storage/logs/laravel.log`).
+15. Update **fail2ban ignoreip** bila IP admin berubah; whitelist IP baru bila perlu.
 
 ### Tahap E — Pasca-migrasi
 16. Pantau 24–48 jam: log nginx/octane/reverb, notifikasi payment, backup harian (`/home/db-backups`).
@@ -210,20 +210,20 @@ Izinkan: **80, 443, 2707/tcp**. (Sisanya default deny.)
 ---
 
 ## 10. 🔁 ROLLBACK
-Kalau server baru bermasalah: **balikkan A record Cloudflare ke `187.77.125.157`** (server lama masih menyala) → trafik kembali seketika. Karena itu **jangan matikan server lama** sampai server baru terbukti stabil + payment tervalidasi.
+Kalau server baru bermasalah: **balikkan A record ke `187.77.125.157`** di panel DNS (server lama masih menyala) → trafik kembali setelah TTL (300s) habis. Karena itu **jangan matikan server lama** sampai server baru terbukti stabil + payment tervalidasi.
 
 ---
 
 ## 11. CHECKLIST CEPAT
 - [ ] Stack terinstall sama (PHP 8.3, PG16, Redis, nginx+ModSecurity, Node22, RoadRunner).
 - [ ] DB `stakko_pos` ter-restore (45 tabel).
-- [ ] App ter-rsync **termasuk 43 perubahan belum commit** + `vendor/` + `public/build/` + `.env` (APP_KEY sama).
+- [ ] App ter-rsync/clone (kode di `main` `9758f53`) + `vendor/` + `public/build/` + `.env` (APP_KEY sama).
 - [ ] `storage/app/public` (gambar) + `storage/app/doku/*.pem` tersalin; `storage:link`.
 - [ ] **midtrans-gateway** + **doku-gateway** (config.php 600 + keys/*.pem) tersalin.
-- [ ] nginx conf + modsec (exclusions + **cloudflare-realip**) + systemd unit + timer + fail2ban (ignoreip) + sshd hardening tersalin.
+- [ ] nginx conf + modsec (**exclusions.conf**) + systemd unit + timer + fail2ban (ignoreip) + sshd hardening tersalin. (JANGAN salin `00-cloudflare-realip.conf`.)
 - [ ] Service jalan: octane, reverb, scheduler, db-backup, nginx, pg, redis.
 - [ ] UFW (80/443/2707) + fail2ban aktif.
-- [ ] Uji via IP dulu → baru ubah A record Cloudflare ke IP_BARU.
+- [ ] Uji via IP dulu → baru ubah A record ke IP_BARU di panel DNS (TTL 300s).
 - [ ] **Uji payment 1 transaksi** (webhook masuk) — Midtrans (live) & DOKU (saat go-live).
-- [ ] SSL server baru (certbot / CF Origin) + Full(strict).
+- [ ] SSL server baru (certbot Let's Encrypt, 4 domain).
 - [ ] Server lama tetap nyala untuk rollback (beberapa hari).
