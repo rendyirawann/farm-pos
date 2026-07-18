@@ -148,6 +148,12 @@
                                             data-bs-toggle="tab" href="#tab-completed">Selesai
                                             <span class="badge badge-success ms-1" id="count-completed">0</span></a>
                                     </li>
+                                    {{-- Muncul hanya bila shift aktif dibuka sebelum hari ini (melewati tengah malam). --}}
+                                    <li class="nav-item d-none" id="tabli-prev-completed">
+                                        <a class="nav-link btn btn-sm btn-color-muted btn-active-light-success fw-bold"
+                                            data-bs-toggle="tab" href="#tab-prev-completed">Selesai Sebelumnya
+                                            <span class="badge badge-secondary ms-1" id="count-prev-completed">0</span></a>
+                                    </li>
                                     <li class="nav-item">
                                         <a class="nav-link btn btn-sm btn-color-muted btn-active-light-warning fw-bold"
                                             data-bs-toggle="tab" href="#tab-offline">Offline
@@ -184,6 +190,12 @@
                                             </div>
                                         </div>
                                         <div id="list-completed"></div>
+                                    </div>
+                                    <div class="tab-pane fade pos-orders-scroll" id="tab-prev-completed">
+                                        <div class="alert bg-light-info border border-info border-dashed fs-8 text-gray-800 p-3 mb-3" id="prev-completed-note">
+                                            Pesanan <b>selesai dari sesi/shift sebelumnya</b> (dibuka sejak hari kemarin & belum ditutup). Tetap tampil agar tidak hilang saat pergantian hari.
+                                        </div>
+                                        <div id="list-prev-completed"></div>
                                     </div>
                                     <div class="tab-pane fade pos-orders-scroll" id="tab-offline">
                                         <div id="list-offline"></div>
@@ -766,9 +778,16 @@
         });
 
         // ================= CHECKOUT =================
+        // Kunci transaksi klien (idempotency). Dibuat SEKALI per klik "bayar/simpan",
+        // lalu STABIL selama percobaan-ulang (retry) & saat disimpan/di-sinkron offline,
+        // sehingga jaringan lambat tidak menyebabkan pesanan tercatat dobel.
+        function genTxnId() {
+            return 'txn-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+        }
         function buildPayload(withPayment) {
             const payload = {
                 _token: CSRF,
+                client_txn_id: genTxnId(),
                 customer_name: $('#customer-name').val().trim(),
                 table_no: selectedTable || null,
                 promo_id: $('#promo-select').val() || null,
@@ -791,12 +810,21 @@
                     Swal.fire('Uang kurang', 'Uang tunai kurang dari total.', 'warning'); return;
                 }
             }
+            // payload dibuat SEKALI di sini; retry memakai payload (client_txn_id) yang sama.
             const payload = buildPayload(withPayment);
+            sendOrder(payload, withPayment);
+        }
+
+        // Kirim order ke server. Aman diulang: client_txn_id yang sama -> server mengembalikan
+        // pesanan yang sudah ada (tidak dobel). Timeout supaya jaringan menggantung cepat gagal
+        // dan pengguna bisa "Coba Lagi".
+        function sendOrder(payload, withPayment) {
             const $btn = withPayment ? $('#btn-pay-now') : $('#btn-pay-later');
-            const orig = $btn.html();
+            const orig = $btn.data('orig-html') || $btn.html();
+            $btn.data('orig-html', orig);
             $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
 
-            $.ajax({ url: ROUTES.store, method: 'POST', data: payload })
+            $.ajax({ url: ROUTES.store, method: 'POST', data: payload, timeout: 25000 })
                 .done(res => {
                     if (res.success) {
                         cart = []; renderCart(); resetCheckout();
@@ -806,8 +834,39 @@
                         afterOrder(res);
                     } else { Swal.fire('Gagal', res.error || 'Terjadi kesalahan', 'error'); }
                 })
-                .fail(xhr => handleOfflineOrder(xhr, payload))
-                .always(() => $btn.prop('disabled', false).html(orig));
+                .fail(xhr => handleSubmitFailure(xhr, payload, withPayment))
+                .always(() => $btn.prop('disabled', false).html($btn.data('orig-html')));
+        }
+
+        // Penanganan gagal kirim: bedakan benar-benar OFFLINE vs jaringan lambat/timeout vs error server.
+        function handleSubmitFailure(xhr, payload, withPayment) {
+            // 1) Benar-benar offline -> simpan ke penyimpanan lokal (fitur PWA). Aman: idempoten saat sinkron.
+            if (!navigator.onLine) { handleOfflineOrder({ status: 0 }, payload); return; }
+
+            // 2) Online tapi request gagal/timeout (jaringan bermasalah) -> mungkin sudah tersimpan di server.
+            //    Tawarkan "Coba Lagi" (memakai client_txn_id yang sama -> data tetap SATU).
+            const networkish = (xhr.status === 0 || xhr.statusText === 'timeout' || xhr.statusText === 'abort');
+            if (networkish) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Koneksi Bermasalah',
+                    html: 'Pesanan gagal terkirim karena jaringan. Silakan <b>coba lagi</b> — sistem mencegah pencatatan ganda, jadi <b>data tetap satu</b> walau tadi sempat terkirim.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="ki-outline ki-arrows-circle"></i> Coba Lagi',
+                    cancelButtonText: 'Simpan Offline',
+                    confirmButtonColor: '#4f46e5',
+                }).then(r => {
+                    if (r.isConfirmed) sendOrder(payload, withPayment);
+                    else handleOfflineOrder({ status: 0 }, payload);
+                });
+                return;
+            }
+
+            // 3) Error lain (mis. 500 dgn pesan) -> tampilkan pesan server.
+            const msg = (xhr.responseJSON && xhr.responseJSON.error) || 'Gagal menyimpan pesanan.';
+            Swal.fire('Gagal', msg, 'error');
         }
 
         function afterOrder(res) {
@@ -998,6 +1057,17 @@
                     $('#completed-voided-card').removeClass('d-none').find('#completed-voided-count').text(vc);
                 } else {
                     $('#completed-voided-card').addClass('d-none');
+                }
+
+                // Tab "Selesai Sebelumnya": hanya tampil bila shift aktif melewati tengah malam.
+                const prev = res.previous_completed || [];
+                if (prev.length) {
+                    $('#count-prev-completed').text(prev.length);
+                    $('#list-prev-completed').html(prev.map(o => orderCard(o, 'completed')).join(''));
+                    $('#tabli-prev-completed').removeClass('d-none');
+                } else {
+                    $('#tabli-prev-completed').addClass('d-none');
+                    $('#list-prev-completed').html('');
                 }
             });
         }

@@ -231,7 +231,7 @@
                             </button>
                         </div>
                         <div id="sb-expense-spent" class="fs-2 fw-bold text-gray-800">Rp {{ number_format($dailySpent ?? 0, 0, ',', '.') }}</div>
-                        <div class="fs-8 text-muted mt-1">Diambil dari uang laci (mengurangi kas).</div>
+                        <div class="fs-8 text-muted mt-1">Total pengeluaran tanggal ini (gabungan semua shift).</div>
                     </div>
                 </div>
             @endcan

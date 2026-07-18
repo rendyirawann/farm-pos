@@ -55,7 +55,7 @@
                     <div class="bg-light-danger rounded p-6 border border-danger border-dashed h-100">
                         <span class="fs-6 fw-semibold text-danger d-block mb-1">Total Pengeluaran</span>
                         <span class="fs-2x fw-bolder text-gray-900" id="summary-expense">Rp 0</span>
-                        <span class="fs-8 text-muted d-block mt-1">dari kas tunai (laci)</span>
+                        <span class="fs-8 text-muted d-block mt-1">total per tanggal (gabungan semua shift)</span>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
@@ -90,6 +90,7 @@
                                     <th class="text-end">Potongan Diskon</th>
                                     <th class="text-end">Total Belanja</th>
                                     <th class="text-center">Status</th>
+                                    <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="fw-semibold text-gray-600">
@@ -99,6 +100,21 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    {{-- Modal detail pesanan per invoice --}}
+    <div class="modal fade" id="modal-order-detail" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title fw-bold"><i class="ki-outline ki-handcart fs-2 text-primary me-2"></i>Detail Pesanan</h3>
+                    <button type="button" class="btn btn-icon btn-sm btn-active-light-primary" data-bs-dismiss="modal">
+                        <i class="ki-outline ki-cross fs-1"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="od-body"></div>
+            </div>
         </div>
     </div>
 
@@ -207,8 +223,75 @@
                             className: 'text-center',
                             orderable: false,
                             searchable: false
+                        },
+                        {
+                            data: 'action',
+                            name: 'action',
+                            className: 'text-center',
+                            orderable: false,
+                            searchable: false
                         }
                     ]
+                });
+
+                // ===== Detail pesanan per invoice (ikon mata) =====
+                const rupiah = (n) => 'Rp ' + (Number(n) || 0).toLocaleString('id-ID');
+                const orderModalEl = document.getElementById('modal-order-detail');
+                const orderModal = new bootstrap.Modal(orderModalEl);
+
+                $('#table-sales').on('click', '.btn-view-order', function () {
+                    const id = $(this).data('id');
+                    $('#od-body').html('<div class="text-center py-10"><span class="spinner-border text-primary"></span></div>');
+                    orderModal.show();
+
+                    $.get("{{ url('admin/reports/sales/order') }}/" + id)
+                        .done(function (o) {
+                            let rows = (o.items || []).map(function (it) {
+                                const addons = (it.addons || []).length
+                                    ? '<div class="fs-8 text-muted">+ ' + it.addons.map(a => typeof a === 'string' ? a : (a.name || '')).join(', ') + '</div>' : '';
+                                const notes = it.notes ? '<div class="fs-8 text-warning">Catatan: ' + $('<div>').text(it.notes).html() + '</div>' : '';
+                                return `<tr>
+                                    <td><span class="fw-semibold text-gray-800">${$('<div>').text(it.name).html()}</span>${addons}${notes}</td>
+                                    <td class="text-center">${it.qty}</td>
+                                    <td class="text-end">${rupiah(it.price)}</td>
+                                    <td class="text-end fw-bold">${rupiah(it.subtotal)}</td>
+                                </tr>`;
+                            }).join('');
+
+                            const voidBadge = o.voided ? '<span class="badge badge-light-danger ms-2">SALAH — tidak dihitung</span>' : '';
+                            const disc = o.discount_amount > 0 ? `<div class="d-flex justify-content-between text-danger"><span>Diskon</span><span>- ${rupiah(o.discount_amount)}</span></div>` : '';
+                            const tax = o.tax > 0 ? `<div class="d-flex justify-content-between text-muted"><span>Pajak</span><span>${rupiah(o.tax)}</span></div>` : '';
+
+                            $('#od-body').html(`
+                                <div class="d-flex flex-wrap justify-content-between mb-4 gap-2">
+                                    <div>
+                                        <div class="fw-bold fs-4 text-gray-900">${$('<div>').text(o.customer_name || 'Pelanggan').html()} ${voidBadge}</div>
+                                        <div class="text-muted fs-7">${o.date} • No. Antrian ${o.queue_number ?? '-'}</div>
+                                        <div class="text-muted fs-8 mt-1">${o.invoice_no}</div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge badge-light-${o.payment_method === 'CASH' ? 'success' : 'info'} fs-7">${o.payment_method}</span>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-row-bordered align-middle fs-7 mb-3">
+                                        <thead><tr class="fw-bold text-gray-500 text-uppercase fs-8">
+                                            <th>Item</th><th class="text-center">Qty</th><th class="text-end">Harga</th><th class="text-end">Subtotal</th>
+                                        </tr></thead>
+                                        <tbody>${rows || '<tr><td colspan="4" class="text-center text-muted py-4">Tidak ada item.</td></tr>'}</tbody>
+                                    </table>
+                                </div>
+                                <div class="ms-auto" style="max-width:280px">
+                                    <div class="d-flex justify-content-between text-muted"><span>Subtotal</span><span>${rupiah(o.subtotal)}</span></div>
+                                    ${disc}${tax}
+                                    <div class="separator my-2"></div>
+                                    <div class="d-flex justify-content-between fw-bold fs-4 text-gray-900"><span>Total</span><span>${rupiah(o.grand_total)}</span></div>
+                                </div>
+                            `);
+                        })
+                        .fail(function () {
+                            $('#od-body').html('<div class="alert alert-danger">Gagal memuat detail pesanan.</div>');
+                        });
                 });
 
                 // 3. Tombol Filter Ditekan

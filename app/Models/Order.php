@@ -13,6 +13,7 @@ class Order extends Model
 
     protected $fillable = [
         'uuid',
+        'client_txn_id',
         'tenant_id',
         'invoice_no',
         'queue_number',

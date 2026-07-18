@@ -37,6 +37,7 @@ use App\Http\Controllers\Backend\Superadmin\TenantController;
 use App\Http\Controllers\Backend\Superadmin\DepositSettingController;
 use App\Http\Controllers\Backend\Superadmin\DokuChannelController;
 use App\Http\Controllers\Backend\Superadmin\PartnerLogoController;
+use App\Http\Controllers\Backend\Superadmin\MaintenanceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -84,8 +85,8 @@ Route::get('/sitemap.xml', function () {
     return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
 })->name('sitemap');
 
-// Group Middleware untuk User yang sudah Login (+ blokir user yang di-ban)
-Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
+// Group Middleware untuk User yang sudah Login (+ blokir user yang di-ban + mode pemeliharaan)
+Route::middleware(['auth', 'forbid-banned-user', 'maintenance'])->group(function () {
 
     // --- DASHBOARD (accessible by ALL authenticated roles) ---
     Route::get('/admin/dashboard', [DashboardAdminController::class, 'index'])->name('dashboard');
@@ -169,6 +170,10 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         Route::post('/admin/partner-logos/{partnerLogo}/toggle', [PartnerLogoController::class, 'toggle'])->name('partner-logos.toggle');
         Route::delete('/admin/partner-logos/{partnerLogo}', [PartnerLogoController::class, 'destroy'])->name('partner-logos.destroy');
         Route::post('/admin/partner-logos-limit', [PartnerLogoController::class, 'updateLimit'])->name('partner-logos.limit');
+
+        // Mode Pemeliharaan (platform-wide, Superadmin)
+        Route::get('/admin/maintenance-settings', [MaintenanceController::class, 'index'])->name('maintenance-settings.index');
+        Route::post('/admin/maintenance-settings', [MaintenanceController::class, 'update'])->name('maintenance-settings.update');
     });
 
     // ====================================================
@@ -261,6 +266,7 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
     Route::middleware(['can:view_report', 'subscribed'])->group(function () {
         Route::get('/admin/reports/sales', [SalesReportController::class, 'index'])->name('reports.sales.index');
         Route::get('/admin/reports/sales/data', [SalesReportController::class, 'getData'])->name('reports.sales.data');
+        Route::get('/admin/reports/sales/order/{id}', [SalesReportController::class, 'orderDetail'])->name('reports.sales.order');
         Route::get('/admin/reports/sales/print', [SalesReportController::class, 'print'])->name('reports.sales.print');
 
         // Laporan per-item — fitur paket Business (plan:report_items)

@@ -320,6 +320,33 @@
     </div>
 
     @push('scripts')
+        @if ($maintenance ?? false)
+            <script>
+                // Mode Pemeliharaan: pop-up yang TIDAK BISA ditutup di halaman login.
+                // Bypass Superadmin (kondisi darurat/sesi habis): buka /admin/login?admin=1
+                (function () {
+                    var params = new URLSearchParams(window.location.search);
+                    if (params.has('admin')) return; // jalur khusus pengelola -> form terlihat
+                    document.addEventListener('DOMContentLoaded', function () {
+                        function showMaintenance() {
+                            if (!window.Swal) { setTimeout(showMaintenance, 200); return; }
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Sedang Pemeliharaan',
+                                html: @json($maintenanceMessage ?? 'Aplikasi sedang dalam pemeliharaan.'),
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                allowEnterKey: false,
+                                showConfirmButton: true,
+                                confirmButtonText: 'Muat Ulang',
+                                confirmButtonColor: '#4f46e5',
+                            }).then(function () { window.location.reload(); });
+                        }
+                        showMaintenance();
+                    });
+                })();
+            </script>
+        @endif
         @if ($apkUpdateAvailable ?? false)
             <script>
                 // Popup "update APK tersedia" (hanya untuk pengguna APK versi lama). Sekali per sesi.

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Backend\Finance;
 use App\Http\Controllers\Controller;
 use App\Models\DailySalesTarget;
 use App\Models\Expense;
+use App\Models\Shift;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,11 +18,27 @@ class ExpenseController extends Controller
     /** Halaman pencatatan pengeluaran + ringkasan total pengeluaran hari ini. */
     public function index()
     {
-        $today = Carbon::today()->toDateString();
-        // Basis created_at agar konsisten dgn kas shift & sales report (hindari beda hari saat backdate).
-        $spent = (float) Expense::whereDate('created_at', $today)->sum('amount');
+        // "Hari ini" = tanggal operasional: bila ada shift terbuka yang melewati tengah malam,
+        // pakai TANGGAL shift itu (biar konsisten dgn sidebar & tidak reset saat ganti hari).
+        $openShift = $this->currentOpenShift();
+        $scopeDate = $openShift
+            ? Carbon::parse($openShift->start_time)->toDateString()
+            : Carbon::today()->toDateString();
+
+        // Basis kolom `date` (tanggal yang DIISI user) -> total mengikuti tanggal pengeluaran
+        // yang dimaksud, bukan waktu pencatatan (mis. backdate / dicatat lewat tengah malam).
+        $spent = (float) Expense::whereDate('date', $scopeDate)->sum('amount');
 
         return view('backend.finance.expenses.index', compact('spent'));
+    }
+
+    /** Shift kasir yang sedang terbuka (operator: miliknya; peninjau: shift toko yang berjalan). */
+    private function currentOpenShift(): ?Shift
+    {
+        $isOperator = Auth::user()->can('shift.operate');
+        return $isOperator
+            ? Shift::where('user_id', Auth::id())->where('status', 'open')->latest('start_time')->first()
+            : Shift::where('status', 'open')->latest('start_time')->first();
     }
 
     /** Sumber DataTables server-side (ter-scope otomatis per tenant). */
@@ -60,6 +77,18 @@ class ExpenseController extends Controller
                 . ($row->notes ? '<br><span class="text-muted fs-7">' . e(Str::limit($row->notes, 50)) . '</span>' : ''))
             ->addColumn('amount', fn ($row) => '<span class="fw-bold text-danger">Rp ' . number_format($row->amount, 0, ',', '.') . '</span>')
             ->addColumn('user', fn ($row) => e(optional($row->user)->name ?? 'Sistem'))
+            ->addColumn('shift', function ($row) {
+                // Shift yang SEDANG TERBUKA saat pengeluaran dicatat = laci mana uang itu keluar.
+                $s = $row->resolveShift();
+                if (! $s) {
+                    return '<span class="text-muted fs-8">Di luar shift</span>';
+                }
+                $who  = e(optional($s->user)->name ?? 'Kasir');
+                $when = Carbon::parse($s->start_time)->translatedFormat('d M, H:i');
+                $open = $s->status === 'open' ? ' <span class="badge badge-light-success fs-9">berjalan</span>' : '';
+                return '<span class="badge badge-light-info fs-8">' . $who . '</span>'
+                    . '<br><span class="text-muted fs-8">buka ' . $when . '</span>' . $open;
+            })
             ->addColumn('action', function ($row) {
                 $d = htmlspecialchars(json_encode([
                     'id'       => $row->id,
@@ -74,7 +103,7 @@ class ExpenseController extends Controller
                     . '<button class="btn btn-sm btn-icon btn-light-danger btn-del-expense" data-id="' . $row->id . '"><i class="ki-outline ki-trash fs-4"></i></button>'
                     . '</div>';
             })
-            ->rawColumns(['date', 'title', 'amount', 'action'])
+            ->rawColumns(['date', 'title', 'amount', 'shift', 'action'])
             ->make(true);
     }
 

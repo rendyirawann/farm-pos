@@ -113,11 +113,32 @@ class KasirController extends Controller
             ->get()
             ->map(fn($o) => $this->orderSummary($o));
 
+        // "Selesai sesi sebelumnya": bila shift aktif dibuka SEBELUM hari ini (melewati tengah
+        // malam / dibuka lagi), tampilkan pesanan selesai milik sesi itu yang tercatat pada hari
+        // sebelumnya, supaya tidak hilang saat pergantian tanggal. Read-only (tak mengubah kas).
+        $isOperator = ! Auth::user()->isSuperadmin() && Auth::user()->can('shift.operate');
+        $activeShift = $isOperator
+            ? Shift::where('user_id', Auth::id())->where('status', 'open')->first()
+            : Shift::where('status', 'open')->latest('start_time')->first();
+
+        $previousCompleted = collect();
+        if ($activeShift && Carbon::parse($activeShift->start_time)->lt(Carbon::today())) {
+            $previousCompleted = Order::withCount('details')
+                ->where('order_status', 'completed')
+                ->where('created_at', '>=', $activeShift->start_time)
+                ->where('created_at', '<', Carbon::today())
+                ->orderByDesc('updated_at')
+                ->limit(100)
+                ->get()
+                ->map(fn($o) => $this->orderSummary($o));
+        }
+
         return response()->json([
-            'processing'   => $processing,
-            'completed'    => $completed,
+            'processing'          => $processing,
+            'completed'           => $completed,
             // Jumlah pesanan SALAH di antara yang selesai hari ini (untuk kartu penanda).
-            'voided_count' => $completed->where('voided', true)->count(),
+            'voided_count'        => $completed->where('voided', true)->count(),
+            'previous_completed'  => $previousCompleted->values(),
         ]);
     }
 
@@ -184,7 +205,20 @@ class KasirController extends Controller
             'cart.*.menu_id' => 'required|integer',
             'cart.*.qty'     => 'required|integer|min:1',
             'payment_method' => 'nullable|in:cash,qris',
+            'client_txn_id'  => 'nullable|string|max:64',
         ]);
+
+        $clientTxnId = $request->input('client_txn_id');
+
+        // IDEMPOTENSI: bila percobaan sebelumnya sudah membuat pesanan dengan kunci transaksi
+        // yang sama (mis. respons hilang karena jaringan lalu klien mencoba lagi / sinkron offline),
+        // kembalikan pesanan yang SUDAH ada — jangan buat baru. Cegah dobel.
+        if ($clientTxnId) {
+            $existing = Order::where('client_txn_id', $clientTxnId)->first();
+            if ($existing) {
+                return response()->json($this->storeOrderSuccessPayload($existing, true));
+            }
+        }
 
         try {
             DB::beginTransaction();
@@ -194,6 +228,7 @@ class KasirController extends Controller
             $order = Order::create(array_merge(
                 $this->newOrderBase($request->input('customer_name')),
                 [
+                    'client_txn_id'   => $clientTxnId,
                     'table_no'        => $request->input('table_no'),
                     'promo_id'        => $request->promo_id,
                     'subtotal'        => $built['subtotal'],
@@ -216,17 +251,35 @@ class KasirController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success'   => true,
-                'order_id'  => $order->id,
-                'paid'      => $order->payment_status === 'paid',
-                'print_url' => route('kasir.print', $order->id),
-                'receipt'   => $this->receiptPayload($order->fresh('details.menu')),
-            ]);
+            return response()->json($this->storeOrderSuccessPayload($order->fresh('details.menu'), false));
+        } catch (\Illuminate\Database\QueryException $e) {
+            DB::rollBack();
+            // Balapan dua request identik: unique (tenant_id, client_txn_id) dilanggar.
+            // Ambil pesanan yang menang, kembalikan sebagai sukses -> tetap SATU pesanan.
+            if ($clientTxnId && $e->getCode() === '23505') {
+                $existing = Order::where('client_txn_id', $clientTxnId)->first();
+                if ($existing) {
+                    return response()->json($this->storeOrderSuccessPayload($existing, true));
+                }
+            }
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
+    }
+
+    /** Payload sukses store order (dipakai jalur normal maupun idempoten). */
+    private function storeOrderSuccessPayload(Order $order, bool $idempotent): array
+    {
+        return [
+            'success'    => true,
+            'order_id'   => $order->id,
+            'paid'       => $order->payment_status === 'paid',
+            'print_url'  => route('kasir.print', $order->id),
+            'receipt'    => $this->receiptPayload($order->fresh('details.menu')),
+            'idempotent' => $idempotent,
+        ];
     }
 
     /** Bayar order yang masih BELUM LUNAS (dari panel kanan). */
@@ -542,8 +595,15 @@ class KasirController extends Controller
             DB::beginTransaction();
 
             foreach ($orders as $offline) {
+                $clientTxnId = $offline['client_txn_id'] ?? null;
+
+                // Dedupe: bila pesanan ini sudah masuk (via kunci transaksi klien ATAU nomor invoice
+                // offline yang sama), lewati -> cegah dobel saat sinkron ulang / request sempat sampai.
+                if ($clientTxnId && Order::where('client_txn_id', $clientTxnId)->exists()) {
+                    continue;
+                }
                 if (!empty($offline['invoice_no']) && Order::where('invoice_no', $offline['invoice_no'])->exists()) {
-                    continue; // hindari duplikat
+                    continue;
                 }
 
                 $built = $this->buildOrderFromCart($offline['cart'] ?? [], $offline['promo_id'] ?? null);
@@ -554,6 +614,7 @@ class KasirController extends Controller
                 }
 
                 $order = Order::create(array_merge($base, [
+                    'client_txn_id'   => $clientTxnId,
                     'table_no'        => $offline['table_no'] ?? null,
                     'promo_id'        => $offline['promo_id'] ?? null,
                     'subtotal'        => $built['subtotal'],

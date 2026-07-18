@@ -127,14 +127,16 @@ class AppServiceProvider extends ServiceProvider
                         ->whereNull('voided_at') // pesanan salah tak dihitung ke omzet
                         ->sum('grand_total');
                     $salesTarget = (float) (DailySalesTarget::where('date', $scopeDate)->value('amount') ?? 0);
-                    $dailySpent  = (float) \App\Models\Expense::where('created_at', '>=', $start)->sum('amount');
+                    // Pengeluaran: basis kolom `date` pada tanggal operasional shift (bukan created_at),
+                    // agar sama dengan Laporan Penjualan & halaman Pengeluaran (total per tanggal).
+                    $dailySpent  = (float) \App\Models\Expense::whereDate('date', $scopeDate)->sum('amount');
                 } else {
                     $income      = (float) Order::whereDate('created_at', $today)
                         ->where('payment_status', 'paid')
                         ->whereNull('voided_at') // pesanan salah tak dihitung ke omzet
                         ->sum('grand_total');
                     $salesTarget = (float) (DailySalesTarget::where('date', $today)->value('amount') ?? 0);
-                    $dailySpent  = (float) \App\Models\Expense::whereDate('created_at', $today)->sum('amount');
+                    $dailySpent  = (float) \App\Models\Expense::whereDate('date', $today)->sum('amount');
                 }
 
                 // Kalkulasi Persentase Penjualan vs Target

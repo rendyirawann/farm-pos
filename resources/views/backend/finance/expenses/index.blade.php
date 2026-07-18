@@ -12,7 +12,7 @@
                         <div class="card-body p-6">
                             <div class="fs-6 fw-semibold text-danger mb-1">Total Pengeluaran Hari Ini</div>
                             <div class="fs-2x fw-bold text-gray-800">Rp {{ number_format($spent, 0, ',', '.') }}</div>
-                            <div class="fs-8 text-muted">Diambil dari uang laci (mengurangi kas fisik saat tutup shift).</div>
+                            <div class="fs-8 text-muted">Total pengeluaran tanggal ini (gabungan semua shift). Kolom <b>Shift</b> di tabel menandai dari laci/shift mana tiap pengeluaran.</div>
                         </div>
                     </div>
                 </div>
@@ -38,6 +38,7 @@
                                     <th>Kategori / Keterangan</th>
                                     <th>Nominal</th>
                                     <th>Dicatat Oleh</th>
+                                    <th>Shift</th>
                                     <th class="text-end">Aksi</th>
                                 </tr>
                             </thead>
@@ -126,6 +127,7 @@
                 { data: 'title', name: 'category' },
                 { data: 'amount', name: 'amount' },
                 { data: 'user', name: 'user.name', orderable: false, searchable: false },
+                { data: 'shift', name: 'shift', orderable: false, searchable: false },
                 { data: 'action', orderable: false, searchable: false, className: 'text-end' },
             ],
             language: { emptyTable: 'Belum ada catatan pengeluaran.', processing: 'Memuat...' },

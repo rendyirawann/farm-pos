@@ -33,4 +33,24 @@ class Expense extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Shift yang SEDANG TERBUKA saat pengeluaran ini dicatat (berdasarkan created_at) —
+     * menunjukkan "laci/kas shift mana" uang ini keluar. Ter-scope per-tenant otomatis
+     * (Shift memakai BelongsToTenant). Null bila dicatat di luar jam shift manapun.
+     */
+    public function resolveShift(): ?Shift
+    {
+        if (! $this->created_at) {
+            return null;
+        }
+
+        return Shift::with('user')
+            ->where('start_time', '<=', $this->created_at)
+            ->where(function ($q) {
+                $q->whereNull('end_time')->orWhere('end_time', '>=', $this->created_at);
+            })
+            ->orderByDesc('start_time')
+            ->first();
+    }
 }

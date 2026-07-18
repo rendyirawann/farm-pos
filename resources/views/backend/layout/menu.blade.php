@@ -169,6 +169,15 @@
                     <span class="menu-title">Logo Partner</span>
                 </a>
             </div>
+
+            {{-- MODE PEMELIHARAAN: Superadmin only --}}
+            <div
+                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('maintenance-settings.*') ? 'here show ' : '' }}">
+                <a href="{{ route('maintenance-settings.index') }}"
+                    class="menu-link px-4 {{ request()->routeIs('maintenance-settings.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Mode Pemeliharaan</span>
+                </a>
+            </div>
         @endcan
 
         {{-- LANGGANAN / BILLING: owner & admin tenant (bukan Superadmin yang tanpa tenant) --}}

@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => \App\Http\Middleware\IdentifyTenant::class,
             'subscribed' => \App\Http\Middleware\EnsureSubscribed::class,
             'plan' => \App\Http\Middleware\EnsurePlanFeature::class,
+            'maintenance' => \App\Http\Middleware\MaintenanceMode::class,
         ]);
 
         // 🔥 TAMBAHKAN BARIS INI (Agar logoutOtherDevices berfungsi)

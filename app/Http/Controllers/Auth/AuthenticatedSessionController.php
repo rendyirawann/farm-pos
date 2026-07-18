@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
+use App\Models\SiteOption;
 use Jenssegers\Agent\Agent;
 
 class AuthenticatedSessionController extends Controller
@@ -19,7 +20,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
-        return view('auth.login');
+        return view('auth.login', [
+            'maintenance' => SiteOption::get('maintenance_mode', '0') === '1',
+            'maintenanceMessage' => SiteOption::get('maintenance_message')
+                ?: 'Aplikasi sedang dalam pemeliharaan. Mohon maaf atas ketidaknyamanannya, silakan coba beberapa saat lagi.',
+        ]);
     }
 
     /**
@@ -54,6 +59,25 @@ class AuthenticatedSessionController extends Controller
             throw ValidationException::withMessages([
                 'email' => 'Akun Anda telah dibekukan.',
             ]);
+        }
+
+        // 4b. Mode Pemeliharaan: hanya Superadmin yang boleh masuk saat aktif.
+        if (SiteOption::get('maintenance_mode', '0') === '1' && ! $user->isSuperadmin()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            $msg = SiteOption::get('maintenance_message')
+                ?: 'Aplikasi sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.';
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $msg,
+                    'maintenance' => true,
+                ], 503);
+            }
+            throw ValidationException::withMessages(['email' => $msg]);
         }
 
         // 5. Update Data User (IP & Last Login)

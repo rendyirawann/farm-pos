@@ -58,8 +58,9 @@ class SalesReportController extends Controller
             if ($expenseApplies) {
                 $expenseQuery = Expense::query();
                 if ($request->start_date && $request->end_date) {
-                    // Basis created_at (SAMA dgn revenue & kas shift) -> konsisten, tak beda hari.
-                $expenseQuery->whereBetween('created_at', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
+                    // Basis kolom `date` (tanggal yang DIISI user), bukan created_at -> pengeluaran
+                // dihitung pada tanggal yang dimaksud kasir walau dicatat lewat tengah malam.
+                $expenseQuery->whereBetween('date', [$request->start_date, $request->end_date]);
                 }
                 $totalExpense = (float) $expenseQuery->sum('amount');
             }
@@ -104,6 +105,11 @@ class SalesReportController extends Controller
                         ? '<span class="badge badge-light-danger">SALAH</span>'
                         : '<span class="badge badge-light-success">Sah</span>';
                 })
+                ->addColumn('action', function ($row) {
+                    return '<button type="button" class="btn btn-sm btn-icon btn-light-primary btn-view-order" '
+                        . 'data-id="' . $row->id . '" title="Lihat detail pesanan">'
+                        . '<i class="ki-outline ki-eye fs-2"></i></button>';
+                })
                 // Kirim data tambahan ke frontend
                 ->with('totalRevenue', 'Rp ' . number_format($totalRevenue, 0, ',', '.'))
                 ->with('totalDiscount', 'Rp ' . number_format($totalDiscount, 0, ',', '.'))
@@ -113,14 +119,42 @@ class SalesReportController extends Controller
                 ->with('netRevenue', 'Rp ' . number_format($netRevenue, 0, ',', '.'))
                 ->with('voidedCount', number_format($voidedCount, 0, ',', '.'))
                 ->with('voidedAmount', 'Rp ' . number_format($voidedAmount, 0, ',', '.'))
-                ->rawColumns(['invoice', 'customer', 'payment_method', 'discount', 'grand_total', 'status'])
+                ->rawColumns(['invoice', 'customer', 'payment_method', 'discount', 'grand_total', 'status', 'action'])
                 ->make(true);
         }
     }
 
+    /** Detail 1 pesanan (item + harga) untuk modal "lihat" di laporan. Ter-scope per-tenant. */
+    public function orderDetail($id)
+    {
+        $order = Order::with('details.menu')->findOrFail($id);
+
+        return response()->json([
+            'invoice_no'      => $order->invoice_no,
+            'customer_name'   => $order->customer_name,
+            'queue_number'    => $order->queue_number,
+            'date'            => Carbon::parse($order->created_at)->translatedFormat('d M Y H:i'),
+            'payment_method'  => strtoupper((string) $order->payment_method),
+            'payment_status'  => $order->payment_status,
+            'voided'          => $order->voided_at !== null,
+            'subtotal'        => (float) $order->subtotal,
+            'discount_amount' => (float) $order->discount_amount,
+            'tax'             => (float) $order->tax,
+            'grand_total'     => (float) $order->grand_total,
+            'items'           => $order->details->map(fn ($d) => [
+                'name'     => $d->menu->name ?? 'Menu dihapus',
+                'qty'      => $d->qty,
+                'price'    => (float) $d->price,
+                'subtotal' => (float) $d->subtotal,
+                'addons'   => $d->addons ?? [],
+                'notes'    => $d->notes,
+            ]),
+        ]);
+    }
+
     public function print(Request $request)
     {
-        $query = Order::with(['promo'])->where('payment_status', 'paid');
+        $query = Order::with(['promo', 'details.menu'])->where('payment_status', 'paid');
 
         if ($request->start_date && $request->end_date) {
             $query->whereBetween('created_at', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
@@ -147,8 +181,9 @@ class SalesReportController extends Controller
         if ($expenseApplies) {
             $expenseQuery = Expense::query();
             if ($request->start_date && $request->end_date) {
-                // Basis created_at (SAMA dgn revenue & kas shift) -> konsisten, tak beda hari.
-                $expenseQuery->whereBetween('created_at', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
+                // Basis kolom `date` (tanggal yang DIISI user), bukan created_at -> pengeluaran
+                // dihitung pada tanggal yang dimaksud kasir walau dicatat lewat tengah malam.
+                $expenseQuery->whereBetween('date', [$request->start_date, $request->end_date]);
             }
             $totalExpense = (float) $expenseQuery->sum('amount');
         }
