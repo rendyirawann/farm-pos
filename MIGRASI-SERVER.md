@@ -40,9 +40,20 @@
 - `reverb-stakko-pos.service` — Laravel Reverb WebSocket, `127.0.0.1:8080` (nginx `/app`).
 - `nginx`, `php8.3-fpm` (untuk gateway payment), `postgresql@16-main`, `redis-server`.
 
-### Timer systemd
-- `stakko-scheduler.timer` → jalankan Laravel scheduler tiap menit.
-- `mooda-db-backup.timer` → **00:00 WIB harian** → `/usr/local/bin/mooda-db-backup.sh` → `pg_dump stakko_pos | gzip` ke **`/home/db-backups/`**, retensi 14 hari.
+### Cron / Penjadwalan & Auto-Backup (systemd timers — BUKAN crontab)
+> ⚠️ Penjadwalan TIDAK memakai crontab klasik (`crontab -l` root = kosong, tak ada entri di `/etc/cron.d`).
+> Semua pakai **systemd timer**. Di server baru: salin unit + script, `daemon-reload`, lalu `enable --now`.
+
+**1. `stakko-scheduler.timer` → `stakko-scheduler.service`** — "cron"-nya Laravel.
+- Jalan **tiap menit** (`OnCalendar=*-*-* *:*:00`), `ExecStart=/usr/bin/php artisan schedule:run`, `User=www-data`, `WorkingDirectory=/var/www/html/stakko-pos`.
+- Menjalankan semua task terjadwal Laravel. (Saat ini belum ada task terdaftar; timer tetap disiapkan agar penjadwalan siap dipakai.)
+
+**2. `mooda-db-backup.timer` → `mooda-db-backup.service`** — **auto-backup DB harian**.
+- Jalan **harian 00:00 WIB** (`OnCalendar=*-*-* 00:00:00`, `Persistent=true` → tetap jalan bila server sempat mati saat jadwal), `ExecStart=/usr/local/bin/mooda-db-backup.sh` (sebagai **root**, `After/Wants=postgresql.service`).
+- Script `/usr/local/bin/mooda-db-backup.sh` (di luar git — **wajib disalin**): `sudo -u postgres pg_dump --clean --if-exists stakko_pos | gzip -9` → **`/home/db-backups/stakko_pos_<tanggal>.sql.gz`**; memvalidasi arsip (tak kosong + `gzip -t`), `chmod 600`, dan **rotasi hapus > 14 hari**. Dir `/home/db-backups` `chmod 700`.
+- Terbukti jalan (arsip harian tersimpan; ~140 KB/hari saat ini).
+
+> `octane-stakko-pos.service` & `reverb-stakko-pos.service` juga systemd unit (lihat §1 Service). Total unit di `/etc/systemd/system/`: `octane-stakko-pos`, `reverb-stakko-pos`, `stakko-scheduler.{service,timer}`, `mooda-db-backup.{service,timer}`.
 
 ### Port
 - Publik: **80, 443** (nginx), **2707** (SSH).
@@ -194,7 +205,19 @@ Izinkan: **80, 443, 2707/tcp**. (Sisanya default deny.)
 ### Tahap C — Konfigurasi & uji di server baru (masih via IP, DNS belum pindah)
 8. Ownership: `chown -R www-data:www-data /var/www/html/stakko-pos/storage /var/www/html/stakko-pos/bootstrap/cache`; kunci: `chmod 600 storage/app/doku/private.pem doku-gateway/keys/merchant_private.pem midtrans-gateway/config.php`.
 9. `php artisan storage:link`; `php artisan migrate --force` (kalau DB belum ter-restore penuh); `php artisan optimize`.
-10. `systemctl daemon-reload` → enable+start `octane-stakko-pos`, `reverb-stakko-pos`, timer. `nginx -t && systemctl restart nginx`. Aktifkan UFW + fail2ban.
+10. **Service + Cron + Auto-Backup:**
+    ```bash
+    # salin unit + script backup dari server lama (bagian dari Tahap B step 7), lalu:
+    install -m 755 /usr/local/bin/mooda-db-backup.sh /usr/local/bin/mooda-db-backup.sh   # pastikan +x
+    mkdir -p /home/db-backups && chmod 700 /home/db-backups
+    systemctl daemon-reload
+    systemctl enable --now octane-stakko-pos reverb-stakko-pos
+    systemctl enable --now stakko-scheduler.timer mooda-db-backup.timer   # <-- CRON + AUTO-BACKUP
+    systemctl list-timers | grep -E 'stakko|mooda'                        # verifikasi kedua timer aktif & terjadwal
+    /usr/local/bin/mooda-db-backup.sh                                     # uji backup manual -> cek /home/db-backups terisi
+    nginx -t && systemctl restart nginx
+    ```
+    Aktifkan UFW + fail2ban. Pastikan `systemctl is-enabled stakko-scheduler.timer mooda-db-backup.timer` = `enabled`.
 11. **Uji lewat IP / /etc/hosts sementara** (arahkan mooda.id → IP_BARU di laptop): landing 200, login, kasir, dashboard, upload gambar, WebSocket (Reverb).
 
 ### Tahap D — Cutover DNS + SSL + payment
@@ -221,7 +244,9 @@ Kalau server baru bermasalah: **balikkan A record ke `187.77.125.157`** di panel
 - [ ] `storage/app/public` (gambar) + `storage/app/doku/*.pem` tersalin; `storage:link`.
 - [ ] **midtrans-gateway** + **doku-gateway** (config.php 600 + keys/*.pem) tersalin.
 - [ ] nginx conf + modsec (**exclusions.conf**) + systemd unit + timer + fail2ban (ignoreip) + sshd hardening tersalin. (JANGAN salin `00-cloudflare-realip.conf`.)
-- [ ] Service jalan: octane, reverb, scheduler, db-backup, nginx, pg, redis.
+- [ ] Service jalan: octane, reverb, nginx, pg, redis.
+- [ ] **Cron/scheduler**: `stakko-scheduler.timer` enabled & aktif (`schedule:run` tiap menit).
+- [ ] **Auto-backup harian**: `/usr/local/bin/mooda-db-backup.sh` (+x) tersalin, `/home/db-backups` (chmod 700) ada, `mooda-db-backup.timer` enabled, uji manual menghasilkan `.sql.gz`.
 - [ ] UFW (80/443/2707) + fail2ban aktif.
 - [ ] Uji via IP dulu → baru ubah A record ke IP_BARU di panel DNS (TTL 300s).
 - [ ] **Uji payment 1 transaksi** (webhook masuk) — Midtrans (live) & DOKU (saat go-live).
