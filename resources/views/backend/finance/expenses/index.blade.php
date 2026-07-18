@@ -90,6 +90,15 @@
                             <label class="fs-6 fw-semibold mb-2">Keterangan (opsional)</label>
                             <textarea class="form-control" name="notes" id="ex-notes" rows="2" placeholder="Catatan tambahan"></textarea>
                         </div>
+                        <div class="mb-2 mt-5 p-4 bg-light-warning rounded">
+                            <label class="form-check form-switch form-check-custom form-check-solid align-items-start">
+                                <input class="form-check-input mt-1" type="checkbox" name="not_from_shift" id="ex-not-from-shift" value="1">
+                                <span class="form-check-label fw-semibold text-gray-800 ms-3">
+                                    Bukan dari laci/kas shift
+                                    <span class="d-block text-muted fs-8 fw-normal mt-1">Centang bila uang ini TIDAK keluar dari laci shift berjalan (mis. input susulan / dibayar terpisah). Tetap masuk laporan pengeluaran di tanggalnya, tapi <b>tak mengurangi</b> selisih kas shift.</span>
+                                </span>
+                            </label>
+                        </div>
                         <div class="text-center pt-8">
                             <button type="submit" class="btn btn-danger w-100" id="btn-save-expense">Simpan Pengeluaran</button>
                         </div>
@@ -143,6 +152,7 @@
                 $('#ex-category').val(row.category);
                 $('#ex-amount').val(row.amount);
                 $('#ex-notes').val(row.notes || '');
+                $('#ex-not-from-shift').prop('checked', !!Number(row.not_from_shift));
             } else {
                 $('#modal-expense-title').text('Catat Pengeluaran');
                 $('#ex-date').val("{{ \Carbon\Carbon::today()->format('Y-m-d') }}");

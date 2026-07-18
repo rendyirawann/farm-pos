@@ -45,7 +45,7 @@ class ExpenseController extends Controller
     public function getDataExpenses(Request $request)
     {
         try {
-            $data = Expense::with('user')
+            $data = Expense::with(['user', 'shift.user'])
                 ->orderBy('date', 'desc')
                 ->orderBy('created_at', 'desc')
                 ->select('expenses.*');
@@ -78,8 +78,12 @@ class ExpenseController extends Controller
             ->addColumn('amount', fn ($row) => '<span class="fw-bold text-danger">Rp ' . number_format($row->amount, 0, ',', '.') . '</span>')
             ->addColumn('user', fn ($row) => e(optional($row->user)->name ?? 'Sistem'))
             ->addColumn('shift', function ($row) {
-                // Shift yang SEDANG TERBUKA saat pengeluaran dicatat = laci mana uang itu keluar.
-                $s = $row->resolveShift();
+                // Laci mana pengeluaran ini dibebankan (via shift_id). NULL = sengaja tak
+                // dibebankan ke laci (mis. input susulan) -> tetap di laporan, tak kurangi kas shift.
+                if (is_null($row->shift_id)) {
+                    return '<span class="badge badge-light-warning fs-8">Bukan dari laci</span>';
+                }
+                $s = $row->shift;
                 if (! $s) {
                     return '<span class="text-muted fs-8">Di luar shift</span>';
                 }
@@ -96,6 +100,7 @@ class ExpenseController extends Controller
                     'category' => $row->category,
                     'amount'   => (int) $row->amount,
                     'notes'    => $row->notes,
+                    'not_from_shift' => is_null($row->shift_id) ? 1 : 0,
                 ]), ENT_QUOTES, 'UTF-8');
 
                 return '<div class="d-flex justify-content-end gap-2">'
@@ -119,7 +124,7 @@ class ExpenseController extends Controller
 
         try {
             DB::beginTransaction();
-            Expense::create([
+            $expense = Expense::create([
                 'date'     => $data['date'],
                 'category' => $data['category'],
                 'amount'   => $data['amount'],
@@ -130,6 +135,11 @@ class ExpenseController extends Controller
                 // Jatuh ke tenant_id user pencatat agar tetap tampil di daftar tenant.
                 'tenant_id' => app(\App\Tenancy\TenantManager::class)->id() ?? Auth::user()?->tenant_id,
             ]);
+            // Toggle "bukan dari laci shift ini": keluarkan dari laci (shift_id NULL) -> tak
+            // mengurangi selisih kas shift, tetap masuk laporan pengeluaran by kolom date.
+            if ($request->boolean('not_from_shift')) {
+                $expense->update(['shift_id' => null]);
+            }
             DB::commit();
 
             return response()->json(['success' => true, 'message' => 'Pengeluaran berhasil dicatat!']);
@@ -158,6 +168,13 @@ class ExpenseController extends Controller
                 'amount'   => $data['amount'],
                 'notes'    => $data['notes'] ?? null,
             ]);
+            // Toggle laci: centang -> keluarkan dari laci (shift_id NULL). Lepas centang ->
+            // kembalikan ke laci shift yang terbuka saat dicatat (bila sebelumnya dikosongkan).
+            if ($request->boolean('not_from_shift')) {
+                $expense->update(['shift_id' => null]);
+            } elseif (is_null($expense->shift_id)) {
+                $expense->update(['shift_id' => $expense->resolveShift()?->id]);
+            }
             DB::commit();
 
             return response()->json(['success' => true, 'message' => 'Pengeluaran berhasil diubah!']);
