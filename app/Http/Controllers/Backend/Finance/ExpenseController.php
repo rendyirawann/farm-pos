@@ -45,7 +45,7 @@ class ExpenseController extends Controller
     public function getDataExpenses(Request $request)
     {
         try {
-            $data = Expense::with(['user', 'shift.user'])
+            $data = Expense::with('user')
                 ->orderBy('date', 'desc')
                 ->orderBy('created_at', 'desc')
                 ->select('expenses.*');
@@ -77,22 +77,6 @@ class ExpenseController extends Controller
                 . ($row->notes ? '<br><span class="text-muted fs-7">' . e(Str::limit($row->notes, 50)) . '</span>' : ''))
             ->addColumn('amount', fn ($row) => '<span class="fw-bold text-danger">Rp ' . number_format($row->amount, 0, ',', '.') . '</span>')
             ->addColumn('user', fn ($row) => e(optional($row->user)->name ?? 'Sistem'))
-            ->addColumn('shift', function ($row) {
-                // Laci mana pengeluaran ini dibebankan (via shift_id). NULL = sengaja tak
-                // dibebankan ke laci (mis. input susulan) -> tetap di laporan, tak kurangi kas shift.
-                if (is_null($row->shift_id)) {
-                    return '<span class="badge badge-light-warning fs-8">Bukan dari laci</span>';
-                }
-                $s = $row->shift;
-                if (! $s) {
-                    return '<span class="text-muted fs-8">Di luar shift</span>';
-                }
-                $who  = e(optional($s->user)->name ?? 'Kasir');
-                $when = Carbon::parse($s->start_time)->translatedFormat('d M, H:i');
-                $open = $s->status === 'open' ? ' <span class="badge badge-light-success fs-9">berjalan</span>' : '';
-                return '<span class="badge badge-light-info fs-8">' . $who . '</span>'
-                    . '<br><span class="text-muted fs-8">buka ' . $when . '</span>' . $open;
-            })
             ->addColumn('action', function ($row) {
                 $d = htmlspecialchars(json_encode([
                     'id'       => $row->id,
@@ -108,7 +92,7 @@ class ExpenseController extends Controller
                     . '<button class="btn btn-sm btn-icon btn-light-danger btn-del-expense" data-id="' . $row->id . '"><i class="ki-outline ki-trash fs-4"></i></button>'
                     . '</div>';
             })
-            ->rawColumns(['date', 'title', 'amount', 'shift', 'action'])
+            ->rawColumns(['date', 'title', 'amount', 'action'])
             ->make(true);
     }
 
