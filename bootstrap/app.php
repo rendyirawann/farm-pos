@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // 🔥 TAMBAHKAN BARIS INI (Agar logoutOtherDevices berfungsi)
         // + Identifikasi tenant aktif (setelah session/auth siap) + security headers global
         $middleware->web(append: [
+            \App\Http\Middleware\DynamicUrlRoot::class,
             \Illuminate\Session\Middleware\AuthenticateSession::class,
             \App\Http\Middleware\IdentifyTenant::class,
             \App\Http\Middleware\SecurityHeaders::class,
