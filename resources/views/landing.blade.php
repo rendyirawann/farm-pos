@@ -308,6 +308,9 @@
                 <a href="#fitur" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Fitur</a>
                 <a href="#galeri" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Galeri</a>
                 <a href="#harga" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Harga</a>
+                @if (($partnerLogos ?? collect())->isNotEmpty())
+                <a href="#partner" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Partner</a>
+                @endif
             </nav>
 
             <div class="flex items-center gap-2">
@@ -328,6 +331,9 @@
                 <a href="#fitur" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Fitur</a>
                 <a href="#galeri" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Galeri</a>
                 <a href="#harga" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Harga</a>
+                @if (($partnerLogos ?? collect())->isNotEmpty())
+                <a href="#partner" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Partner</a>
+                @endif
                 <div class="my-1 h-px bg-slate-200"></div>
                 <a href="{{ route('login') }}" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Masuk</a>
                 @if (\App\Tenancy\Plan::maintenance())
@@ -641,6 +647,51 @@
                     </div>{{-- /mooda-price-shell --}}
                 </div>
             </div>
+
+            {{-- SLIDE PARTNER — logo tenant berlangganan (marquee). Hanya tampil bila ada logo. --}}
+            @php $partnerLogos = $partnerLogos ?? collect(); @endphp
+            @if ($partnerLogos->isNotEmpty())
+            <style>
+                .lp-marquee { overflow: hidden; width: 100%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
+                .lp-marquee-track { display: flex; width: max-content; gap: 3.5rem; align-items: center; animation: lp-marquee-scroll 45s linear infinite; }
+                .lp-marquee:hover .lp-marquee-track { animation-play-state: paused; }
+                @keyframes lp-marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+                .lp-partner { position: relative; display: grid; place-items: center; height: 96px; width: 168px; flex: 0 0 auto; }
+                /* Semua logo dipaksa monokrom PUTIH (brightness 0 -> hitam, invert -> putih) agar
+                   apa pun warna asli logonya tetap terlihat & seragam di latar gelap. Transparansi tetap. */
+                /* Latar PUTIH, logo WARNA ASLI (tanpa grayscale). Logo berlatar putih menyatu ke latar. */
+                .lp-partner-img { max-height: 70px; max-width: 150px; object-fit: contain; opacity: .92; transition: opacity .25s, transform .25s; }
+                .lp-partner:hover .lp-partner-img { opacity: 1; transform: scale(1.08); }
+                .lp-partner-name { position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%) translateY(6px); white-space: nowrap; background: #1e293b; color: #fff; font-size: .72rem; font-weight: 600; padding: 3px 12px; border-radius: 999px; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; box-shadow: 0 6px 16px rgba(0,0,0,.18); }
+                .lp-partner:hover .lp-partner-name { opacity: 1; transform: translateX(-50%) translateY(0); }
+            </style>
+            <div id="partner" class="swiper-slide lp-slide relative bg-white">
+                <div class="lp-content relative z-10 w-full py-24 text-center">
+                    <div class="mx-auto max-w-3xl px-6">
+                        <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">Partner Kami</span>
+                        <h2 class="mt-3 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">Sudah berlangganan bersama Mooda</h2>
+                        <p class="mx-auto mt-4 max-w-xl text-lg text-slate-500">Bisnis kuliner yang telah mempercayakan operasional hariannya ke Mooda.</p>
+                    </div>
+                    @php $reps = max(1, (int) ceil(10 / max(1, $partnerLogos->count()))); @endphp
+                    <div class="lp-marquee mt-14">
+                        {{-- 2 "setengah" identik; tiap setengah diulang $reps kali agar cukup lebar ->
+                             animasi translateX -50% looping MULUS tanpa gap kosong. --}}
+                        <div class="lp-marquee-track">
+                            @for ($half = 0; $half < 2; $half++)
+                                @for ($r = 0; $r < $reps; $r++)
+                                    @foreach ($partnerLogos as $p)
+                                        <div class="lp-partner" @if($half) aria-hidden="true" @endif>
+                                            <img src="{{ $p->image_url }}" alt="{{ $half ? '' : $p->name }}" class="lp-partner-img" loading="lazy" draggable="false">
+                                            <span class="lp-partner-name">{{ $p->name }}</span>
+                                        </div>
+                                    @endforeach
+                                @endfor
+                            @endfor
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
 
             {{-- SLIDE 5 — CTA / FOOTER --}}
             <div class="swiper-slide lp-slide relative" data-nav-dark>

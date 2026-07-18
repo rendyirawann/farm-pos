@@ -27,12 +27,6 @@
                 </span>
                 <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-210px">
 
-                    <div class="menu-item {{ request()->routeIs('categories.index') ? 'here show ' : '' }}">
-                        <a class="menu-link py-3 " href="{{ route('categories.index') }}">
-                            <span class="menu-icon"><i class="ki-outline ki-category fs-2"></i></span>
-                            <span class="menu-title">Kategori Menu</span>
-                        </a>
-                    </div>
                     <div class="menu-item {{ request()->routeIs('menus.index') ? 'here show ' : '' }}">
                         <a class="menu-link py-3" href="{{ route('menus.index') }}"> <span class="menu-icon"><i
                                     class="ki-outline ki-coffee fs-2"></i></span>
@@ -155,6 +149,24 @@
                 <a href="{{ route('deposit-settings.index') }}"
                     class="menu-link px-4 {{ request()->routeIs('deposit-settings.*') ? 'active ' : '' }}">
                     <span class="menu-title">Setelan Deposit</span>
+                </a>
+            </div>
+
+            {{-- CHANNEL VA DOKU: Superadmin only --}}
+            <div
+                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('doku-channels.*') ? 'here show ' : '' }}">
+                <a href="{{ route('doku-channels.index') }}"
+                    class="menu-link px-4 {{ request()->routeIs('doku-channels.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Channel VA DOKU</span>
+                </a>
+            </div>
+
+            {{-- LOGO PARTNER (landing): Superadmin only --}}
+            <div
+                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('partner-logos.*') ? 'here show ' : '' }}">
+                <a href="{{ route('partner-logos.index') }}"
+                    class="menu-link px-4 {{ request()->routeIs('partner-logos.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Logo Partner</span>
                 </a>
             </div>
         @endcan

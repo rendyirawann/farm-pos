@@ -39,8 +39,12 @@ class DepositSettingController extends Controller
             ]));
         }
 
-        // Tenant mode deposit (untuk top-up manual) + riwayat top-up manual terbaru.
-        $tenants = Tenant::where('billing_mode', 'deposit')->orderBy('name')->get();
+        // Tenant untuk top-up manual: yang SUDAH deposit + yang BELUM langganan bulanan aktif
+        // (mis. akun baru daftar mandiri) -> saat di-top-up, otomatis dijadikan deposit (Starter).
+        // Tenant yang sedang berlangganan bulanan aktif SENGAJA dikecualikan (agar tak terkonversi tak sengaja).
+        $tenants = Tenant::orderBy('name')->get()
+            ->filter(fn ($t) => $t->isDepositMode() || ! $t->monthlyActive())
+            ->values();
         $recentManual = DepositTransaction::where('reference', 'manual')
             ->with('tenant:id,name')
             ->orderByDesc('id')

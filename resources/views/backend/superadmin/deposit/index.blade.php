@@ -150,7 +150,7 @@
                                 <select name="tenant_id" class="form-select" required>
                                     <option value="">— pilih tenant —</option>
                                     @foreach ($tenants as $t)
-                                        <option value="{{ $t->id }}">{{ $t->name }} — saldo Rp{{ number_format($t->deposit_points, 0, ',', '.') }}</option>
+                                        <option value="{{ $t->id }}">{{ $t->name }} — {{ $t->isDepositMode() ? 'saldo Rp' . number_format($t->deposit_points, 0, ',', '.') : '⚠ belum deposit (akan dijadikan Starter/Deposit)' }}</option>
                                     @endforeach
                                 </select>
                             </div>

@@ -15,6 +15,20 @@ return [
     'purchase_enabled' => env('BILLING_PURCHASE_ENABLED', true),
 
     /*
+    |--------------------------------------------------------------------------
+    | Payment driver
+    |--------------------------------------------------------------------------
+    | Gateway pembayaran untuk checkout langganan & top-up deposit.
+    | 'midtrans' (default) = jalur publik yang SEDANG LIVE (production) — TIDAK diubah.
+    | 'doku'                = DOKU SNAP Virtual Account.
+    |
+    | PENTING: selama DOKU masih SANDBOX, biarkan driver = 'midtrans' agar
+    | transaksi nyata di landing/deposit TIDAK pernah masuk sandbox. Pindah ke
+    | 'doku' HANYA setelah akun DOKU terverifikasi production + DOKU_IS_PRODUCTION=true.
+    */
+    'driver' => env('BILLING_DRIVER', 'midtrans'),
+
+    /*
     | Teks yang ditampilkan saat purchase_enabled = false (dipakai landing page
     | pada tombol "Pilih Starter" & "Daftar" yang dinonaktifkan).
     */

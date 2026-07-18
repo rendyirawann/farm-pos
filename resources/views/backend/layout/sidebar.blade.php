@@ -294,6 +294,28 @@
                     </div>
                     @endcan
 
+                    {{-- MENU MAKANAN & MINUMAN (data master) --}}
+                    @can('view_data_master')
+                    <div class="col mb-4">
+                        <a href="{{ route('menus.index') }}"
+                            class="btn btn-icon btn-outline btn-bg-light btn-active-light-primary btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200">
+                            <span class="mb-2"><i class="ki-outline ki-coffee fs-2x text-primary"></i></span>
+                            <span class="fs-7 fw-bold">Menu F&B</span>
+                        </a>
+                    </div>
+                    @endcan
+
+                    {{-- KARYAWAN (User Management) --}}
+                    @can('view_resources')
+                    <div class="col mb-4">
+                        <a href="{{ route('users.index') }}"
+                            class="btn btn-icon btn-outline btn-bg-light btn-active-light-info btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200">
+                            <span class="mb-2"><i class="ki-outline ki-people fs-2x text-info"></i></span>
+                            <span class="fs-7 fw-bold">Karyawan</span>
+                        </a>
+                    </div>
+                    @endcan
+
                     {{-- PROGRAM AFFILIATE: owner tenant (gabung + dashboard referral) --}}
                     @can('affiliate.refer')
                     <div class="col mb-4">

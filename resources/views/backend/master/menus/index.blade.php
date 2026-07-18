@@ -12,6 +12,13 @@
 
     <div id="kt_app_content" class="app-content flex-column-fluid">
         <div id="kt_app_content_container" class="app-container container-xxl">
+            {{-- Tab: Menu Makanan & Minuman | Kategori (kategori di-embed via iframe -> terisolasi, anti-bentrok ID) --}}
+            <ul class="nav nav-tabs nav-line-tabs fs-6 fw-bold mb-5">
+                <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-menu">Menu Makanan &amp; Minuman</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-kategori">Kategori</a></li>
+            </ul>
+            <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-menu" role="tabpanel">
             <div class="card card-flush">
                 <div class="card-header align-items-center py-5 gap-2 gap-md-5">
                     <div class="card-title">
@@ -54,7 +61,14 @@
                         <tbody class="fw-semibold text-gray-600"></tbody>
                     </table>
                 </div>
+            </div>{{-- /card menu --}}
+            </div>{{-- /tab-pane menu --}}
+
+            <div class="tab-pane fade" id="tab-kategori" role="tabpanel">
+                <iframe src="{{ route('categories.index') }}?embed=1"
+                    style="width:100%;border:0;min-height:72vh;background:transparent" title="Kategori Menu"></iframe>
             </div>
+            </div>{{-- /tab-content --}}
         </div>
     </div>
 

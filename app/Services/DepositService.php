@@ -217,6 +217,11 @@ class DepositService
      */
     public function manualCredit(Tenant $tenant, int $points, ?int $cashAmount, ?string $adminUserId, string $note = ''): Tenant
     {
+        // Akun baru (belum deposit) otomatis dijadikan mode DEPOSIT (Starter) saat di-top-up manual.
+        if (! $tenant->isDepositMode()) {
+            $this->switchToDeposit($tenant);
+        }
+
         $desc = 'Top-up manual (transfer bank) oleh Superadmin' . ($note !== '' ? ' — ' . $note : '');
 
         return $this->credit($tenant, $points, $cashAmount, 'manual', $adminUserId, $desc, false);

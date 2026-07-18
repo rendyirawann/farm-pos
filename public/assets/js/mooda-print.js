@@ -119,6 +119,9 @@ window.MoodaPrint = (function () {
         line(r.payment_status === 'paid' ? '*** LUNAS ***' : '** BELUM LUNAS **');
         lines(r.receipt_footer ?? CFG.receipt_footer ?? 'Terima kasih!').forEach(l => line(l));
         push(0x0a, 0x0a, 0x0a);
+        // Buka laci kasir (ESC/POS drawer kick, pin 2). Otomatis; diabaikan printer yang tak
+        // terhubung laci -> tanpa error. Bisa dimatikan dgn CFG.open_drawer = false.
+        if (CFG.open_drawer !== false) push(ESC, 0x70, 0x00, 0x19, 0xFA);
         push(GS, 0x56, 0x42, 0x03); // feed + partial cut (Function B; diabaikan printer tanpa cutter)
         return new Uint8Array(buf);
     }

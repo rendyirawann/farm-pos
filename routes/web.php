@@ -35,6 +35,8 @@ use App\Http\Controllers\Backend\Billing\BillingController;
 use App\Http\Controllers\Backend\Billing\DepositController;
 use App\Http\Controllers\Backend\Superadmin\TenantController;
 use App\Http\Controllers\Backend\Superadmin\DepositSettingController;
+use App\Http\Controllers\Backend\Superadmin\DokuChannelController;
+use App\Http\Controllers\Backend\Superadmin\PartnerLogoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -65,7 +67,7 @@ Route::middleware(['auth', 'forbid-banned-user', 'can:affiliate.refer'])->group(
 
 // Halaman Depan: Landing Page SaaS
 Route::get('/', function () {
-    return view('landing');
+    return view('landing', ['partnerLogos' => \App\Models\PartnerLogo::forLanding()]);
 })->name('landing');
 
 // SEO: sitemap.xml (dinamis — domain mengikuti APP_URL). Dirujuk di robots.txt.
@@ -152,6 +154,21 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
         Route::get('/admin/deposit-settings', [DepositSettingController::class, 'index'])->name('deposit-settings.index');
         Route::post('/admin/deposit-settings', [DepositSettingController::class, 'update'])->name('deposit-settings.update');
         Route::post('/admin/deposit-settings/manual-topup', [DepositSettingController::class, 'manualTopup'])->name('deposit-settings.manual-topup');
+
+        // Channel Virtual Account DOKU (SNAP) — platform-wide, Superadmin
+        Route::get('/admin/doku-channels', [DokuChannelController::class, 'index'])->name('doku-channels.index');
+        Route::post('/admin/doku-channels', [DokuChannelController::class, 'store'])->name('doku-channels.store');
+        Route::put('/admin/doku-channels/{channel}', [DokuChannelController::class, 'update'])->name('doku-channels.update');
+        Route::post('/admin/doku-channels/{channel}/toggle', [DokuChannelController::class, 'toggle'])->name('doku-channels.toggle');
+        Route::delete('/admin/doku-channels/{channel}', [DokuChannelController::class, 'destroy'])->name('doku-channels.destroy');
+
+        // Logo Partner (marquee landing) — platform-wide, Superadmin
+        Route::get('/admin/partner-logos', [PartnerLogoController::class, 'index'])->name('partner-logos.index');
+        Route::post('/admin/partner-logos', [PartnerLogoController::class, 'store'])->name('partner-logos.store');
+        Route::put('/admin/partner-logos/{partnerLogo}', [PartnerLogoController::class, 'update'])->name('partner-logos.update');
+        Route::post('/admin/partner-logos/{partnerLogo}/toggle', [PartnerLogoController::class, 'toggle'])->name('partner-logos.toggle');
+        Route::delete('/admin/partner-logos/{partnerLogo}', [PartnerLogoController::class, 'destroy'])->name('partner-logos.destroy');
+        Route::post('/admin/partner-logos-limit', [PartnerLogoController::class, 'updateLimit'])->name('partner-logos.limit');
     });
 
     // ====================================================
@@ -169,6 +186,7 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
 
         // Kasir single-page
         Route::get('/admin/kasir', [KasirController::class, 'index'])->name('kasir.index');
+        Route::post('/admin/kasir/toggle-tables', [KasirController::class, 'toggleTables'])->name('kasir.toggle-tables');
         Route::get('/admin/kasir/orders', [KasirController::class, 'listOrders'])->name('kasir.orders');
         Route::get('/admin/kasir/order/{id}', [KasirController::class, 'showOrder'])->name('kasir.order.show');
         Route::post('/admin/kasir/order/store', [KasirController::class, 'storeOrder'])->name('kasir.store');
@@ -298,6 +316,10 @@ Route::middleware(['auth', 'forbid-banned-user'])->group(function () {
 
 // Webhook langganan SaaS (billing) — tetap memakai Midtrans untuk pembayaran langganan tenant.
 Route::post('/api/subscription-webhook', [BillingController::class, 'webhook']);
+
+// Webhook DOKU (diteruskan oleh doku-gateway; gateway sudah verifikasi Bearer JWT).
+// Menangani langganan (DSP-SUB-) & top-up deposit (DSP-DEP-).
+Route::post('/api/doku-webhook', [BillingController::class, 'dokuWebhook']);
 
 // Load Routes Authentication (Login, Register, Reset Password)
 require __DIR__ . '/auth.php';

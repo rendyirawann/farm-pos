@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Backend\Billing;
 use App\Http\Controllers\Controller;
 use App\Models\DepositTopup;
 use App\Models\DepositTransaction;
+use App\Models\DokuVaChannel;
 use App\Services\DepositService;
 use App\Tenancy\DepositConfig;
 use Illuminate\Http\Request;
@@ -45,6 +46,8 @@ class DepositController extends Controller
             'maintenanceText'  => config('billing.maintenance_text', 'Segera hadir.'),
             'clientKey'        => config('services.midtrans.client_key'),
             'isProduction'     => (bool) config('services.midtrans.is_production', false),
+            'driver'           => config('billing.driver', 'midtrans'),
+            'dokuChannels'     => config('billing.driver') === 'doku' ? DokuVaChannel::activeForCurrentEnv() : collect(),
             'monthlyActive'    => $tenant->monthlyActive(),
             'needsInitial'     => $this->deposit->needsInitialTopup($tenant),
             'initialTopup'     => DepositConfig::initialTopup(),
@@ -101,6 +104,11 @@ class DepositController extends Controller
                 : 'Saldo Anda sudah mendekati batas maksimum (Rp' . number_format($opt['max'], 0, ',', '.')
                     . '). Tidak ada paket yang muat saat ini. Pakai saldo dulu, lalu top-up lagi.';
             return response()->json(['status' => 'error', 'message' => $msg], 422);
+        }
+
+        // Driver DOKU (Virtual Account SNAP). Default 'midtrans' -> cabang ini dilewati.
+        if (config('billing.driver') === 'doku') {
+            return $this->checkoutDoku($tenant, (int) $amount, (int) $points, $request->input('bank'));
         }
 
         try {
@@ -182,6 +190,69 @@ class DepositController extends Controller
         $notifyUrl = config('services.midtrans.notify_url');
         if (!empty($notifyUrl)) {
             \Midtrans\Config::$overrideNotifUrl = $notifyUrl;
+        }
+    }
+
+    /**
+     * Checkout top-up deposit via DOKU SNAP Virtual Account (Close Amount).
+     * Membuat DepositTopup pending + VA, mengembalikan detail VA ke front-end.
+     */
+    private function checkoutDoku($tenant, int $amount, int $points, ?string $bank = null)
+    {
+        try {
+            $channel = DokuVaChannel::activeForCurrentEnv();
+            $channel = $bank ? $channel->firstWhere('channel', $bank) : $channel->first();
+            if (! $channel) {
+                return response()->json(['status' => 'error', 'message' => 'Metode pembayaran (bank) tidak valid atau belum aktif.'], 422);
+            }
+
+            $topup = DB::transaction(function () use ($tenant, $amount, $points) {
+                $orderId = 'DSP-DEP-' . strtoupper(Str::random(6)) . '-' . $tenant->id . '-' . substr((string) Str::uuid(), 0, 8);
+                return DepositTopup::create([
+                    'tenant_id'         => $tenant->id,
+                    'amount'            => $amount,
+                    'points'            => $points,
+                    'status'            => 'pending',
+                    'midtrans_order_id' => $orderId,   // dipakai sebagai trxId DOKU
+                ]);
+            });
+
+            $doku = new \App\Services\Doku\DokuSnap();
+            $res = $doku->createVa([
+                'trx_id'             => $topup->midtrans_order_id,
+                'customer_no'        => substr(str_pad((string) $tenant->id, 4, '0', STR_PAD_LEFT) . str_pad((string) $topup->id, 10, '0', STR_PAD_LEFT), 0, 20),
+                'amount'             => $amount,
+                'name'               => Auth::user()->name,
+                'email'              => Auth::user()->email,
+                'phone'              => $tenant->phone,
+                'channel'            => $channel->channel,
+                'partner_service_id' => $channel->partner_service_id,
+                'expiry_minutes'     => 60 * 24,
+            ]);
+
+            if (($res['responseCode'] ?? null) !== '2002700') {
+                $topup->update(['status' => 'failed']);
+                Log::error('DOKU deposit createVa gagal', ['res' => $res]);
+                return response()->json(['status' => 'error', 'message' => 'Gagal membuat Virtual Account DOKU: ' . ($res['responseMessage'] ?? 'unknown')], 500);
+            }
+
+            $va = $res['virtualAccountData'] ?? [];
+            $topup->update(['payment_type' => 'doku_va']);
+
+            return response()->json([
+                'status'       => 'success',
+                'driver'       => 'doku',
+                'order_id'     => $topup->midtrans_order_id,
+                'va_number'    => trim($va['virtualAccountNo'] ?? ''),
+                'amount'       => $amount,
+                'channel'      => $channel->channel,
+                'bank_name'    => $channel->name,
+                'expired_date' => $va['expiredDate'] ?? null,
+                'how_to_pay'   => $va['additionalInfo']['howToPayPage'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('DOKU deposit checkout failed: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Gagal memproses top-up DOKU: ' . $e->getMessage()], 500);
         }
     }
 }

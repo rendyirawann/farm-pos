@@ -48,9 +48,21 @@ class TenantController extends Controller
                         . '<div class="fs-8 text-muted">' . e($row->business_type ?? '-') . $cat . ' · ' . e($row->email ?? '-') . '</div>';
                 })
                 ->addColumn('plan', function ($row) {
+                    if ($row->billing_mode === 'deposit') {
+                        return '<span class="badge badge-light-primary">Starter</span> <span class="fs-8 text-muted">Deposit</span>';
+                    }
                     return $row->plan ? (Plan::name($row->plan)) : '<span class="text-muted">—</span>';
                 })
                 ->addColumn('status', function ($row) {
+                    $suspended = $row->is_active ? '' : ' <span class="badge badge-light-danger">Suspended</span>';
+                    // Mode Deposit (Starter): status berdasarkan saldo (bukan langganan bulanan).
+                    if ($row->billing_mode === 'deposit') {
+                        $saldo = (float) $row->deposit_points;
+                        $ok = $saldo >= \App\Tenancy\DepositConfig::feePerTransaction();
+                        $color = $ok ? 'success' : 'danger';
+                        $label = 'Saldo Rp' . number_format($saldo, 0, ',', '.') . ($ok ? '' : ' (perlu top-up)');
+                        return '<span class="badge badge-light-' . $color . '">' . $label . '</span>' . $suspended;
+                    }
                     $map = [
                         'active'   => ['Aktif', 'success'],
                         'trial'    => ['Trial', 'info'],
@@ -58,7 +70,6 @@ class TenantController extends Controller
                         'inactive' => ['Belum Aktif', 'warning'],
                     ];
                     [$label, $color] = $map[$row->subscription_status] ?? ['-', 'secondary'];
-                    $suspended = $row->is_active ? '' : ' <span class="badge badge-light-danger">Suspended</span>';
                     return '<span class="badge badge-light-' . $color . '">' . $label . '</span>' . $suspended;
                 })
                 ->addColumn('ends_at', function ($row) {
@@ -124,21 +135,26 @@ class TenantController extends Controller
             'kasir_name'     => ['nullable', 'string', 'max:255'],
             'kasir_email'    => ['nullable', 'email', 'max:255', 'unique:users,email', 'different:owner_email'],
             'kasir_password' => ['nullable', 'string', 'min:6'],
+
+            'account_mode'   => ['nullable', 'in:monthly,deposit'],   // deposit = Starter (pay-as-you-go)
         ]);
 
         DB::transaction(function () use ($data, &$tenant) {
-            $plan   = $data['plan'] ?? null;
+            $mode   = ($data['account_mode'] ?? 'monthly') === 'deposit' ? 'deposit' : 'monthly';
+            $plan   = $mode === 'deposit' ? null : ($data['plan'] ?? null);
             $months = (int) ($data['billing_months'] ?? 0);
             $days   = (int) ($data['extra_days'] ?? 0);
 
-            // Expiry: pakai tanggal manual bila diisi; jika tidak, hitung dari bulan + hari ekstra.
+            // Mode DEPOSIT (Starter): tanpa plan bulanan; akun aktif setelah saldo di-top-up.
             $endsAt = null;
-            if (! empty($data['subscription_ends_at'])) {
-                $endsAt = Carbon::parse($data['subscription_ends_at'])->endOfDay();
-            } elseif ($plan && ($months > 0 || $days > 0)) {
-                $endsAt = now()->addMonthsNoOverflow($months)->addDays($days);
+            if ($mode === 'monthly') {
+                if (! empty($data['subscription_ends_at'])) {
+                    $endsAt = Carbon::parse($data['subscription_ends_at'])->endOfDay();
+                } elseif ($plan && ($months > 0 || $days > 0)) {
+                    $endsAt = now()->addMonthsNoOverflow($months)->addDays($days);
+                }
             }
-            $status = ($plan && $endsAt) ? 'active' : 'inactive';
+            $status = ($mode === 'monthly' && $plan && $endsAt) ? 'active' : 'inactive';
 
             $tenant = Tenant::create([
                 'name'                 => $data['name'],
@@ -149,7 +165,7 @@ class TenantController extends Controller
                 'email'                => $data['email'] ?? null,
                 'address'              => $data['address'] ?? null,
                 'plan'                 => $plan,
-                'billing_mode'         => 'monthly',
+                'billing_mode'         => $mode,
                 'subscription_status'  => $status,
                 'trial_ends_at'        => null,
                 'subscription_ends_at' => $endsAt,
@@ -282,7 +298,7 @@ class TenantController extends Controller
     public function updateSubscription(Request $request, $id)
     {
         $data = $request->validate([
-            'plan'                 => ['nullable', 'in:' . implode(',', array_keys(Plan::all()))],
+            'plan'                 => ['nullable', 'in:' . implode(',', array_keys(Plan::all())) . ',deposit'],
             'subscription_status'  => ['required', 'in:trial,active,expired,inactive'],
             'billing_months'       => ['nullable', 'integer', 'min:0', 'max:120'],
             'extra_days'           => ['nullable', 'integer', 'min:0', 'max:365'],
@@ -290,6 +306,12 @@ class TenantController extends Controller
         ]);
 
         $tenant = Tenant::findOrFail($id);
+
+        // Override ke mode DEPOSIT (Starter): jadikan deposit (langganan bulanan, bila ada, berhenti).
+        if (($data['plan'] ?? null) === 'deposit') {
+            app(\App\Services\DepositService::class)->switchToDeposit($tenant);
+            return back()->with('success', 'Tenant diubah ke mode Deposit (Starter). Isi saldo lewat menu Setelan Deposit → Top-up Manual.');
+        }
         $months = (int) ($data['billing_months'] ?? 0);
         $days   = (int) ($data['extra_days'] ?? 0);
 

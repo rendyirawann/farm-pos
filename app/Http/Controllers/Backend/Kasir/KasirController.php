@@ -33,7 +33,9 @@ class KasirController extends Controller
         // OPERATOR (kasir): wajib membuka shift MILIKNYA sendiri sebelum masuk kasir (mode POS penuh).
         // PENINJAU (owner/admin): boleh masuk HANYA bila ADA shift kasir yang sedang berjalan di toko,
         // dan hanya dalam mode LIHAT + Tandai Salah/Hapus (panel POS: menu/keranjang/bayar disembunyikan).
-        $isOperator = Auth::user()->can('shift.operate');
+        // Superadmin BUKAN operator meski Gate::before memberinya semua permission — ia peninjau
+        // lintas-tenant: pakai shift yang SUDAH terbuka di toko terpilih, tak perlu buka shift sendiri.
+        $isOperator = ! Auth::user()->isSuperadmin() && Auth::user()->can('shift.operate');
         $activeShift = $isOperator
             ? Shift::where('user_id', Auth::id())->where('status', 'open')->first()
             : Shift::where('status', 'open')->latest('start_time')->first();
@@ -45,10 +47,26 @@ class KasirController extends Controller
         }
 
         $categories = Category::orderBy('name', 'asc')->get();
+        // Urutan dasar: dari menu yang PALING AWAL dibuat ke yang terbaru (bukan alfabet).
         $menus = Menu::with('activeAddons')
             ->where('is_available', true)
-            ->orderBy('name', 'asc')
+            ->orderBy('created_at', 'asc')
+            ->orderBy('id', 'asc')
             ->get();
+
+        // Total terjual per menu (kecualikan pesanan void).
+        $sold = \App\Models\OrderDetail::query()
+            ->whereHas('order', fn ($q) => $q->whereNull('voided_at'))
+            ->groupBy('menu_id')
+            ->selectRaw('menu_id, SUM(qty) as total')
+            ->pluck('total', 'menu_id');
+        // Hanya TOP-6 TERLARIS (global, terjual > 0) yang naik ke paling atas (urut penjualan);
+        // SISANYA tetap urutan pembuatan (lama -> baru). Menu dgn sedikit penjualan TIDAK ikut naik.
+        $bestsellerIds = $sold->filter(fn ($t) => (int) $t > 0)->sortDesc()->take(6)->keys()
+            ->filter(fn ($id) => $menus->contains('id', $id))->values()->all();
+        $best = collect($bestsellerIds)->map(fn ($id) => $menus->firstWhere('id', $id));
+        $rest = $menus->reject(fn ($m) => in_array($m->id, $bestsellerIds, true));
+        $menus = $best->concat($rest)->values();
         $promos = Promo::where('is_active', true)->get();
         $setting = Setting::first();
 
@@ -59,7 +77,23 @@ class KasirController extends Controller
             ? \App\Models\DiningTable::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get()
             : collect();
 
-        return view('backend.kasir.index', compact('categories', 'menus', 'promos', 'setting', 'activeShift', 'useDynamicTables', 'diningTables', 'isOperator'));
+        // Preferensi per-user: tampilkan display pilihan meja (default tampil).
+        $showTables = (bool) (Auth::user()->kasir_show_tables ?? true);
+
+        return view('backend.kasir.index', compact('categories', 'menus', 'promos', 'setting', 'activeShift', 'useDynamicTables', 'diningTables', 'isOperator', 'showTables', 'bestsellerIds'));
+    }
+
+    /**
+     * Toggle tampil/sembunyi display pilihan meja di layar Kasir (per-user, via AJAX).
+     */
+    public function toggleTables(Request $request)
+    {
+        $request->validate(['show' => ['required', 'boolean']]);
+        $user = Auth::user();
+        $user->kasir_show_tables = $request->boolean('show');
+        $user->save();
+
+        return response()->json(['status' => 'success', 'show' => (bool) $user->kasir_show_tables]);
     }
 
     /** JSON daftar order untuk panel kanan (tab Sedang Diproses / Selesai). */

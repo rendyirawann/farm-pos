@@ -45,6 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // (Webhook Midtrans untuk order POS sudah dihapus — POS tidak lagi memakai payment gateway.)
         $middleware->validateCsrfTokens(except: [
             'api/subscription-webhook',
+            'api/doku-webhook',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

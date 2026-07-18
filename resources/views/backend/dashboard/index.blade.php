@@ -52,6 +52,84 @@
                     ? ($summary['revenue'] / $summary['orders_count'])
                     : 0;
             @endphp
+
+            {{-- ONBOARDING: misi setup awal (otomatis tercentang saat selesai; hilang bila semua beres). --}}
+            @if (isset($onboarding) && ! $onboarding['done'])
+                <div class="card border-0 shadow-sm mb-6 mb-xl-8 border-start border-4 border-primary" id="onboarding-card">
+                    <div class="card-body p-6">
+                        <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+                            <span class="badge badge-primary">Setup Awal</span>
+                            <h3 class="fw-bold text-gray-900 m-0">Selesaikan setup kasir POS Anda 🚀</h3>
+                            <span class="badge badge-light-primary ms-auto">{{ ($onboarding['settings'] ? 1 : 0) + ($onboarding['master'] ? 1 : 0) }}/2 selesai</span>
+                        </div>
+                        <p class="text-muted fs-7 mb-5">Lengkapi langkah berikut agar kasir siap dipakai. Progres tercentang otomatis saat selesai.</p>
+
+                        {{-- Misi 1 --}}
+                        <div class="d-flex align-items-center justify-content-between border rounded p-4 mb-3 {{ $onboarding['settings'] ? 'bg-light-success border-success' : 'bg-light' }}">
+                            <div class="d-flex align-items-center">
+                                @if ($onboarding['settings'])
+                                    <i class="ki-outline ki-check-circle fs-2x text-success me-3"></i>
+                                @else
+                                    <span class="badge badge-circle badge-primary me-3 fs-6" style="width:34px;height:34px">1</span>
+                                @endif
+                                <div>
+                                    <div class="fw-bold text-gray-900">Setup Toko &amp; Struk</div>
+                                    <div class="fs-8 text-muted">Nama toko, alamat, layout struk &amp; printer</div>
+                                </div>
+                            </div>
+                            @if ($onboarding['settings'])
+                                <span class="badge badge-light-success"><i class="ki-outline ki-check fs-6 me-1"></i>Selesai</span>
+                            @else
+                                <a href="{{ route('settings.index') }}" class="btn btn-sm btn-primary text-nowrap">Setup Sekarang</a>
+                            @endif
+                        </div>
+
+                        {{-- Misi 2 --}}
+                        <div class="d-flex align-items-center justify-content-between border rounded p-4 {{ $onboarding['master'] ? 'bg-light-success border-success' : 'bg-light' }}">
+                            <div class="d-flex align-items-center">
+                                @if ($onboarding['master'])
+                                    <i class="ki-outline ki-check-circle fs-2x text-success me-3"></i>
+                                @else
+                                    <span class="badge badge-circle badge-primary me-3 fs-6" style="width:34px;height:34px">2</span>
+                                @endif
+                                <div>
+                                    <div class="fw-bold text-gray-900">Setup Menu &amp; Kategori</div>
+                                    <div class="fs-8 text-muted">Tambah kategori + menu makanan &amp; minuman</div>
+                                </div>
+                            </div>
+                            @if ($onboarding['master'])
+                                <span class="badge badge-light-success"><i class="ki-outline ki-check fs-6 me-1"></i>Selesai</span>
+                            @else
+                                <a href="{{ route('menus.index') }}" class="btn btn-sm btn-primary text-nowrap">Setup Sekarang</a>
+                            @endif
+                        </div>
+
+                        <div class="text-end mt-4">
+                            <button type="button" id="onboarding-dismiss" class="btn btn-sm btn-light-secondary">
+                                <i class="ki-outline ki-eye-slash fs-6 me-1"></i>Jangan tampilkan lagi (30 hari)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    (function () {
+                        var card = document.getElementById('onboarding-card');
+                        var btn = document.getElementById('onboarding-dismiss');
+                        if (!card) return;
+                        var KEY = 'mooda_onboarding_dismissed_at';
+                        var THIRTY = 30 * 24 * 60 * 60 * 1000; // 30 hari
+                        try {
+                            var at = parseInt(localStorage.getItem(KEY) || '0', 10);
+                            if (at && (Date.now() - at) < THIRTY) { card.style.display = 'none'; }
+                        } catch (e) {}
+                        if (btn) btn.addEventListener('click', function () {
+                            try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {}
+                            card.style.display = 'none';
+                        });
+                    })();
+                </script>
+            @endif
+
             <div class="row g-5 g-xl-10 mb-xl-10">
                 <div class="col-6 col-md-3">
                     <div class="card bg-light-primary border-0 shadow-sm h-100">

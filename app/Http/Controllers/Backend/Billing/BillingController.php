@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\DepositTopup;
+use App\Models\DokuVaChannel;
 use App\Services\DepositService;
 use App\Tenancy\Plan;
 use Illuminate\Http\Request;
@@ -35,8 +36,10 @@ class BillingController extends Controller
 
         $clientKey = config('services.midtrans.client_key');
         $isProduction = (bool) config('services.midtrans.is_production', false);
+        $driver = config('billing.driver', 'midtrans');
+        $dokuChannels = $driver === 'doku' ? DokuVaChannel::activeForCurrentEnv() : collect();
 
-        return view('backend.billing.index', compact('tenant', 'plans', 'history', 'clientKey', 'isProduction'));
+        return view('backend.billing.index', compact('tenant', 'plans', 'history', 'clientKey', 'isProduction', 'driver', 'dokuChannels'));
     }
 
     /**
@@ -92,6 +95,11 @@ class BillingController extends Controller
         $amount = Plan::periodAmount($planKey, $months);
         if ($amount === null) {
             return response()->json(['status' => 'error', 'message' => 'Durasi langganan tidak valid.'], 422);
+        }
+
+        // Driver DOKU (Virtual Account SNAP). Default 'midtrans' -> cabang ini dilewati.
+        if (config('billing.driver') === 'doku') {
+            return $this->checkoutDoku($tenant, $planKey, (int) $amount, $months, $request->input('bank'));
         }
 
         try {
@@ -192,6 +200,145 @@ class BillingController extends Controller
         }
 
         return response()->json(['message' => 'Order not found'], 404);
+    }
+
+    /**
+     * Webhook DOKU (diteruskan oleh doku-gateway). Gateway sudah memverifikasi Bearer JWT;
+     * di sini kita cocokkan order + NOMINAL, lalu aktivasi (idempoten via lockForUpdate).
+     * Route publik, dikecualikan CSRF. Menangani langganan (DSP-SUB-) & deposit (DSP-DEP-).
+     */
+    public function dokuWebhook(Request $request)
+    {
+        $data = $request->all();
+
+        // trxId DOKU = order id kita (disimpan di kolom midtrans_order_id).
+        $trxId = (string) ($data['trxId']
+            ?? data_get($data, 'additionalInfo.trxId')
+            ?? data_get($data, 'virtualAccountData.trxId')
+            ?? '');
+
+        // Nominal dibayar (Close Amount) untuk verifikasi anti-manipulasi.
+        $paidRaw = (string) (data_get($data, 'paidAmount.value')
+            ?? data_get($data, 'virtualAccountData.paidAmount.value')
+            ?? '0');
+        $paid = (int) round((float) $paidRaw);
+
+        // Log penuh notifikasi pertama untuk konfirmasi format riil DOKU.
+        Log::info('DOKU webhook diterima', ['trxId' => $trxId, 'paid' => $paid]);
+
+        if ($trxId === '') {
+            Log::warning('DOKU webhook: trxId kosong', ['body' => $data]);
+            return response()->json(['responseCode' => '2002700', 'responseMessage' => 'success']);
+        }
+
+        // Langganan?
+        $subscription = Subscription::where('midtrans_order_id', $trxId)->first();
+        if ($subscription) {
+            if ($paid > 0 && (int) $subscription->amount !== $paid) {
+                Log::warning('DOKU webhook: nominal langganan tak cocok — TIDAK diaktifkan', [
+                    'trxId' => $trxId, 'expected' => $subscription->amount, 'paid' => $paid,
+                ]);
+            } else {
+                $this->activateSubscription($subscription, 'doku_va');
+            }
+            return response()->json(['responseCode' => '2002700', 'responseMessage' => 'success']);
+        }
+
+        // Top-up deposit?
+        $topup = DepositTopup::where('midtrans_order_id', $trxId)->first();
+        if ($topup) {
+            if ($paid > 0 && (int) $topup->amount !== $paid) {
+                Log::warning('DOKU webhook: nominal top-up tak cocok — TIDAK dikreditkan', [
+                    'trxId' => $trxId, 'expected' => $topup->amount, 'paid' => $paid,
+                ]);
+            } else {
+                $this->activateTopup($topup, 'doku_va');
+            }
+            return response()->json(['responseCode' => '2002700', 'responseMessage' => 'success']);
+        }
+
+        Log::info('DOKU webhook: order tak ditemukan', ['trxId' => $trxId]);
+        return response()->json(['responseCode' => '2002700', 'responseMessage' => 'success']);
+    }
+
+    /**
+     * Checkout langganan via DOKU SNAP Virtual Account (Close Amount).
+     * Membuat Subscription pending + VA, mengembalikan detail VA ke front-end.
+     */
+    private function checkoutDoku($tenant, string $planKey, int $amount, int $months, ?string $bank = null)
+    {
+        try {
+            // Pilih channel bank DOKU (dari DokuVaChannel yang dikelola Superadmin).
+            $channel = $this->resolveDokuChannel($bank);
+            if (! $channel) {
+                return response()->json(['status' => 'error', 'message' => 'Metode pembayaran (bank) tidak valid atau belum aktif.'], 422);
+            }
+
+            $subscription = DB::transaction(function () use ($tenant, $planKey, $amount, $months) {
+                $orderId = 'DSP-SUB-' . strtoupper(Str::random(6)) . '-' . $tenant->id . '-' . substr((string) Str::uuid(), 0, 8);
+                return Subscription::create([
+                    'tenant_id'         => $tenant->id,
+                    'plan'              => $planKey,
+                    'amount'            => $amount,
+                    'billing_period'    => (string) $months,
+                    'status'            => 'pending',
+                    'midtrans_order_id' => $orderId,   // dipakai sebagai trxId DOKU
+                ]);
+            });
+
+            $doku = new \App\Services\Doku\DokuSnap();
+            $res = $doku->createVa([
+                'trx_id'             => $subscription->midtrans_order_id,
+                'customer_no'        => $this->dokuCustomerNo($tenant->id, $subscription->id),
+                'amount'             => $amount,
+                'name'               => Auth::user()->name,
+                'email'              => Auth::user()->email,
+                'phone'              => $tenant->phone,
+                'channel'            => $channel->channel,
+                'partner_service_id' => $channel->partner_service_id,
+                'expiry_minutes'     => 60 * 24,
+            ]);
+
+            if (($res['responseCode'] ?? null) !== '2002700') {
+                $subscription->update(['status' => 'failed']);
+                Log::error('DOKU checkout createVa gagal', ['res' => $res]);
+                return response()->json(['status' => 'error', 'message' => 'Gagal membuat Virtual Account DOKU: ' . ($res['responseMessage'] ?? 'unknown')], 500);
+            }
+
+            $va = $res['virtualAccountData'] ?? [];
+            $subscription->update(['payment_type' => 'doku_va']);
+
+            return response()->json([
+                'status'       => 'success',
+                'driver'       => 'doku',
+                'order_id'     => $subscription->midtrans_order_id,
+                'va_number'    => trim($va['virtualAccountNo'] ?? ''),
+                'amount'       => $amount,
+                'channel'      => $channel->channel,
+                'bank_name'    => $channel->name,
+                'expired_date' => $va['expiredDate'] ?? null,
+                'how_to_pay'   => $va['additionalInfo']['howToPayPage'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('DOKU subscription checkout failed: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Gagal memproses pembayaran DOKU: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /** customerNo DOKU: digit unik <=20 dari id tenant + id order. */
+    private function dokuCustomerNo(int $tenantId, int $orderId): string
+    {
+        return substr(str_pad((string) $tenantId, 4, '0', STR_PAD_LEFT) . str_pad((string) $orderId, 10, '0', STR_PAD_LEFT), 0, 20);
+    }
+
+    /** Pilih channel DOKU aktif (env sekarang). Jika $bank kosong, pakai channel pertama. */
+    private function resolveDokuChannel(?string $bank): ?DokuVaChannel
+    {
+        $channels = DokuVaChannel::activeForCurrentEnv();
+        if ($bank) {
+            return $channels->firstWhere('channel', $bank);
+        }
+        return $channels->first();
     }
 
     /**

@@ -130,6 +130,13 @@ License: Proprietary - Mooda System
                             <!--end::Logo image-->
                         </div>
                         <!--end::Logo wrapper-->
+                        {{-- Tombol Logout khusus mobile/tablet (di atas). --}}
+                        <form method="POST" action="{{ route('logout') }}" class="d-flex d-lg-none align-items-center ms-auto me-2">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-light-danger d-inline-flex align-items-center px-3" title="Logout">
+                                <i class="ki-outline ki-exit-right fs-3 me-1"></i><span class="fw-bold">Logout</span>
+                            </button>
+                        </form>
                         <!--begin::Navbar-->
                         @include('backend.layout.navbar')
                         <!--end::Navbar-->
@@ -421,7 +428,7 @@ License: Proprietary - Mooda System
     <script>
         window.MOODA_PRINT = @json($moodaPrintCfg);
     </script>
-    <script src="{{ asset('assets/js/mooda-print.js') }}"></script>
+    <script src="{{ asset('assets/js/mooda-print.js') }}?v={{ @filemtime(public_path('assets/js/mooda-print.js')) }}"></script>
     <script>
         // APK: saat pertama masuk (sekali per sesi aplikasi), bantu pilih printer Bluetooth
         // otomatis supaya siap sebelum transaksi. Di browser biasa: tidak melakukan apa-apa.

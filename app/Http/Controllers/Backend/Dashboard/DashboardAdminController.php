@@ -113,7 +113,21 @@ class DashboardAdminController extends Controller
             'items_sold'   => $itemsSold,
         ];
 
-        return view('backend.dashboard.index', compact('unavailableMenus', 'topProducts', 'chartData', 'summary', 'selectedMonth', 'monthOptions'));
+        // Misi onboarding setup awal (deteksi otomatis selesai/belum).
+        $setting = \App\Models\Setting::first();
+        $onbSettings = $setting
+            && trim((string) $setting->store_name) !== ''
+            && trim((string) $setting->address) !== ''
+            && ! empty($setting->printer_method)
+            && (trim((string) $setting->receipt_header) !== '' || trim((string) $setting->receipt_footer) !== '');
+        $onbMaster = \App\Models\Category::count() > 0 && Menu::count() > 0;
+        $onboarding = [
+            'settings' => (bool) $onbSettings,
+            'master'   => (bool) $onbMaster,
+            'done'     => (bool) ($onbSettings && $onbMaster),
+        ];
+
+        return view('backend.dashboard.index', compact('unavailableMenus', 'topProducts', 'chartData', 'summary', 'selectedMonth', 'monthOptions', 'onboarding'));
     }
 
     /** Alihkan tampilan Superadmin: 'analytics' (platform) <-> 'pos' (kasir). */

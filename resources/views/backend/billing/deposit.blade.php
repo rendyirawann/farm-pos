@@ -253,9 +253,13 @@
 @endsection
 
 @push('scripts')
+    @include('backend.billing._va_modal')
+    @if ($driver !== 'doku')
     <script src="https://app.{{ $isProduction ? '' : 'sandbox.' }}midtrans.com/snap/snap.js"
         data-client-key="{{ $clientKey }}"></script>
+    @endif
     <script>
+        const BILLING_DRIVER = @json($driver ?? 'midtrans');
         // Konfirmasi peralihan plan (hangus-menghangus)
         document.querySelectorAll('.form-switch-deposit').forEach(function (form) {
             form.addEventListener('submit', function (e) {
@@ -271,40 +275,44 @@
             });
         });
 
-        // Top-up via Midtrans Snap (dipakai paket preset, aktivasi, & nominal bebas)
+        // Top-up: Midtrans Snap ATAU DOKU VA (driver-aware).
         function topupRequest(amount, btn) {
             const original = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = 'Memproses...';
+            const unlock = () => { btn.disabled = false; btn.innerHTML = original; };
 
-            fetch("{{ route('deposit.checkout') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({ amount: amount }),
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'success' && data.snap_token) {
-                    if (typeof snap === 'undefined') {
-                        Swal.fire('Gagal', 'Gagal memuat Midtrans. Periksa koneksi / client key.', 'error');
-                        return;
+            const doCheckout = (bank) => {
+                btn.disabled = true;
+                btn.innerHTML = 'Memproses...';
+                fetch("{{ route('deposit.checkout') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                    body: JSON.stringify({ amount: amount, bank: bank }),
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success' && data.driver === 'doku' && data.va_number) {
+                        window.showDokuVa(data);
+                    } else if (data.status === 'success' && data.snap_token) {
+                        if (typeof snap === 'undefined') { Swal.fire('Gagal', 'Gagal memuat Midtrans.', 'error'); return; }
+                        snap.pay(data.snap_token, {
+                            onSuccess: function () { window.location.reload(); },
+                            onPending: function () { window.location.reload(); },
+                            onError: function () { Swal.fire('Gagal', 'Pembayaran gagal. Silakan coba lagi.', 'error'); },
+                            onClose: function () { /* dibatalkan user */ },
+                        });
+                    } else {
+                        Swal.fire('Gagal', data.message || 'Gagal memproses top-up.', 'error');
                     }
-                    snap.pay(data.snap_token, {
-                        onSuccess: function () { window.location.reload(); },
-                        onPending: function () { window.location.reload(); },
-                        onError: function () { Swal.fire('Gagal', 'Pembayaran gagal. Silakan coba lagi.', 'error'); },
-                        onClose: function () { /* dibatalkan user */ },
-                    });
-                } else {
-                    Swal.fire('Gagal', data.message || 'Gagal memproses top-up.', 'error');
-                }
-            })
-            .catch(() => Swal.fire('Gagal', 'Terjadi kesalahan jaringan.', 'error'))
-            .finally(() => { btn.disabled = false; btn.innerHTML = original; });
+                })
+                .catch(() => Swal.fire('Gagal', 'Terjadi kesalahan jaringan.', 'error'))
+                .finally(unlock);
+            };
+
+            if (BILLING_DRIVER === 'doku') {
+                window.dokuPickBank().then(doCheckout).catch(err => { if (err && err !== '__cancel__') Swal.fire('Info', err, 'info'); });
+            } else {
+                doCheckout(null);
+            }
         }
 
         document.querySelectorAll('.btn-topup').forEach(function (btn) {

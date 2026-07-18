@@ -28,6 +28,12 @@
                     <i class="ki-outline ki-handcart fs-2 me-2 text-primary"></i>Kasir
                 </h1>
                 <div class="d-flex align-items-center gap-2">
+                    @if ($isOperator)
+                    <div class="form-check form-switch form-check-custom form-check-solid me-1" title="Tampilkan / sembunyikan pilihan meja">
+                        <input class="form-check-input h-20px w-30px" type="checkbox" id="toggle-tables" {{ $showTables ? 'checked' : '' }}>
+                        <label class="form-check-label fs-8 text-gray-600 ms-2" for="toggle-tables">Meja</label>
+                    </div>
+                    @endif
                     <button id="btn-printer" type="button" class="btn btn-sm btn-light-primary d-none">
                         <i class="ki-outline ki-printer fs-4 me-1"></i><span id="printer-label">Printer</span>
                     </button>
@@ -43,6 +49,18 @@
                     </span>
                 </div>
             </div>
+
+            {{-- Banner mode LIHAT untuk peninjau (owner/admin/superadmin non-operator). --}}
+            @unless ($isOperator)
+                <div class="alert alert-primary d-flex align-items-start mb-4">
+                    <i class="ki-outline ki-eye fs-2x me-3 text-primary"></i>
+                    <div>
+                        <div class="fw-bold fs-6 text-gray-900">Mode Lihat — Akun Owner/Admin</div>
+                        <div class="fs-7 text-gray-700">Anda masuk sebagai <b>peninjau</b>: hanya bisa <b>melihat pesanan berjalan</b> serta menandai salah / menghapus. Panel input menu, keranjang & pembayaran disembunyikan.
+                        Untuk membuka <b>tampilan kasir lengkap</b> (input pesanan &amp; bayar), silakan <b>login memakai akun ber-role Kasir</b>.</div>
+                    </div>
+                </div>
+            @endunless
 
             <div class="row g-4">
                 {{-- =============== KIRI: NAMA + MENU (hanya OPERATOR/kasir) =============== --}}
@@ -61,7 +79,7 @@
                             </div>
 
                             {{-- Pilih Meja (statis 1..25, opsional). Kotak kecil biar hemat ruang di HP. --}}
-                            <div class="mt-3" id="table-wrap">
+                            <div class="mt-3 {{ $showTables ? '' : 'd-none' }}" id="table-wrap">
                                 <label class="fw-bold fs-7 mb-2 d-block text-gray-600">Meja <span class="fw-normal text-muted">(opsional)</span></label>
                                 <div class="d-flex flex-wrap gap-1" id="table-picker">
                                     <button type="button" class="btn btn-sm btn-primary text-white table-pick px-3" data-table="">Tanpa</button>
@@ -393,6 +411,7 @@
         'category_id' => $m->category_id,
         'image' => $m->image ? asset('storage/menus/' . $m->image) : null,
         'addons' => $m->activeAddons->map(fn($a) => ['id' => $a->id, 'name' => $a->name, 'price' => (float) $a->price])->values(),
+        'bestseller' => in_array($m->id, $bestsellerIds ?? [], true),
     ])->values();
 @endphp
 @push('scripts')
@@ -462,7 +481,8 @@
                 const badge = m.addons.length ? `<span class="badge badge-light-info fs-9 mt-1">+${m.addons.length} add-on</span>` : '';
                 grid.append(`
                     <div class="col">
-                        <div class="card card-bordered pos-menu-card h-100" data-menu="${m.id}">
+                        <div class="card card-bordered pos-menu-card h-100 position-relative" data-menu="${m.id}">
+                            ${m.bestseller ? '<span class="badge badge-danger position-absolute px-2 py-1" style="top:6px;left:6px;z-index:3;font-size:.62rem">🔥 Terlaris</span>' : ''}
                             ${img}
                             <div class="p-2">
                                 <div class="fw-bold text-gray-800 fs-7 text-truncate">${esc(m.name)}</div>
@@ -578,11 +598,106 @@
             renderCart();
         }
 
+        // ===== Animasi: kartu menu "terbang" mengecil ke keranjang saat ditambahkan =====
+        function cartTargetEl() {
+            var fab = document.getElementById('cart-fab');
+            // FAB pakai position:fixed (offsetParent selalu null) -> cek display, bukan offsetParent.
+            if (fab && getComputedStyle(fab).display !== 'none') return fab;   // mobile: FAB keranjang bawah
+            var ci = document.getElementById('cart-items');
+            if (ci && ci.offsetParent !== null) return ci;                     // desktop: keranjang inline
+            return fab || ci;
+        }
+        // Overlay khusus (fixed, full-viewport, transform:none) -> imun dari ancestor ber-transform
+        // yang bisa merusak position:fixed. Semua elemen animasi ditaruh di sini.
+        function flyLayer() {
+            var l = document.getElementById('fly-layer');
+            if (!l) {
+                l = document.createElement('div');
+                l.id = 'fly-layer';
+                l.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:99999;overflow:hidden;transform:none;';
+                document.body.appendChild(l);
+            }
+            return l;
+        }
+        function flyToCart(sourceEl) {
+            try {
+                var target = cartTargetEl();
+                if (!sourceEl || !target || !target.getBoundingClientRect) return;
+                var s = sourceEl.getBoundingClientRect();
+                var t = target.getBoundingClientRect();
+                if (!s.width || !t.width) return;
+
+                // Elemen terbang KOMPAK (bukan kartu penuh yang tinggi): kotak kecil berisi gambar menu.
+                var SZ = 64;
+                var srcImg = sourceEl.querySelector('img');
+                var fly = document.createElement('div');
+                fly.style.cssText = 'position:absolute;margin:0;pointer-events:none;transform-origin:center center;'
+                    + 'width:' + SZ + 'px;height:' + SZ + 'px;border-radius:16px;overflow:hidden;background:#fff;'
+                    + 'border:2px solid #4f46e5;box-shadow:0 14px 34px rgba(79,70,229,.5);'
+                    + 'display:flex;align-items:center;justify-content:center;';
+                if (srcImg && srcImg.getAttribute('src')) {
+                    var im = document.createElement('img');
+                    im.src = srcImg.getAttribute('src');
+                    im.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+                    fly.appendChild(im);
+                } else {
+                    fly.innerHTML = '<i class="ki-outline ki-handcart" style="font-size:30px;color:#4f46e5"></i>';
+                }
+                flyLayer().appendChild(fly);
+
+                // Mulai dari PUSAT kartu menu -> ke PUSAT keranjang (FAB di mobile / panel di desktop).
+                var sx = (s.left + s.width / 2) - SZ / 2, sy = (s.top + s.height / 2) - SZ / 2;
+                var tx = (t.left + t.width / 2) - SZ / 2, ty = (t.top + t.height / 2) - SZ / 2;
+                var dur = 620, startT = 0;
+
+                // Animasi MANUAL requestAnimationFrame -> mulus di semua device, tak bisa "lompat".
+                function step(ts) {
+                    if (!startT) startT = ts;
+                    var p = Math.min(1, (ts - startT) / dur);
+                    var e = 1 - Math.pow(1 - p, 3);            // easeOutCubic (smooth)
+                    var arc = -70 * Math.sin(Math.PI * p);      // lintasan melengkung ke atas
+                    var sc = 1 - 0.68 * e;                      // 1 -> ~0.32
+                    fly.style.left = (sx + (tx - sx) * e) + 'px';
+                    fly.style.top = (sy + (ty - sy) * e + arc) + 'px';
+                    fly.style.transform = 'scale(' + sc + ')';
+                    fly.style.opacity = String(1 - 0.65 * e);
+                    if (p < 1) requestAnimationFrame(step);
+                    else { try { fly.remove(); } catch (err) {} }
+                }
+                requestAnimationFrame(step);
+                setTimeout(function () { try { fly.remove(); } catch (err) {} }, 1400);
+
+                // Pulse keranjang TANPA menggeser: pertahankan transform asli (mis. translateX(-50%)
+                // untuk memusatkan FAB) lalu tambahkan scale -> tidak melompat/bergeser.
+                if (target.animate) {
+                    var baseTf = getComputedStyle(target).transform;
+                    baseTf = (baseTf && baseTf !== 'none') ? baseTf + ' ' : '';
+                    target.animate([
+                        { transform: baseTf + 'scale(1)' },
+                        { transform: baseTf + 'scale(1.18)' },
+                        { transform: baseTf + 'scale(1)' }
+                    ], { duration: 360 });
+                }
+            } catch (e) {}
+        }
+
+        // Toggle tampil/sembunyi display meja (real-time + simpan preferensi via AJAX, tanpa reload).
+        $('#toggle-tables').on('change', function () {
+            var show = this.checked;
+            $('#table-wrap').toggleClass('d-none', !show);
+            $.ajax({
+                url: "{{ route('kasir.toggle-tables') }}",
+                method: 'POST',
+                data: { show: show ? 1 : 0, _token: '{{ csrf_token() }}' },
+            });
+        });
+
         // ================= ADD MENU (with add-on modal) =================
         $('#menu-grid').on('click', '.pos-menu-card', function() {
             const menu = MENUS.find(m => String(m.id) === String($(this).data('menu')));
             if (!menu) return;
-            if (menu.addons.length === 0) { addToCart(menu, 1, [], ''); return; }
+            if (menu.addons.length === 0) { addToCart(menu, 1, [], ''); flyToCart(this); return; }
+            window.__addonSrc = this;
             $('#addon-menu-id').val(menu.id);
             $('#addon-menu-name').text(menu.name);
             $('#addon-qty').val(1);
@@ -605,6 +720,7 @@
             const ids = $('.addon-check:checked').map((i, el) => Number(el.value)).get();
             const qty = Math.max(1, Number($('#addon-qty').val() || 1));
             addToCart(menu, qty, ids, $('#addon-note').val());
+            flyToCart(window.__addonSrc);
             $('#modal-addon').modal('hide');
         });
 

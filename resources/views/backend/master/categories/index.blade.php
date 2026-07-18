@@ -1,4 +1,5 @@
-@extends('backend.layout.app')
+{{-- Di-embed (?embed=1) via iframe di tab Kategori halaman Menu -> pakai layout bare (tanpa sidebar). --}}
+@extends(request()->boolean('embed') ? 'backend.layout.bare' : 'backend.layout.app')
 @section('title', 'Master Kategori')
 @section('content')
     <div id="kt_app_toolbar" class="app-toolbar py-3 py-lg-0">

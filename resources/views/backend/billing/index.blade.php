@@ -238,9 +238,13 @@
 @endsection
 
 @push('scripts')
+    @include('backend.billing._va_modal')
+    @if ($driver !== 'doku')
     <script src="https://app.{{ $isProduction ? '' : 'sandbox.' }}midtrans.com/snap/snap.js"
         data-client-key="{{ $clientKey }}"></script>
+    @endif
     <script>
+        const BILLING_DRIVER = @json($driver ?? 'midtrans');
         const rp = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
         document.querySelectorAll('.btn-subscribe').forEach(function (btn) {
             const group = btn.dataset.group;
@@ -264,37 +268,41 @@
                 const r = selectedRadio();
                 const months = r ? parseInt(r.value, 10) : 1;
                 const original = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = 'Memproses...';
+                const unlock = () => { btn.disabled = false; btn.innerHTML = original; };
 
-                fetch("{{ route('billing.checkout') }}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({ plan: plan, months: months }),
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.status === 'success' && data.snap_token) {
-                        if (typeof snap === 'undefined') {
-                            alert('Gagal memuat Midtrans. Periksa koneksi / client key.');
-                            return;
+                const doCheckout = (bank) => {
+                    btn.disabled = true;
+                    btn.innerHTML = 'Memproses...';
+                    fetch("{{ route('billing.checkout') }}", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                        body: JSON.stringify({ plan: plan, months: months, bank: bank }),
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'success' && data.driver === 'doku' && data.va_number) {
+                            window.showDokuVa(data);
+                        } else if (data.status === 'success' && data.snap_token) {
+                            if (typeof snap === 'undefined') { alert('Gagal memuat Midtrans.'); return; }
+                            snap.pay(data.snap_token, {
+                                onSuccess: function () { window.location.reload(); },
+                                onPending: function () { window.location.reload(); },
+                                onError: function () { alert('Pembayaran gagal. Silakan coba lagi.'); },
+                                onClose: function () { /* dibatalkan user */ },
+                            });
+                        } else {
+                            alert(data.message || 'Gagal memproses pembayaran.');
                         }
-                        snap.pay(data.snap_token, {
-                            onSuccess: function () { window.location.reload(); },
-                            onPending: function () { window.location.reload(); },
-                            onError: function () { alert('Pembayaran gagal. Silakan coba lagi.'); },
-                            onClose: function () { /* dibatalkan user */ },
-                        });
-                    } else {
-                        alert(data.message || 'Gagal memproses pembayaran.');
-                    }
-                })
-                .catch(() => alert('Terjadi kesalahan jaringan.'))
-                .finally(() => { btn.disabled = false; btn.innerHTML = original; });
+                    })
+                    .catch(() => alert('Terjadi kesalahan jaringan.'))
+                    .finally(unlock);
+                };
+
+                if (BILLING_DRIVER === 'doku') {
+                    window.dokuPickBank().then(doCheckout).catch(err => { if (err && err !== '__cancel__') alert(err); });
+                } else {
+                    doCheckout(null);
+                }
             });
         });
     </script>

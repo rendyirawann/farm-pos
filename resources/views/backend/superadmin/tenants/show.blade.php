@@ -55,11 +55,14 @@
                                     <label class="form-label">Paket</label>
                                     <select name="plan" class="form-select form-select-solid">
                                         <option value="">— Tidak ada —</option>
+                                        <option value="deposit" @selected($tenant->billing_mode === 'deposit')>⚡ Starter (Deposit / pay-as-you-go)</option>
                                         @foreach ($plans as $key => $plan)
-                                            <option value="{{ $key }}" @selected($tenant->plan === $key)>{{ $plan['name'] }}</option>
+                                            <option value="{{ $key }}" @selected($tenant->billing_mode !== 'deposit' && $tenant->plan === $key)>{{ $plan['name'] }} (bulanan)</option>
                                         @endforeach
                                     </select>
+                                    <div class="form-text text-muted">Pilih <b>Starter (Deposit)</b> untuk mengubah tenant ke mode saldo (pay-as-you-go). Isian di bawah hanya untuk paket bulanan.</div>
                                 </div>
+                                <div id="monthly-sub-fields">
                                 <div class="mb-4">
                                     <label class="form-label">Status</label>
                                     <select name="subscription_status" class="form-select form-select-solid">
@@ -84,8 +87,19 @@
                                     <input type="date" name="subscription_ends_at" class="form-control form-control-solid"
                                         value="{{ optional($tenant->subscription_ends_at)->format('Y-m-d') }}" />
                                 </div>
+                                </div>{{-- /monthly-sub-fields (disembunyikan saat mode Deposit) --}}
                                 <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
                             </form>
+                            <script>
+                                (function () {
+                                    var sel = document.querySelector('form[action$="/subscription"] select[name="plan"]') || document.querySelector('select[name="plan"]');
+                                    var box = document.getElementById('monthly-sub-fields');
+                                    if (!sel || !box) return;
+                                    var sync = function () { box.style.display = (sel.value === 'deposit') ? 'none' : ''; };
+                                    sel.addEventListener('change', sync);
+                                    sync();
+                                })();
+                            </script>
                         </div>
                     </div>
                 </div>

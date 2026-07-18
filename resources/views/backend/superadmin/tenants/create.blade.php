@@ -65,6 +65,14 @@
                             <div class="card-header pt-5"><h3 class="card-title fw-bold">Langganan</h3></div>
                             <div class="card-body">
                                 <div class="mb-4">
+                                    <label class="form-label">Mode Akun</label>
+                                    <select name="account_mode" class="form-select form-select-solid">
+                                        <option value="monthly" @selected(old('account_mode', 'monthly') === 'monthly')>Langganan Bulanan (paket)</option>
+                                        <option value="deposit" @selected(old('account_mode') === 'deposit')>Deposit / Starter (pay-as-you-go)</option>
+                                    </select>
+                                    <div class="form-text text-muted">Pilih <b>Deposit</b> untuk akun <b>Starter</b> berbasis saldo (Paket & durasi di bawah diabaikan; akun aktif setelah di-top-up via menu Setelan Deposit).</div>
+                                </div>
+                                <div class="mb-4">
                                     <label class="form-label">Paket</label>
                                     <select name="plan" class="form-select form-select-solid">
                                         <option value="">— Belum berlangganan —</option>

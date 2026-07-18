@@ -44,6 +44,33 @@ return [
         'notify_url' => env('MIDTRANS_NOTIFY_URL'),
     ],
 
+    /*
+    | DOKU SNAP (BI Standard). Dipakai oleh App\Services\Doku\DokuSnap.
+    | Kredensial DARI DASHBOARD DOKU (Settings -> API Keys):
+    |   - client_id   : Client ID (BRN-....)
+    |   - secret_key  : Active Secret Key (SK-...) -> tanda tangan simetris HMAC-SHA512
+    |   - private_key : RSA private key MERCHANT (public key-nya diupload ke DOKU) -> tanda tangan asimetris token B2B
+    |   - doku_public_key : DOKU Public Key (dari dashboard) -> verifikasi tanda tangan DOKU saat DOKU memanggil endpoint token kita
+    | is_production=false -> sandbox (https://api-sandbox.doku.com).
+    */
+    'doku' => [
+        'client_id'       => env('DOKU_CLIENT_ID'),
+        'secret_key'      => env('DOKU_SECRET_KEY'),
+        'private_key'     => env('DOKU_PRIVATE_KEY'),      // isi PEM (boleh multi-baris via "\n") atau path file
+        'doku_public_key' => env('DOKU_PUBLIC_KEY'),       // PEM public key milik DOKU
+        'is_production'   => env('DOKU_IS_PRODUCTION', false),
+        'sandbox_base'    => env('DOKU_SANDBOX_BASE', 'https://api-sandbox.doku.com'),
+        'production_base' => env('DOKU_PRODUCTION_BASE', 'https://api.doku.com'),
+        // partnerServiceId = "Partner Service ID" dari config channel VA (digit; kode akan pad ke 8 char).
+        'partner_service_id' => env('DOKU_PARTNER_SERVICE_ID'),
+        // "Prefix Customer No" dari config channel VA — customerNo WAJIB diawali ini.
+        'customer_prefix' => env('DOKU_VA_CUSTOMER_PREFIX'),
+        // Channel VA default (Close Amount / SNAP). Salah satu dari VaChannels DOKU.
+        'channel'         => env('DOKU_VA_CHANNEL', 'VIRTUAL_ACCOUNT_BCA'),
+        // Public key MERCHANT kita (yang diupload ke DOKU) -> verifikasi JWT token yang kita terbitkan ke DOKU.
+        'own_public_key'  => env('DOKU_OWN_PUBLIC_KEY'),
+    ],
+
     'reverb' => [
         'app_id' => env('REVERB_APP_ID'),
         'key' => env('REVERB_APP_KEY'),
