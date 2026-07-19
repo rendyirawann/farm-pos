@@ -46,3 +46,9 @@ rr
 *.keystore
 keystore.properties
 animasi.mp4
+
+# aset sumber landing (dipakai versi WebP di public/assets/media/landing)
+/hero.png
+/section2.png
+/section3.png
+/section3_1.png

@@ -369,9 +369,9 @@
                         @if (\App\Tenancy\Plan::maintenance())
                             <span class="mooda-soon-btn">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
                         @else
-                            <a href="{{ route('register') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-indigo-900/40 transition hover:bg-indigo-700">Mulai Sekarang</a>
+                            <a href="{{ route('register') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-indigo-900/40 transition hover:bg-indigo-700">Coba Gratis Sekarang</a>
                         @endif
-                        <a href="{{ route('login') }}" class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-base font-semibold text-white backdrop-blur transition hover:bg-white/20">Masuk</a>
+                        <a href="#harga" class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-base font-semibold text-white backdrop-blur transition hover:bg-white/20">Coba Demo</a>
                     </div>
                     <div class="lp-scrollhint mt-7 inline-flex items-center gap-2 text-sm text-slate-300">
                         <span>Scroll mouse untuk menjelajah</span>
@@ -693,23 +693,100 @@
             </div>
             @endif
 
-            {{-- SLIDE 5 — CTA / FOOTER --}}
-            <div class="swiper-slide lp-slide relative" data-nav-dark>
-                <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ asset('assets/media/landing/interior.jpg') }}')"></div>
-                <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/90 via-slate-950/85 to-emerald-950/85"></div>
-                <div class="lp-content relative z-10 w-full max-w-2xl px-6 py-24 text-center text-white">
-                    <img src="{{ asset('assets/media/logos/mooda-logo-white.png') }}" alt="Mooda" class="logo-outline mx-auto mb-8 h-16 w-auto" draggable="false">
-                    <h2 class="text-balance text-3xl font-extrabold sm:text-5xl">Siap membuat restoran Anda lebih efisien?</h2>
-                    <p class="mx-auto mt-5 max-w-lg text-lg text-slate-200">Bergabung dengan bisnis kuliner yang sudah beralih ke sistem digital modern.</p>
-                    <div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                        @if (\App\Tenancy\Plan::maintenance())
-                            <span class="mooda-soon-btn">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
-                        @else
-                            <a href="{{ route('register') }}" class="rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-indigo-700 shadow-xl transition hover:bg-slate-100">Daftar Sekarang</a>
-                        @endif
-                        <a href="{{ route('login') }}" class="rounded-xl border border-white/30 bg-white/10 px-8 py-3.5 text-base font-semibold text-white backdrop-blur transition hover:bg-white/20">Masuk ke Akun</a>
+            {{-- ===== CTA + FOOTER (memanjang ke bawah + sosial media) ===== --}}
+            <div class="mooda-footer-block" data-nav-dark>
+                <style>
+                    .mooda-footer-block { background: #0b1020; }
+                    .mf-wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+                    .mf-cta-card { position: relative; overflow: hidden; border-radius: 26px; margin-top: 8px;
+                        background: linear-gradient(110deg, #4f46e5 0%, #6d28d9 55%, #7c3aed 100%); color: #fff;
+                        padding: 36px 34px; display: flex; flex-wrap: wrap; gap: 22px; align-items: center; justify-content: space-between;
+                        box-shadow: 0 34px 70px -30px rgba(79,70,229,.65); }
+                    .mf-cta-card::after { content: ""; position: absolute; right: -60px; top: -60px; width: 240px; height: 240px;
+                        border-radius: 50%; background: rgba(255,255,255,.08); }
+                    .mf-cta-card h3 { font-size: clamp(21px, 3vw, 32px); font-weight: 800; line-height: 1.12; margin: 0; letter-spacing: -.02em; }
+                    .mf-cta-card p { margin: .55rem 0 0; color: #e0e7ff; font-size: 14.5px; max-width: 46ch; }
+                    .mf-cta-actions { display: flex; flex-wrap: wrap; gap: 12px; position: relative; z-index: 1; }
+                    .mf-btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 12px; padding: 12px 22px;
+                        font-weight: 700; font-size: 14px; text-decoration: none; transition: transform .12s, background .15s, opacity .15s; white-space: nowrap; }
+                    .mf-btn:active { transform: scale(.97); }
+                    .mf-btn-light { background: #fff; color: #4338ca; }
+                    .mf-btn-light:hover { background: #eef2ff; }
+                    .mf-btn-ghost { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.4); }
+                    .mf-btn-ghost:hover { background: rgba(255,255,255,.22); }
+
+                    .mf-foot { padding: 56px 0 28px; color: #cbd5e1; }
+                    .mf-foot-grid { display: grid; grid-template-columns: 1.7fr 1fr 1.2fr 1fr; gap: 30px; }
+                    @media (max-width: 860px) { .mf-foot-grid { grid-template-columns: 1fr 1fr; } }
+                    @media (max-width: 520px) { .mf-foot-grid { grid-template-columns: 1fr; } }
+                    .mf-brand-logo { height: 34px; width: auto; }
+                    .mf-tagline { margin-top: 12px; font-size: 13px; line-height: 1.65; color: #94a3b8; max-width: 34ch; }
+                    .mf-col-title { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: #64748b; font-weight: 800; margin-bottom: 10px; }
+                    .mf-col a, .mf-col span { display: block; color: #cbd5e1; text-decoration: none; font-size: 14px; margin-bottom: 6px; word-break: break-word; }
+                    .mf-col a:hover { color: #fff; }
+                    .mf-social { display: flex; gap: 10px; margin-top: 18px; }
+                    .mf-social a { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px;
+                        background: rgba(255,255,255,.08); color: #cbd5e1; transition: background .15s, color .15s, transform .12s; }
+                    .mf-social a:hover { background: #4f46e5; color: #fff; transform: translateY(-2px); }
+                    .mf-social svg { width: 18px; height: 18px; }
+                    .mf-bottom { border-top: 1px solid rgba(255,255,255,.08); margin-top: 40px; padding-top: 20px; font-size: 12px;
+                        color: #64748b; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+                </style>
+
+                <div class="mf-wrap" style="padding-top:48px;">
+                    <div class="mf-cta-card">
+                        <div>
+                            <h3>Siap Membuat Bisnis Anda Lebih Mudah?</h3>
+                            <p>Bergabung dengan ratusan bisnis lainnya dan rasakan kemudahan menggunakan Mooda.</p>
+                        </div>
+                        <div class="mf-cta-actions">
+                            @if (\App\Tenancy\Plan::maintenance())
+                                <span class="mooda-soon-btn">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
+                            @else
+                                <a href="{{ route('register') }}" class="mf-btn mf-btn-light">Mulai Gratis Sekarang →</a>
+                            @endif
+                            <a href="https://wa.me/6282362211676?text={{ rawurlencode('Halo, saya ingin tanya tentang Mooda POS') }}" target="_blank" rel="noopener" class="mf-btn mf-btn-ghost">Hubungi Kami</a>
+                        </div>
                     </div>
-                    <p class="mt-12 text-sm text-slate-400">© {{ date('Y') }} Mooda. Seluruh hak cipta dilindungi.</p>
+                </div>
+
+                <div class="mf-wrap mf-foot">
+                    <div class="mf-foot-grid">
+                        <div>
+                            <img src="{{ asset('assets/media/logos/mooda-logo-white.png') }}" alt="Mooda" class="mf-brand-logo">
+                            <p class="mf-tagline">POS modern untuk Cafe, Restoran, Coffee Shop, Bakery dan UMKM.</p>
+                            <div class="mf-social">
+                                <a href="{{ config('mooda.social_instagram', '#') }}" target="_blank" rel="noopener" aria-label="Instagram">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2c3.2 0 3.6 0 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s0 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58 0-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s0-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2Zm0 1.8c-3.15 0-3.5 0-4.74.07-.9.04-1.38.19-1.7.31-.43.17-.74.37-1.06.69-.32.32-.52.63-.69 1.06-.12.32-.27.8-.31 1.7C3.4 8.86 3.4 9.2 3.4 12s0 3.14.06 4.39c.04.9.19 1.38.31 1.7.17.43.37.74.69 1.06.32.32.63.52 1.06.69.32.12.8.27 1.7.31 1.24.06 1.59.07 4.74.07s3.5 0 4.74-.07c.9-.04 1.38-.19 1.7-.31.43-.17.74-.37 1.06-.69.32-.32.52-.63.69-1.06.12-.32.27-.8.31-1.7.06-1.25.07-1.59.07-4.39s0-3.14-.07-4.39c-.04-.9-.19-1.38-.31-1.7a2.85 2.85 0 0 0-.69-1.06 2.85 2.85 0 0 0-1.06-.69c-.32-.12-.8-.27-1.7-.31C15.5 4 15.15 4 12 4Zm0 3.07a4.93 4.93 0 1 1 0 9.86 4.93 4.93 0 0 1 0-9.86Zm0 1.8a3.13 3.13 0 1 0 0 6.26 3.13 3.13 0 0 0 0-6.26Zm5.13-.87a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3Z"/></svg>
+                                </a>
+                                <a href="{{ config('mooda.social_facebook', '#') }}" target="_blank" rel="noopener" aria-label="Facebook">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12Z"/></svg>
+                                </a>
+                                <a href="{{ config('mooda.social_youtube', '#') }}" target="_blank" rel="noopener" aria-label="YouTube">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.12C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.4.53A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.12c1.9.53 9.4.53 9.4.53s7.5 0 9.4-.53a3 3 0 0 0 2.1-2.12A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8ZM9.55 15.57V8.43L15.82 12l-6.27 3.57Z"/></svg>
+                                </a>
+                                <a href="{{ config('mooda.social_tiktok', '#') }}" target="_blank" rel="noopener" aria-label="TikTok">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 2h-3.1v13.2a2.5 2.5 0 1 1-2.1-2.46V9.6a5.6 5.6 0 1 0 5.2 5.58V8.63a7 7 0 0 0 4 1.27V6.77a3.9 3.9 0 0 1-2.85-1.32A3.9 3.9 0 0 1 16.5 2Z"/></svg>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="mf-col">
+                            <div class="mf-col-title">Kontak (CP)</div>
+                            <a href="https://wa.me/6282362211676" target="_blank" rel="noopener">0823-6221-1676</a>
+                        </div>
+                        <div class="mf-col">
+                            <div class="mf-col-title">Email</div>
+                            <a href="mailto:admin.moodaid@gmail.com">admin.moodaid@gmail.com</a>
+                        </div>
+                        <div class="mf-col">
+                            <div class="mf-col-title">Website</div>
+                            <a href="{{ url('/') }}">mooda.id</a>
+                        </div>
+                    </div>
+                    <div class="mf-bottom">
+                        <span>© {{ date('Y') }} Mooda. Seluruh hak cipta dilindungi.</span>
+                        <span>POS modern untuk Cafe, Resto, Coffee Shop, Bakery &amp; UMKM</span>
+                    </div>
                 </div>
             </div>
 

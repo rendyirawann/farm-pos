@@ -19,4 +19,10 @@ return [
 
     // Nomor WhatsApp support (dipakai di beberapa halaman).
     'support_wa' => env('SUPPORT_WA', '6282362211676'),
+
+    // URL sosial media untuk footer landing. Set di .env; default '#' (belum diarahkan).
+    'social_instagram' => env('SOCIAL_INSTAGRAM', '#'),
+    'social_facebook'  => env('SOCIAL_FACEBOOK', '#'),
+    'social_youtube'   => env('SOCIAL_YOUTUBE', '#'),
+    'social_tiktok'    => env('SOCIAL_TIKTOK', '#'),
 ];
