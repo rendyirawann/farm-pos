@@ -296,6 +296,14 @@
                                 </div>{{-- /card --}}
                             </div>{{-- /offcanvas-body --}}
                         </div>{{-- /offcanvas keranjang --}}
+
+                        {{-- Notif floating MODE TAMBAH (layar kecil): pengingat "silakan tambah menu" + Batal.
+                             Sembunyi saat keranjang dibuka agar tak menutupi tampilan keranjang. --}}
+                        <div id="append-float-notif" class="d-none position-fixed start-50 translate-middle-x shadow-lg rounded-3 bg-warning text-gray-900 px-3 py-2 d-flex align-items-center gap-2"
+                             style="bottom: 90px; z-index: 1035; max-width: 94vw;">
+                            <span class="fw-semibold fs-8">➕ Silakan tambahkan menu ke <b id="append-float-label">Pesanan</b></span>
+                            <button type="button" class="btn btn-sm btn-dark py-1 px-2 flex-shrink-0" id="append-float-cancel">Batal</button>
+                        </div>
                         @endif
                     </div>
                 </div>
@@ -1017,19 +1025,19 @@
             $('#append-banner').removeClass('d-none');
             $('#append-submit-wrap').removeClass('d-none');
             $('#checkout-normal').addClass('d-none'); // sembunyikan metode bayar & tombol Bayar
-            // Buka keranjang HANYA di layar kecil. Di desktop keranjang sudah tampil inline
-            // (offcanvas-md) -> memanggil offcanvas.show() akan membuat backdrop menggelapkan layar.
-            try {
-                if (window.matchMedia('(max-width: 767.98px)').matches) {
-                    bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('cart-offcanvas')).show();
-                }
-            } catch (e) {}
+            $('#append-float-label').text(label);
+            // Di layar kecil: JANGAN buka keranjang otomatis. Tampilkan notif floating "silakan tambah
+            // menu" + Batal; user memilih menu lalu buka keranjang manual untuk submit.
+            if (window.matchMedia('(max-width: 767.98px)').matches) {
+                $('#append-float-notif').removeClass('d-none');
+            }
         }
 
         function exitAppendMode() {
             appendOrder = null;
             $('#append-banner').addClass('d-none');
             $('#append-submit-wrap').addClass('d-none');
+            $('#append-float-notif').addClass('d-none');
             $('#checkout-normal').removeClass('d-none');
         }
 
@@ -1063,6 +1071,20 @@
 
         $('#btn-append-submit').on('click', submitAppendItems);
         $('#append-cancel').on('click', function () { exitAppendMode(); cart = []; renderCart(); });
+        $('#append-float-cancel').on('click', function () { exitAppendMode(); cart = []; renderCart(); });
+
+        // Notif floating mode-tambah: sembunyikan saat keranjang (offcanvas) dibuka agar tak
+        // menutupi; tampilkan lagi saat keranjang ditutup bila masih mode tambah (layar kecil).
+        (function () {
+            var oc = document.getElementById('cart-offcanvas');
+            if (!oc) return;
+            oc.addEventListener('show.bs.offcanvas', function () { $('#append-float-notif').addClass('d-none'); });
+            oc.addEventListener('hidden.bs.offcanvas', function () {
+                if (appendOrder && window.matchMedia('(max-width: 767.98px)').matches) {
+                    $('#append-float-notif').removeClass('d-none');
+                }
+            });
+        })();
 
         // ================= PESANAN BERJALAN =================
         // tab: 'processing' | 'completed' — menentukan tombol yang muncul.

@@ -126,17 +126,18 @@ class DashboardAdminController extends Controller
         $onbEmployees = \App\Models\User::role('owner')->exists()
             && \App\Models\User::role('admin')->exists()
             && \App\Models\User::role('kasir')->exists();
-        // Langkah "Setup Karyawan" (no.3) HANYA tampil untuk OWNER (buat akun karyawan = tugas owner).
-        // Admin & kasir cukup langkah 1 & 2.
-        $isOwner = auth()->user()->hasRole('owner');
+        // Semua langkah TAMPIL untuk semua role, tapi tombol "Setup Sekarang" hanya aktif bila
+        // role user berwenang; selain itu tampil keterangan "Hanya ... yang mengatur ini".
+        //   - Langkah 1 & 2 (Toko/Struk & Menu/Kategori): owner ATAU admin.
+        //   - Langkah 3 (Setup Karyawan): owner saja.
+        $u = auth()->user();
         $onboarding = [
-            'settings'  => (bool) $onbSettings,
-            'master'    => (bool) $onbMaster,
-            'employees' => (bool) $onbEmployees,
-            'is_owner'  => (bool) $isOwner,
-            'done'      => $isOwner
-                ? (bool) ($onbSettings && $onbMaster && $onbEmployees)
-                : (bool) ($onbSettings && $onbMaster),
+            'settings'      => (bool) $onbSettings,
+            'master'        => (bool) $onbMaster,
+            'employees'     => (bool) $onbEmployees,
+            'can_store'     => (bool) ($u->hasRole('owner') || $u->hasRole('admin')),
+            'can_employees' => (bool) $u->hasRole('owner'),
+            'done'          => (bool) ($onbSettings && $onbMaster && $onbEmployees),
         ];
 
         return view('backend.dashboard.index', compact('unavailableMenus', 'topProducts', 'chartData', 'summary', 'selectedMonth', 'monthOptions', 'onboarding'));
