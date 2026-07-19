@@ -18,6 +18,14 @@ class CategoriesController extends Controller
         return view('backend.master.categories.index');
     }
 
+    /** Daftar ringkas kategori (id + nama) untuk isi ulang dropdown di form menu tanpa reload halaman. */
+    public function options()
+    {
+        return response()->json(
+            Category::orderBy('name')->get(['id', 'name'])
+        );
+    }
+
     public function getDataCategories(Request $request)
     {
         if ($request->ajax()) {

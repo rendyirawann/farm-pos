@@ -231,6 +231,8 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance'])->group(function
     Route::middleware(['can:view_data_master', 'subscribed'])->group(function () {
         Route::resource('/admin/categories', CategoriesController::class);
         Route::get('/admin/get-datacategories', [CategoriesController::class, 'getDataCategories'])->name('get-datacategories');
+        // Daftar ringkas kategori (JSON) utk refresh dropdown di form menu tanpa reload.
+        Route::get('/admin/categories-options', [CategoriesController::class, 'options'])->name('categories.options');
 
         // Import menu via CSV (template + upload) — didefinisikan SEBELUM resource
         // agar '/menus/template' & '/menus/import' tidak bentrok dgn '/menus/{menu}'.

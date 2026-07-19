@@ -364,8 +364,25 @@
                     $('#FormTambahModalID select').val(null).trigger('change');
                     $('#addons-wrapper-add').html('');
                     $('.error-text').text('');
+                    refreshCategoryOptions(); // muat ulang kategori terbaru (mis. baru ditambah di tab Kategori)
                     $('#Modal_Tambah_Data').modal('show');
                 });
+
+                // Muat ulang opsi kategori pada select2 form Tambah TANPA reload halaman.
+                // Mengatasi: kategori baru (ditambah di tab Kategori) belum muncul di dropdown.
+                function refreshCategoryOptions() {
+                    var $sel = $('#Modal_Tambah_Data select[name="category_id"]');
+                    if (!$sel.length) return;
+                    $.getJSON("{{ route('categories.options') }}").done(function (cats) {
+                        var current = $sel.val();
+                        $sel.empty().append('<option></option>');
+                        (cats || []).forEach(function (c) {
+                            $sel.append(new Option(c.name, c.id, false, false));
+                        });
+                        if (current) $sel.val(current);
+                        $sel.trigger('change');
+                    });
+                }
 
                 // ===== Add-On repeater (dipakai form Tambah & Edit) =====
                 window.addonRowHtml = function(name = '', price = 0) {

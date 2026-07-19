@@ -126,11 +126,17 @@ class DashboardAdminController extends Controller
         $onbEmployees = \App\Models\User::role('owner')->exists()
             && \App\Models\User::role('admin')->exists()
             && \App\Models\User::role('kasir')->exists();
+        // Langkah "Setup Karyawan" (no.3) HANYA tampil untuk OWNER (buat akun karyawan = tugas owner).
+        // Admin & kasir cukup langkah 1 & 2.
+        $isOwner = auth()->user()->hasRole('owner');
         $onboarding = [
             'settings'  => (bool) $onbSettings,
             'master'    => (bool) $onbMaster,
             'employees' => (bool) $onbEmployees,
-            'done'      => (bool) ($onbSettings && $onbMaster && $onbEmployees),
+            'is_owner'  => (bool) $isOwner,
+            'done'      => $isOwner
+                ? (bool) ($onbSettings && $onbMaster && $onbEmployees)
+                : (bool) ($onbSettings && $onbMaster),
         ];
 
         return view('backend.dashboard.index', compact('unavailableMenus', 'topProducts', 'chartData', 'summary', 'selectedMonth', 'monthOptions', 'onboarding'));
