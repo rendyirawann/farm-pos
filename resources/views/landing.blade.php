@@ -351,7 +351,7 @@
             <div class="lp-hero2 relative">
                 <style>
                     .lp-hero2 { background: linear-gradient(160deg,#f6f4ff 0%,#eef2ff 48%,#faf5ff 100%); }
-                    .lp-hero2-inner { max-width: 1320px; margin: 0 auto; padding: 118px 28px 64px;
+                    .lp-hero2-inner { max-width: 1440px; margin: 0 auto; padding: 118px 28px 64px;
                         display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 40px; align-items: center; }
                     @media (max-width: 960px){ .lp-hero2-inner{ grid-template-columns: 1fr; padding: 104px 20px 44px; text-align: center; } }
                     .lp-hero2-badge { display:inline-flex; align-items:center; gap:8px; background:#fff; border:1px solid #e5e7ff;
@@ -415,7 +415,7 @@
 
             {{-- SECTION FITUR (gaya mockup: judul di tengah, lebih lebar) --}}
             <div id="fitur" class="swiper-slide lp-slide relative bg-white">
-                <div class="lp-content w-full px-6 py-20" style="max-width:1320px;">
+                <div class="lp-content w-full px-6 py-20" style="max-width:1440px;">
                     <div class="mx-auto max-w-2xl text-center">
                         <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">Fitur</span>
                         <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Semua yang Anda Butuhkan Untuk Mengelola Bisnis</h2>
@@ -451,7 +451,7 @@
             <div class="lp-mk">
                 <style>
                     .lp-mk { background:#fff; }
-                    .lp-mk-wrap { max-width:1320px; margin:0 auto; padding:72px 28px; }
+                    .lp-mk-wrap { max-width:1440px; margin:0 auto; padding:72px 28px; }
                     .lp-mk-eyebrow { font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#4f46e5; }
                     .lp-mk h2 { font-size:clamp(24px,3.4vw,38px); font-weight:800; letter-spacing:-.02em; color:#0f172a; margin:8px 0 0; text-wrap:balance; }
                     .lp-mk .lead { margin-top:10px; color:#64748b; font-size:16px; max-width:60ch; line-height:1.6; }
@@ -530,23 +530,14 @@
                     </div>
                 </div>
 
-                <div class="lp-mk-wrap" style="padding-top:0;">
-                    <div class="lp-mk-eyebrow">Integrasi</div>
-                    <h2>Integrasi Lengkap</h2>
-                    <p class="lead">Mooda terhubung dengan berbagai layanan untuk memudahkan bisnismu.</p>
-                    <div class="lp-integ">
-                        @foreach (['QRIS','Midtrans','DOKU','WhatsApp','Printer Thermal','Google Drive','Cloud Backup'] as $ig)
-                            <span>✓ {{ $ig }}</span>
-                        @endforeach
-                    </div>
-                </div>
+                {{-- (Section Integrasi dihapus sesuai permintaan) --}}
             </div>
 
             {{-- CARA MUDAH MENGGUNAKAN MOODA (gaya mockup, 4 langkah, terang) --}}
             <div class="lp-steps">
                 <style>
                     .lp-steps { background:#fff; }
-                    .lp-steps-wrap { max-width:1320px; margin:0 auto; padding:8px 28px 72px; }
+                    .lp-steps-wrap { max-width:1440px; margin:0 auto; padding:8px 28px 72px; }
                     .lp-steps h2 { text-align:center; font-size:clamp(24px,3.2vw,34px); font-weight:800; color:#0f172a; letter-spacing:-.02em; margin:0 0 36px; }
                     .lp-steps-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
                     @media (max-width:900px){ .lp-steps-grid{ grid-template-columns:1fr 1fr; } }
