@@ -312,6 +312,75 @@ class KasirController extends Controller
     }
 
     /**
+     * Tambah/gabung item ke pesanan yang MASIH BELUM LUNAS (view -> tambah menu -> merge).
+     * GUARD server-side: hanya payment_status=unpaid, order masih diproses, & tidak void.
+     * Total dihitung ULANG holistik (subtotal SEMUA item -> promo -> pajak) agar promo%/pajak benar.
+     */
+    public function addItems($id, Request $request)
+    {
+        $request->validate([
+            'cart'           => 'required|array|min:1',
+            'cart.*.menu_id' => 'required|integer',
+            'cart.*.qty'     => 'required|integer|min:1',
+        ]);
+
+        try {
+            DB::beginTransaction();
+            $order = Order::findOrFail($id); // ter-scope tenant otomatis
+
+            // GUARD (jangan andalkan UI): pesanan lunas = grand_total sudah masuk kas/omzet,
+            // tak boleh diubah. Hanya pesanan BELUM LUNAS, masih diproses, & tidak void.
+            if ($order->payment_status === 'paid') {
+                DB::rollBack();
+                return response()->json(['success' => false, 'error' => 'Pesanan sudah lunas — tidak bisa menambah item.'], 422);
+            }
+            if (! in_array($order->order_status, ['pending', 'cooking', 'served'], true)) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'error' => 'Pesanan sudah selesai — tidak bisa menambah item.'], 422);
+            }
+            if ($order->voided_at !== null) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'error' => 'Pesanan ditandai salah — tidak bisa menambah item.'], 422);
+            }
+
+            // Item BARU dihargai dari DB (anti-hack) lalu ditempel ke order yang sama.
+            $newItems = $this->buildCartItems($request->cart)['items'];
+            if (empty($newItems)) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'error' => 'Tidak ada item valid untuk ditambahkan.'], 422);
+            }
+            foreach ($newItems as $item) {
+                $order->details()->create($item);
+            }
+
+            // RECOMPUTE HOLISTIK: subtotal = jumlah SEMUA item (lama + baru); promo & pajak
+            // dihitung ulang atas subtotal baru (bukan tambah delta -> benar utk promo%/pajak).
+            $order->load('details');
+            $subtotal = (float) $order->details->sum('subtotal');
+            $totals = $this->applyPromoAndTax($subtotal, $order->promo_id);
+            $order->update([
+                'subtotal'        => $subtotal,
+                'discount_amount' => (int) $totals['discount_amount'],
+                'tax'             => $totals['tax'],
+                'grand_total'     => $totals['grand_total'],
+            ]);
+            // $order->update() -> OrderObserver::updated -> OrderChanged (layar Dapur & Kasir refetch).
+
+            DB::commit();
+
+            return response()->json([
+                'success'   => true,
+                'order_id'  => $order->id,
+                'print_url' => route('kasir.print', $order->id),
+                'receipt'   => $this->receiptPayload($order->fresh('details.menu')),
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Selesaikan order (hilang dari daftar "Sedang Diproses").
      * WAJIB sudah lunas. Boleh sekaligus membayar (kirim payment_method) saat menyelesaikan.
      */
@@ -704,7 +773,8 @@ class KasirController extends Controller
      * Hitung ulang keranjang di server (anti-hack): ambil harga menu & add-ons dari DB.
      * cart item: {menu_id, qty, addon_ids[], note}
      */
-    private function buildOrderFromCart(array $cart, $promoId): array
+    /** Bangun item pesanan dari keranjang (harga menu+addon dari DB, anti-hack). Kembalikan items + subtotal. */
+    private function buildCartItems(array $cart): array
     {
         $subtotal = 0;
         $items = [];
@@ -745,7 +815,12 @@ class KasirController extends Controller
             ];
         }
 
-        // Diskon promo
+        return ['items' => $items, 'subtotal' => $subtotal];
+    }
+
+    /** Hitung diskon promo + pajak + grand_total dari subtotal. Dipakai store DAN add-items (konsisten). */
+    private function applyPromoAndTax(float $subtotal, $promoId): array
+    {
         $discount = 0;
         if ($promoId) {
             $promo = Promo::where('id', $promoId)->where('is_active', true)->first();
@@ -760,15 +835,23 @@ class KasirController extends Controller
         $setting = Setting::first();
         $taxRate = $setting ? (float) $setting->tax_rate : 0;
         $tax = round($net * ($taxRate / 100));
-        $grand = $net + $tax;
 
         return [
-            'items'           => $items,
-            'subtotal'        => $subtotal,
             'discount_amount' => $discount,
             'tax'             => $tax,
-            'grand_total'     => $grand,
+            'grand_total'     => $net + $tax,
         ];
+    }
+
+    /**
+     * Hitung ulang keranjang di server (anti-hack): item + subtotal + diskon + pajak + grand.
+     * cart item: {menu_id, qty, addon_ids[], note}
+     */
+    private function buildOrderFromCart(array $cart, $promoId): array
+    {
+        $built = $this->buildCartItems($cart);
+
+        return array_merge($built, $this->applyPromoAndTax((float) $built['subtotal'], $promoId));
     }
 
     /** Terapkan pembayaran (tunai/QRIS) ke order. Validasi uang tunai. */

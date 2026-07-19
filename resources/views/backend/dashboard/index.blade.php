@@ -60,7 +60,7 @@
                         <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
                             <span class="badge badge-primary">Setup Awal</span>
                             <h3 class="fw-bold text-gray-900 m-0">Selesaikan setup kasir POS Anda 🚀</h3>
-                            <span class="badge badge-light-primary ms-auto">{{ ($onboarding['settings'] ? 1 : 0) + ($onboarding['master'] ? 1 : 0) }}/2 selesai</span>
+                            <span class="badge badge-light-primary ms-auto">{{ ($onboarding['settings'] ? 1 : 0) + ($onboarding['master'] ? 1 : 0) + ($onboarding['employees'] ? 1 : 0) }}/3 selesai</span>
                         </div>
                         <p class="text-muted fs-7 mb-5">Lengkapi langkah berikut agar kasir siap dipakai. Progres tercentang otomatis saat selesai.</p>
 
@@ -85,7 +85,7 @@
                         </div>
 
                         {{-- Misi 2 --}}
-                        <div class="d-flex align-items-center justify-content-between border rounded p-4 {{ $onboarding['master'] ? 'bg-light-success border-success' : 'bg-light' }}">
+                        <div class="d-flex align-items-center justify-content-between border rounded p-4 mb-3 {{ $onboarding['master'] ? 'bg-light-success border-success' : 'bg-light' }}">
                             <div class="d-flex align-items-center">
                                 @if ($onboarding['master'])
                                     <i class="ki-outline ki-check-circle fs-2x text-success me-3"></i>
@@ -101,6 +101,26 @@
                                 <span class="badge badge-light-success"><i class="ki-outline ki-check fs-6 me-1"></i>Selesai</span>
                             @else
                                 <a href="{{ route('menus.index') }}" class="btn btn-sm btn-primary text-nowrap">Setup Sekarang</a>
+                            @endif
+                        </div>
+
+                        {{-- Misi 3 --}}
+                        <div class="d-flex align-items-center justify-content-between border rounded p-4 {{ $onboarding['employees'] ? 'bg-light-success border-success' : 'bg-light' }}">
+                            <div class="d-flex align-items-center">
+                                @if ($onboarding['employees'])
+                                    <i class="ki-outline ki-check-circle fs-2x text-success me-3"></i>
+                                @else
+                                    <span class="badge badge-circle badge-primary me-3 fs-6" style="width:34px;height:34px">3</span>
+                                @endif
+                                <div>
+                                    <div class="fw-bold text-gray-900">Setup Karyawan</div>
+                                    <div class="fs-8 text-muted">Buat akun Owner, Admin &amp; Kasir</div>
+                                </div>
+                            </div>
+                            @if ($onboarding['employees'])
+                                <span class="badge badge-light-success"><i class="ki-outline ki-check fs-6 me-1"></i>Selesai</span>
+                            @else
+                                <a href="{{ route('users.index') }}" class="btn btn-sm btn-primary text-nowrap">Setup Sekarang</a>
                             @endif
                         </div>
 

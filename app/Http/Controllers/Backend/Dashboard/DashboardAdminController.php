@@ -121,10 +121,16 @@ class DashboardAdminController extends Controller
             && ! empty($setting->printer_method)
             && (trim((string) $setting->receipt_header) !== '' || trim((string) $setting->receipt_footer) !== '');
         $onbMaster = \App\Models\Category::count() > 0 && Menu::count() > 0;
+        // Setup Karyawan: selesai bila tenant sudah punya akun ber-role owner, admin, DAN kasir.
+        // Nama role lowercase (spatie); TenantScope global otomatis membatasi ke tenant aktif.
+        $onbEmployees = \App\Models\User::role('owner')->exists()
+            && \App\Models\User::role('admin')->exists()
+            && \App\Models\User::role('kasir')->exists();
         $onboarding = [
-            'settings' => (bool) $onbSettings,
-            'master'   => (bool) $onbMaster,
-            'done'     => (bool) ($onbSettings && $onbMaster),
+            'settings'  => (bool) $onbSettings,
+            'master'    => (bool) $onbMaster,
+            'employees' => (bool) $onbEmployees,
+            'done'      => (bool) ($onbSettings && $onbMaster && $onbEmployees),
         ];
 
         return view('backend.dashboard.index', compact('unavailableMenus', 'topProducts', 'chartData', 'summary', 'selectedMonth', 'monthOptions', 'onboarding'));

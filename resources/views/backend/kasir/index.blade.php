@@ -253,6 +253,18 @@
                                 <div class="d-flex justify-content-between mb-1"><span class="text-muted">Pajak (<span id="tax-rate">{{ (int) ($setting->tax_rate ?? 0) }}</span>%)</span><span id="sum-tax">Rp 0</span></div>
                                 <div class="d-flex justify-content-between fw-bold fs-4 mb-3"><span>Total</span><span id="sum-total" class="text-success">Rp 0</span></div>
 
+                                {{-- Banner MODE TAMBAH (gabung item ke pesanan BELUM LUNAS) --}}
+                                <div id="append-banner" class="alert alert-warning d-flex align-items-center justify-content-between py-2 px-3 mb-3 d-none">
+                                    <span class="fw-semibold fs-8">➕ Menambah menu ke <b id="append-label">Pesanan</b></span>
+                                    <button type="button" class="btn btn-sm btn-light-danger py-1 px-2" id="append-cancel">Batal</button>
+                                </div>
+                                <div class="d-grid mb-3 d-none" id="append-submit-wrap">
+                                    <button class="btn btn-warning fw-bold" id="btn-append-submit">
+                                        <i class="ki-outline ki-plus-square fs-3 me-1"></i> Tambah ke Pesanan
+                                    </button>
+                                </div>
+
+                                <div id="checkout-normal">
                                 {{-- Metode Pembayaran --}}
                                 <label class="fw-semibold fs-7 text-muted mb-2 d-block">Metode Pembayaran</label>
                                 <div class="btn-group w-100 mb-3" role="group" id="pay-method-group">
@@ -279,6 +291,7 @@
                                         <i class="ki-outline ki-timer fs-3 me-1"></i> Bayar Nanti (Kirim ke Dapur)
                                     </button>
                                 </div>
+                                </div>{{-- /#checkout-normal --}}
                             </div>
                                 </div>{{-- /card --}}
                             </div>{{-- /offcanvas-body --}}
@@ -994,6 +1007,57 @@
         $('#btn-pay-now').on('click', () => submitOrder(true));
         $('#btn-pay-later').on('click', () => submitOrder(false));
 
+        // ========== MODE TAMBAH: gabung item ke pesanan BELUM LUNAS ==========
+        let appendOrder = null; // {id, label} saat mode tambah aktif
+
+        function enterAppendMode(id, label) {
+            appendOrder = { id: id, label: label };
+            cart = []; renderCart();
+            $('#append-label').text(label);
+            $('#append-banner').removeClass('d-none');
+            $('#append-submit-wrap').removeClass('d-none');
+            $('#checkout-normal').addClass('d-none'); // sembunyikan metode bayar & tombol Bayar
+            try { bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('cart-offcanvas')).show(); } catch (e) {}
+        }
+
+        function exitAppendMode() {
+            appendOrder = null;
+            $('#append-banner').addClass('d-none');
+            $('#append-submit-wrap').addClass('d-none');
+            $('#checkout-normal').removeClass('d-none');
+        }
+
+        function submitAppendItems() {
+            if (!appendOrder) return;
+            if (cart.length === 0) { Swal.fire('Keranjang kosong', 'Tambahkan menu yang mau digabung.', 'info'); return; }
+            const $btn = $('#btn-append-submit');
+            const orig = $btn.html();
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+            $.ajax({
+                url: ROUTES.base + '/' + appendOrder.id + '/add-items',
+                method: 'POST',
+                data: {
+                    _token: CSRF,
+                    cart: cart.map(it => ({ menu_id: it.menu_id, qty: it.qty, addon_ids: it.addon_ids, note: it.note })),
+                },
+                timeout: 25000
+            }).done(res => {
+                if (res.success) {
+                    exitAppendMode();
+                    cart = []; renderCart(); resetCheckout();
+                    try { const _oc = bootstrap.Offcanvas.getInstance(document.getElementById('cart-offcanvas')); if (_oc) _oc.hide(); } catch (e) {}
+                    loadOrders();
+                    Swal.fire({ icon: 'success', title: 'Menu ditambahkan', text: 'Item digabung ke pesanan & dikirim ke dapur.', timer: 1800, showConfirmButton: false });
+                } else { Swal.fire('Gagal', res.error || 'Terjadi kesalahan', 'error'); }
+            }).fail(xhr => {
+                const msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Gagal menambah item (jaringan/server).';
+                Swal.fire('Gagal', msg, 'error');
+            }).always(() => $btn.prop('disabled', false).html(orig));
+        }
+
+        $('#btn-append-submit').on('click', submitAppendItems);
+        $('#append-cancel').on('click', function () { exitAppendMode(); cart = []; renderCart(); });
+
         // ================= PESANAN BERJALAN =================
         // tab: 'processing' | 'completed' — menentukan tombol yang muncul.
         function orderCard(o, tab) {
@@ -1221,10 +1285,21 @@
                     ${Number(o.discount_amount) > 0 ? `<div class="d-flex justify-content-between"><span class="text-muted">Diskon</span><span class="text-danger">- ${rupiah(o.discount_amount)}</span></div>` : ''}
                     <div class="d-flex justify-content-between"><span class="text-muted">Pajak</span><span>${rupiah(o.tax)}</span></div>
                     <div class="d-flex justify-content-between fw-bold fs-4"><span>Total</span><span class="text-success">${rupiah(o.grand_total)}</span></div>
-                    <div class="text-end mt-4"><button type="button" class="btn btn-sm btn-light-primary" onclick="doPrintReceipt(window.__lastDetail, '${ROUTES.print}/${o.id}')"><i class="ki-outline ki-printer"></i> Cetak Struk</button></div>`);
+                    <div class="text-end mt-4 d-flex gap-2 justify-content-end">
+                        ${o.payment_status !== 'paid' ? `<button type="button" class="btn btn-sm btn-warning btn-append-order" data-id="${o.id}" data-label="No. ${o.queue_number ?? o.invoice_no}"><i class="ki-outline ki-plus-square"></i> Tambah Menu</button>` : ''}
+                        <button type="button" class="btn btn-sm btn-light-primary" onclick="doPrintReceipt(window.__lastDetail, '${ROUTES.print}/${o.id}')"><i class="ki-outline ki-printer"></i> Cetak Struk</button>
+                    </div>`);
             }).fail(function () {
                 $('#detail-body').html('<div class="text-center text-danger py-6">Gagal memuat detail — mungkin sedang offline. Untuk pesanan yang dibuat offline, buka tab <b>Offline</b> lalu tekan tombol <b>Cetak Struk</b>.</div>');
             });
+        });
+
+        // Mulai MODE TAMBAH dari modal detail pesanan BELUM LUNAS: tutup modal, buka keranjang mode tambah.
+        $('body').on('click', '.btn-append-order', function () {
+            const id = $(this).data('id');
+            const label = 'Pesanan ' + $(this).data('label');
+            try { bootstrap.Modal.getInstance(document.getElementById('modal-detail'))?.hide(); } catch (e) {}
+            enterAppendMode(id, label);
         });
 
         // Cetak struk pesanan OFFLINE — langsung dari data lokal, tanpa jaringan.

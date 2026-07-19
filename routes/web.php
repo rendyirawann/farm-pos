@@ -197,6 +197,8 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance'])->group(function
         Route::post('/admin/kasir/order/store', [KasirController::class, 'storeOrder'])->name('kasir.store');
         Route::post('/admin/kasir/order/sync-offline', [KasirController::class, 'syncOfflineOrders'])->name('kasir.sync-offline');
         Route::post('/admin/kasir/order/{id}/pay', [KasirController::class, 'payOrder'])->name('kasir.pay');
+        // Tambah/gabung item ke pesanan yang MASIH BELUM LUNAS (view -> tambah menu -> merge).
+        Route::post('/admin/kasir/order/{id}/add-items', [KasirController::class, 'addItems'])->name('kasir.add-items');
         Route::post('/admin/kasir/order/{id}/complete', [KasirController::class, 'completeOrder'])->name('kasir.complete');
         Route::get('/admin/kasir/print/{id}', [KasirController::class, 'printReceipt'])->name('kasir.print');
 
