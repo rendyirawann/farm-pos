@@ -349,33 +349,63 @@
     <div id="landing-swiper" class="swiper h-screen w-screen">
         <div class="swiper-wrapper">
 
-            {{-- SLIDE 0 — HERO --}}
-            <div class="swiper-slide lp-slide relative" data-nav-dark>
-                <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ asset('assets/media/landing/hero.jpg') }}')"></div>
-                <div class="absolute inset-0 bg-gradient-to-br from-slate-950/85 via-slate-900/70 to-indigo-950/80"></div>
-                <div class="lp-content lp-hero relative z-10 w-full max-w-3xl px-6 py-24 text-center text-white">
-                    <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur">
-                        <span class="relative flex h-2 w-2"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-400"></span></span>
-                        Sistem Kasir Restoran All-in-One
-                    </span>
-                    <h1 class="mt-6 text-balance text-4xl font-extrabold leading-[1.07] tracking-tight sm:text-6xl">
-                        Kelola restoran lebih
-                        <span class="lp-gradient-text">cepat, rapi &amp; cuan</span>
-                    </h1>
-                    <p class="mx-auto mt-5 max-w-xl text-balance text-lg text-slate-200">
-                        Satukan kasir, dapur (kitchen display), nomor antrian, dan laporan penjualan dalam satu sistem. Untuk restoran, cafe & warung — bisa multi-outlet.
-                    </p>
-                    <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                        @if (\App\Tenancy\Plan::maintenance())
-                            <span class="mooda-soon-btn">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
-                        @else
-                            <a href="{{ route('register') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-indigo-900/40 transition hover:bg-indigo-700">Coba Gratis Sekarang</a>
-                        @endif
-                        <a href="#harga" class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-base font-semibold text-white backdrop-blur transition hover:bg-white/20">Coba Demo</a>
+            {{-- SLIDE 0 — HERO (gaya mockup: dua kolom, latar terang, visual device) --}}
+            <div class="lp-hero2 relative">
+                <style>
+                    .lp-hero2 { background: linear-gradient(160deg,#f6f4ff 0%,#eef2ff 48%,#faf5ff 100%); }
+                    .lp-hero2-inner { max-width: 1180px; margin: 0 auto; padding: 122px 20px 66px;
+                        display: grid; grid-template-columns: 1.05fr 1fr; gap: 44px; align-items: center; }
+                    @media (max-width: 900px){ .lp-hero2-inner{ grid-template-columns: 1fr; padding: 108px 20px 48px; text-align: center; } }
+                    .lp-hero2-badge { display:inline-flex; align-items:center; gap:8px; background:#fff; border:1px solid #e5e7ff;
+                        color:#4f46e5; font-weight:700; font-size:12.5px; padding:7px 15px; border-radius:999px; box-shadow:0 6px 18px -8px rgba(79,70,229,.35); }
+                    .lp-hero2 h1 { font-size: clamp(30px,4.5vw,52px); font-weight:800; line-height:1.07; letter-spacing:-.025em; color:#0f172a; margin:18px 0 0; text-wrap:balance; }
+                    .lp-hero2 h1 .g { background:linear-gradient(100deg,#4f46e5,#7c3aed 55%,#059669); -webkit-background-clip:text; background-clip:text; color:transparent; }
+                    .lp-hero2 .sub { margin-top:18px; color:#475569; font-size:16px; line-height:1.65; max-width:50ch; }
+                    @media (max-width:900px){ .lp-hero2 .sub{ margin-inline:auto; } }
+                    .lp-hero2-actions { margin-top:26px; display:flex; flex-wrap:wrap; gap:12px; }
+                    @media (max-width:900px){ .lp-hero2-actions{ justify-content:center; } }
+                    .lp-h2btn { display:inline-flex; align-items:center; gap:8px; border-radius:12px; padding:13px 24px; font-weight:700; font-size:15px; text-decoration:none; transition: transform .12s, background .15s; }
+                    .lp-h2btn:active { transform:scale(.97); }
+                    .lp-h2btn-primary { background:#4f46e5; color:#fff; box-shadow:0 14px 30px -12px rgba(79,70,229,.7); }
+                    .lp-h2btn-primary:hover { background:#4338ca; }
+                    .lp-h2btn-ghost { background:#fff; color:#334155; border:1px solid #e2e8f0; }
+                    .lp-h2btn-ghost:hover { background:#f8fafc; }
+                    .lp-hero2-trust { margin-top:22px; display:flex; align-items:center; gap:12px; }
+                    @media (max-width:900px){ .lp-hero2-trust{ justify-content:center; } }
+                    .lp-hero2-stars { color:#f59e0b; font-size:16px; letter-spacing:2px; }
+                    .lp-hero2-trust em { font-style:normal; color:#64748b; font-size:13px; }
+                    .lp-hero2-visual { position:relative; }
+                    .lp-hero2-visual img { width:100%; height:auto; display:block; filter: drop-shadow(0 30px 55px rgba(79,70,229,.22)); }
+                    .lp-stat { position:absolute; background:#fff; border-radius:14px; padding:10px 14px; box-shadow:0 18px 42px -18px rgba(15,23,42,.4); display:flex; align-items:center; gap:10px; }
+                    .lp-stat .ic { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; color:#fff; font-size:15px; flex:0 0 auto; }
+                    .lp-stat .t { font-size:11px; color:#94a3b8; line-height:1; margin-bottom:2px; }
+                    .lp-stat .v { font-size:14px; font-weight:800; color:#0f172a; line-height:1.15; }
+                    .lp-stat-1 { top:4%; left:-3%; } .lp-stat-2 { top:40%; right:-5%; } .lp-stat-3 { bottom:5%; left:5%; }
+                    @media (max-width:900px){ .lp-stat{ display:none; } }
+                </style>
+                <div class="lp-hero2-inner">
+                    <div>
+                        <span class="lp-hero2-badge">★ POS Modern untuk Cafe, Resto &amp; UMKM</span>
+                        <h1>Kelola Restoran Lebih <span class="g">Cepat, Rapi &amp; Cuan</span></h1>
+                        <p class="sub">Satukan kasir, dapur (kitchen display), inventori, hingga laporan bisnis dalam satu platform yang mudah digunakan. Untuk restoran, cafe &amp; warung — bisa multi-outlet.</p>
+                        <div class="lp-hero2-actions">
+                            @if (\App\Tenancy\Plan::maintenance())
+                                <span class="mooda-soon-btn">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
+                            @else
+                                <a href="{{ route('register') }}" class="lp-h2btn lp-h2btn-primary">Coba Gratis Sekarang →</a>
+                            @endif
+                            <a href="#harga" class="lp-h2btn lp-h2btn-ghost">Coba Demo</a>
+                        </div>
+                        <div class="lp-hero2-trust">
+                            <span class="lp-hero2-stars">★★★★★</span>
+                            <em>Dipercaya ratusan bisnis di Indonesia</em>
+                        </div>
                     </div>
-                    <div class="lp-scrollhint mt-7 inline-flex items-center gap-2 text-sm text-slate-300">
-                        <span>Scroll mouse untuk menjelajah</span>
-                        <svg class="animate-nudge h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+                    <div class="lp-hero2-visual">
+                        <img src="{{ asset('assets/media/landing/hero.webp') }}" alt="Aplikasi Mooda di tablet & ponsel" loading="eager" decoding="async" draggable="false">
+                        <div class="lp-stat lp-stat-1"><div class="ic" style="background:#4f46e5">🛒</div><div><div class="t">Order Masuk</div><div class="v">12</div></div></div>
+                        <div class="lp-stat lp-stat-2"><div class="ic" style="background:#059669">↑</div><div><div class="t">Omzet Hari Ini</div><div class="v">Rp 18.520.000</div></div></div>
+                        <div class="lp-stat lp-stat-3"><div class="ic" style="background:#f59e0b">🍳</div><div><div class="t">Kitchen Ready</div><div class="v">8 Pesanan</div></div></div>
                     </div>
                 </div>
             </div>
@@ -439,6 +469,101 @@
                                     <p class="mt-0.5 text-xs text-slate-200 sm:text-sm">{{ $d }}</p>
                                 </div>
                             </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            {{-- ===== SECTION MOCKUP: Dashboard + Showcase + Kenapa + Integrasi (pakai aset WebP) ===== --}}
+            <div class="lp-mk">
+                <style>
+                    .lp-mk { background:#fff; }
+                    .lp-mk-wrap { max-width:1180px; margin:0 auto; padding:72px 20px; }
+                    .lp-mk-eyebrow { font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#4f46e5; }
+                    .lp-mk h2 { font-size:clamp(24px,3.4vw,38px); font-weight:800; letter-spacing:-.02em; color:#0f172a; margin:8px 0 0; text-wrap:balance; }
+                    .lp-mk .lead { margin-top:10px; color:#64748b; font-size:16px; max-width:60ch; line-height:1.6; }
+                    .lp-dash { display:grid; grid-template-columns:1fr 1.1fr; gap:44px; align-items:center; }
+                    @media (max-width:900px){ .lp-dash{ grid-template-columns:1fr; gap:28px; } }
+                    .lp-dash img { width:100%; height:auto; border-radius:16px; }
+                    .lp-check { margin-top:22px; display:grid; gap:12px; padding:0; }
+                    .lp-check li { list-style:none; display:flex; align-items:center; gap:12px; color:#334155; font-weight:600; font-size:15px; }
+                    .lp-check .ck { width:26px; height:26px; border-radius:8px; background:#eef2ff; color:#4f46e5; display:grid; place-items:center; flex:0 0 auto; }
+                    .lp-show { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:18px; }
+                    @media (max-width:760px){ .lp-show{ grid-template-columns:1fr; } }
+                    .lp-show figure { margin:0; background:linear-gradient(160deg,#f6f4ff,#eef2ff); border-radius:20px; padding:18px; box-shadow:0 24px 50px -28px rgba(15,23,42,.35); }
+                    .lp-show img { width:100%; height:auto; border-radius:12px; display:block; }
+                    .lp-show figcaption { margin-top:12px; font-weight:700; color:#0f172a; }
+                    .lp-show figcaption span { display:block; font-weight:500; color:#64748b; font-size:13px; margin-top:2px; }
+                    .lp-why { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-top:26px; }
+                    @media (max-width:900px){ .lp-why{ grid-template-columns:1fr 1fr; } }
+                    @media (max-width:520px){ .lp-why{ grid-template-columns:1fr; } }
+                    .lp-why-card { border:1px solid #eef0f6; border-radius:16px; padding:22px; background:#fff; transition:transform .15s, box-shadow .2s, border-color .2s; }
+                    .lp-why-card:hover { transform:translateY(-3px); box-shadow:0 20px 40px -22px rgba(79,70,229,.35); border-color:#e0e7ff; }
+                    .lp-why-ic { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; color:#fff; font-size:20px; }
+                    .lp-why-card h3 { margin:14px 0 4px; font-size:16px; font-weight:800; color:#0f172a; }
+                    .lp-why-card p { margin:0; font-size:13.5px; color:#64748b; line-height:1.55; }
+                    .lp-integ { display:flex; flex-wrap:wrap; gap:12px; margin-top:22px; }
+                    .lp-integ span { display:inline-flex; align-items:center; gap:8px; background:#f8fafc; border:1px solid #eef0f6; color:#334155; font-weight:600; font-size:14px; padding:10px 16px; border-radius:12px; }
+                </style>
+
+                <div class="lp-mk-wrap">
+                    <div class="lp-dash">
+                        <div>
+                            <div class="lp-mk-eyebrow">Dashboard</div>
+                            <h2>Pantau Bisnis Anda dari Satu Dashboard</h2>
+                            <p class="lead">Semua angka penting — omzet, transaksi, produk terlaris, hingga target harian — dalam satu layar yang mudah dibaca.</p>
+                            <ul class="lp-check">
+                                @foreach (['Penjualan & Omzet real-time','Produk & Inventori','Laporan Keuangan','Multi Outlet','Manajemen User & Hak Akses'] as $c)
+                                    <li><span class="ck"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg></span>{{ $c }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                        <img src="{{ asset('assets/media/landing/section2.webp') }}" alt="Dashboard Mooda di laptop & ponsel" loading="lazy" decoding="async" draggable="false">
+                    </div>
+                </div>
+
+                <div class="lp-mk-wrap" style="padding-top:0;">
+                    <div class="lp-mk-eyebrow">Lihat Aplikasinya</div>
+                    <h2>Kasir cepat, tampilan bersih</h2>
+                    <p class="lead">Antarmuka POS satu layar — pilih menu, tambah keranjang, bayar. Dibuat untuk jam sibuk.</p>
+                    <div class="lp-show">
+                        <figure>
+                            <img src="{{ asset('assets/media/landing/section3.webp') }}" alt="Layar kasir Mooda di tablet" loading="lazy" decoding="async" draggable="false">
+                            <figcaption>Kasir / POS di Tablet <span>Pilih menu &amp; bayar dalam satu layar.</span></figcaption>
+                        </figure>
+                        <figure>
+                            <img src="{{ asset('assets/media/landing/section3_1.webp') }}" alt="Mooda di perangkat mobile" loading="lazy" decoding="async" draggable="false">
+                            <figcaption>Jalan di HP &amp; Tablet <span>Buka lewat aplikasi atau browser, di mana saja.</span></figcaption>
+                        </figure>
+                    </div>
+                </div>
+
+                <div class="lp-mk-wrap" style="padding-top:0;">
+                    <div class="lp-mk-eyebrow">Kenapa Mooda</div>
+                    <h2>Kenapa Memilih Mooda?</h2>
+                    <div class="lp-why">
+                        @php $whys = [
+                            ['⚡','#4f46e5','Cepat & Mudah','Antarmuka simpel, transaksi lebih cepat & efisien.'],
+                            ['🛡️','#059669','Aman & Terpercaya','Data aman di cloud dengan backup otomatis.'],
+                            ['📈','#f59e0b','Bertumbuh Bersama','Fitur lengkap untuk dukung bisnismu berkembang.'],
+                            ['🌐','#7c3aed','Akses Dimana Saja','Kelola bisnis dari mana saja lewat semua perangkat.'],
+                        ]; @endphp
+                        @foreach ($whys as [$ic,$bg,$t,$d])
+                            <div class="lp-why-card">
+                                <div class="lp-why-ic" style="background:{{ $bg }}">{{ $ic }}</div>
+                                <h3>{{ $t }}</h3><p>{{ $d }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="lp-mk-wrap" style="padding-top:0;">
+                    <div class="lp-mk-eyebrow">Integrasi</div>
+                    <h2>Integrasi Lengkap</h2>
+                    <p class="lead">Mooda terhubung dengan berbagai layanan untuk memudahkan bisnismu.</p>
+                    <div class="lp-integ">
+                        @foreach (['QRIS','Midtrans','DOKU','WhatsApp','Printer Thermal','Google Drive','Cloud Backup'] as $ig)
+                            <span>✓ {{ $ig }}</span>
                         @endforeach
                     </div>
                 </div>
