@@ -306,7 +306,6 @@
 
             <nav class="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full bg-white/90 px-2 py-1.5 shadow-lg ring-1 ring-black/5 backdrop-blur md:flex">
                 <a href="#fitur" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Fitur</a>
-                <a href="#galeri" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Galeri</a>
                 <a href="#harga" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Harga</a>
                 @if (($partnerLogos ?? collect())->isNotEmpty())
                 <a href="#partner" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Partner</a>
@@ -329,7 +328,6 @@
             {{-- Menu mobile (di-toggle burger) --}}
             <div id="lp-mobile-menu" class="absolute right-5 top-full mt-2 hidden w-56 overflow-hidden rounded-2xl bg-white/95 p-2 shadow-2xl ring-1 ring-black/5 backdrop-blur md:hidden">
                 <a href="#fitur" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Fitur</a>
-                <a href="#galeri" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Galeri</a>
                 <a href="#harga" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Harga</a>
                 @if (($partnerLogos ?? collect())->isNotEmpty())
                 <a href="#partner" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Partner</a>
@@ -415,12 +413,12 @@
                 </div>
             </div>
 
-            {{-- SLIDE 1 — FITUR --}}
+            {{-- SECTION FITUR (gaya mockup: judul di tengah, lebih lebar) --}}
             <div id="fitur" class="swiper-slide lp-slide relative bg-white">
-                <div class="lp-content w-full max-w-6xl px-6 py-24">
-                    <div class="max-w-2xl">
-                        <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">Fitur Lengkap</span>
-                        <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Semua kebutuhan restoran modern</h2>
+                <div class="lp-content w-full px-6 py-20" style="max-width:1320px;">
+                    <div class="mx-auto max-w-2xl text-center">
+                        <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">Fitur</span>
+                        <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Semua yang Anda Butuhkan Untuk Mengelola Bisnis</h2>
                         <p class="mt-3 text-lg text-slate-600">Dari pelanggan datang sampai laporan akhir bulan, semua tercatat otomatis.</p>
                     </div>
                     @php
@@ -447,37 +445,7 @@
                 </div>
             </div>
 
-            {{-- SLIDE 2 — GALERI --}}
-            <div id="galeri" class="swiper-slide lp-slide relative bg-slate-50">
-                <div class="lp-content w-full max-w-6xl px-6 py-24">
-                    <div class="mb-8 max-w-2xl">
-                        <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">Galeri</span>
-                        <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Dibuat untuk dunia kuliner</h2>
-                        <p class="mt-3 text-lg text-slate-600">Dari cafe kecil sampai restoran ramai — sistem menyesuaikan alur kerja Anda.</p>
-                    </div>
-                    @php
-                        $gallery = [
-                            ['cafe.jpg', 'Cafe & Coffee Shop', 'Layani pelanggan lebih cepat di jam sibuk.', 'sm:col-span-2 sm:row-span-2'],
-                            ['kitchen.jpg', 'Dapur Terorganisir', 'Tiket masakan langsung ke layar dapur.', ''],
-                            ['food.jpg', 'Menu Menggugah', 'Kelola menu, foto, harga & promo.', ''],
-                            ['serving.jpg', 'Pelayanan Prima', 'Pesanan akurat, pelanggan puas.', ''],
-                            ['coffee.jpg', 'Detail Tiap Pesanan', 'Catatan khusus per item tercatat rapi.', ''],
-                        ];
-                    @endphp
-                    <div class="grid auto-rows-[140px] grid-cols-2 gap-4 sm:auto-rows-[160px] lg:grid-cols-4">
-                        @foreach ($gallery as [$img, $t, $d, $span])
-                            <div class="group relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-black/5 {{ $span }}">
-                                <img src="{{ asset('assets/media/landing/' . $img) }}" alt="{{ $t }}" loading="lazy" decoding="async" class="h-full w-full object-cover transition duration-500 group-hover:scale-105" draggable="false">
-                                <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent"></div>
-                                <div class="absolute inset-x-0 bottom-0 p-4 text-white">
-                                    <h3 class="text-base font-bold sm:text-lg">{{ $t }}</h3>
-                                    <p class="mt-0.5 text-xs text-slate-200 sm:text-sm">{{ $d }}</p>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
+            {{-- (Galeri lama dihapus — tidak ada di desain mockup) --}}
 
             {{-- ===== SECTION MOCKUP: Dashboard + Showcase + Kenapa + Integrasi (pakai aset WebP) ===== --}}
             <div class="lp-mk">
@@ -574,29 +542,31 @@
                 </div>
             </div>
 
-            {{-- SLIDE 3 — CARA KERJA --}}
-            <div class="swiper-slide lp-slide relative" data-nav-dark>
-                <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ asset('assets/media/landing/coffee.jpg') }}')"></div>
-                <div class="absolute inset-0 bg-slate-950/80"></div>
-                <div class="lp-content relative z-10 w-full max-w-5xl px-6 py-24 text-white">
-                    <div class="mx-auto max-w-2xl text-center">
-                        <span class="text-sm font-bold uppercase tracking-wider text-indigo-300">Cara Kerja</span>
-                        <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Mulai dalam 3 langkah</h2>
-                    </div>
-                    <div class="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-                        @php
-                            $steps = [
-                                ['1', 'Daftar akun bisnis', 'Buat akun pemilik & data restoran Anda dalam beberapa menit.'],
-                                ['2', 'Pilih paket & bayar', 'Bayar online aman lewat Midtrans, sistem langsung aktif.'],
-                                ['3', 'Kelola & berkembang', 'Tambah menu, staf, meja, lalu pantau performa dari dashboard.'],
-                            ];
-                        @endphp
-                        @foreach ($steps as [$n, $t, $d])
-                            <div class="rounded-2xl border border-white/10 bg-white/5 p-7 text-center backdrop-blur">
-                                <div class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-emerald-500 text-xl font-extrabold text-white shadow-lg">{{ $n }}</div>
-                                <h3 class="mt-5 text-lg font-bold">{{ $t }}</h3>
-                                <p class="mt-2 text-sm text-slate-300">{{ $d }}</p>
-                            </div>
+            {{-- CARA MUDAH MENGGUNAKAN MOODA (gaya mockup, 4 langkah, terang) --}}
+            <div class="lp-steps">
+                <style>
+                    .lp-steps { background:#fff; }
+                    .lp-steps-wrap { max-width:1320px; margin:0 auto; padding:8px 28px 72px; }
+                    .lp-steps h2 { text-align:center; font-size:clamp(24px,3.2vw,34px); font-weight:800; color:#0f172a; letter-spacing:-.02em; margin:0 0 36px; }
+                    .lp-steps-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+                    @media (max-width:900px){ .lp-steps-grid{ grid-template-columns:1fr 1fr; } }
+                    @media (max-width:520px){ .lp-steps-grid{ grid-template-columns:1fr; } }
+                    .lp-step { position:relative; border:1px solid #eef0f6; border-radius:16px; padding:24px 22px 22px; background:#fff; box-shadow:0 12px 30px -22px rgba(15,23,42,.4); }
+                    .lp-step .no { position:absolute; top:-15px; left:22px; width:32px; height:32px; border-radius:50%; background:#4f46e5; color:#fff; font-weight:800; font-size:14px; display:grid; place-items:center; box-shadow:0 8px 18px -6px rgba(79,70,229,.65); }
+                    .lp-step h3 { margin:12px 0 5px; font-size:16px; font-weight:800; color:#0f172a; }
+                    .lp-step p { margin:0; font-size:13.5px; color:#64748b; line-height:1.55; }
+                </style>
+                <div class="lp-steps-wrap">
+                    <h2>Cara Mudah Menggunakan Mooda</h2>
+                    <div class="lp-steps-grid">
+                        @php $mkSteps = [
+                            ['1','Daftar Akun','Buat akun gratis dalam 1 menit.'],
+                            ['2','Setup Produk','Tambahkan menu, harga, dan stok.'],
+                            ['3','Mulai Jualan','Proses transaksi cepat dengan POS Mooda.'],
+                            ['4','Pantau Penjualan','Lihat laporan & analitik kapan saja, di mana saja.'],
+                        ]; @endphp
+                        @foreach ($mkSteps as [$n,$t,$d])
+                            <div class="lp-step"><span class="no">{{ $n }}</span><h3>{{ $t }}</h3><p>{{ $d }}</p></div>
                         @endforeach
                     </div>
                 </div>
