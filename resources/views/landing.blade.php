@@ -300,24 +300,24 @@
         <div class="relative mx-auto flex max-w-screen-2xl items-center justify-between px-5 py-4">
             <a href="{{ url('/') }}" class="flex items-center">
                 {{-- Logo diganti otomatis: putih di slide gelap, gelap di slide terang (lihat script di bawah) --}}
-                <img id="nav-logo-white" src="{{ asset('assets/media/logos/mooda-logo-white.png') }}" alt="Mooda" class="logo-outline h-10 w-auto" draggable="false">
-                <img id="nav-logo-dark" src="{{ asset('assets/media/logos/mooda-logo.png') }}" alt="Mooda" class="hidden h-10 w-auto" draggable="false">
+                <img id="nav-logo-white" src="{{ sc_img('landing','logo_putih','assets/media/logos/mooda-logo-white.png') }}" alt="Mooda" class="logo-outline h-10 w-auto" draggable="false">
+                <img id="nav-logo-dark" src="{{ sc_img('landing','logo_gelap','assets/media/logos/mooda-logo.png') }}" alt="Mooda" class="hidden h-10 w-auto" draggable="false">
             </a>
 
             <nav class="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full bg-white/90 px-2 py-1.5 shadow-lg ring-1 ring-black/5 backdrop-blur md:flex">
-                <a href="#fitur" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Fitur</a>
-                <a href="#harga" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Harga</a>
+                <a href="#fitur" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">{{ sc('landing','nav_fitur','Fitur') }}</a>
+                <a href="#harga" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">{{ sc('landing','nav_harga','Harga') }}</a>
                 @if (($partnerLogos ?? collect())->isNotEmpty())
-                <a href="#partner" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Partner</a>
+                <a href="#partner" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">{{ sc('landing','nav_partner','Partner') }}</a>
                 @endif
             </nav>
 
             <div class="flex items-center gap-2">
-                <a href="{{ route('login') }}" class="hidden rounded-xl bg-white/95 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-black/5 backdrop-blur transition hover:bg-white sm:inline-block">Masuk</a>
+                <a href="{{ route('login') }}" class="hidden rounded-xl bg-white/95 px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg ring-1 ring-black/5 backdrop-blur transition hover:bg-white sm:inline-block">{{ sc('landing','nav_masuk','Masuk') }}</a>
                 @if (\App\Tenancy\Plan::maintenance())
-                    <span title="{{ \App\Tenancy\Plan::maintenanceText() }}" class="mooda-soon-chip">Daftar</span>
+                    <span title="{{ \App\Tenancy\Plan::maintenanceText() }}" class="mooda-soon-chip">{{ sc('landing','nav_daftar','Daftar') }}</span>
                 @else
-                    <a href="{{ route('register') }}" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-700">Daftar</a>
+                    <a href="{{ route('register') }}" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-700">{{ sc('landing','nav_daftar','Daftar') }}</a>
                 @endif
                 <button id="lp-burger" type="button" aria-label="Menu" aria-expanded="false"
                     class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/90 text-slate-700 shadow-lg ring-1 ring-black/5 backdrop-blur md:hidden">
@@ -327,17 +327,17 @@
 
             {{-- Menu mobile (di-toggle burger) --}}
             <div id="lp-mobile-menu" class="absolute right-5 top-full mt-2 hidden w-56 overflow-hidden rounded-2xl bg-white/95 p-2 shadow-2xl ring-1 ring-black/5 backdrop-blur md:hidden">
-                <a href="#fitur" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Fitur</a>
-                <a href="#harga" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Harga</a>
+                <a href="#fitur" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">{{ sc('landing','nav_fitur','Fitur') }}</a>
+                <a href="#harga" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">{{ sc('landing','nav_harga','Harga') }}</a>
                 @if (($partnerLogos ?? collect())->isNotEmpty())
-                <a href="#partner" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Partner</a>
+                <a href="#partner" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">{{ sc('landing','nav_partner','Partner') }}</a>
                 @endif
                 <div class="my-1 h-px bg-slate-200"></div>
-                <a href="{{ route('login') }}" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">Masuk</a>
+                <a href="{{ route('login') }}" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">{{ sc('landing','nav_masuk','Masuk') }}</a>
                 @if (\App\Tenancy\Plan::maintenance())
-                    <span class="block cursor-not-allowed select-none rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-400">Daftar — {{ \App\Tenancy\Plan::maintenanceText() }}</span>
+                    <span class="block cursor-not-allowed select-none rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-400">{{ sc('landing','nav_daftar','Daftar') }} — {{ \App\Tenancy\Plan::maintenanceText() }}</span>
                 @else
-                    <a href="{{ route('register') }}" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-50">Daftar</a>
+                    <a href="{{ route('register') }}" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-50">{{ sc('landing','nav_daftar','Daftar') }}</a>
                 @endif
             </div>
         </div>
@@ -349,30 +349,29 @@
 
             {{-- SLIDE 0 — HERO (versi lama: foto restoran gelap + teks tengah) --}}
             <div class="swiper-slide lp-slide relative" data-nav-dark>
-                <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ asset('assets/media/landing/hero.jpg') }}')"></div>
+                <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{{ sc_img('landing','hero_bg','assets/media/landing/hero.jpg') }}')"></div>
                 <div class="absolute inset-0 bg-gradient-to-br from-slate-950/85 via-slate-900/70 to-indigo-950/80"></div>
                 <div class="lp-content lp-hero relative z-10 w-full max-w-3xl px-6 py-24 text-center text-white">
                     <span class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur">
                         <span class="relative flex h-2 w-2"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-400"></span></span>
-                        Sistem Kasir Restoran All-in-One
+                        {{ sc('landing','hero_badge','Sistem Kasir Restoran All-in-One') }}
                     </span>
                     <h1 class="mt-6 text-balance text-4xl font-extrabold leading-[1.07] tracking-tight sm:text-6xl">
-                        Kelola restoran lebih
-                        <span class="lp-gradient-text">cepat, rapi &amp; cuan</span>
+                        {!! sc('landing','hero_judul','Kelola restoran lebih <span class="lp-gradient-text">cepat, rapi &amp; cuan</span>') !!}
                     </h1>
                     <p class="mx-auto mt-5 max-w-xl text-balance text-lg text-slate-200">
-                        Satukan kasir, dapur (kitchen display), nomor antrian, dan laporan penjualan dalam satu sistem. Untuk restoran, cafe & warung — bisa multi-outlet.
+                        {{ sc('landing','hero_subjudul','Satukan kasir, dapur (kitchen display), nomor antrian, dan laporan penjualan dalam satu sistem. Untuk restoran, cafe & warung — bisa multi-outlet.') }}
                     </p>
                     <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
                         @if (\App\Tenancy\Plan::maintenance())
                             <span class="mooda-soon-btn">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
                         @else
-                            <a href="{{ route('register') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-indigo-900/40 transition hover:bg-indigo-700">Coba Gratis Sekarang</a>
+                            <a href="{{ route('register') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-indigo-900/40 transition hover:bg-indigo-700">{{ sc('landing','hero_cta_daftar','Coba Gratis Sekarang') }}</a>
                         @endif
-                        <a href="#harga" class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-base font-semibold text-white backdrop-blur transition hover:bg-white/20">Coba Demo</a>
+                        <a href="#harga" class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-base font-semibold text-white backdrop-blur transition hover:bg-white/20">{{ sc('landing','hero_cta_demo','Coba Demo') }}</a>
                     </div>
                     <div class="lp-scrollhint mt-7 inline-flex items-center gap-2 text-sm text-slate-300">
-                        <span>Scroll untuk menjelajah</span>
+                        <span>{{ sc('landing','hero_scroll_hint','Scroll untuk menjelajah') }}</span>
                         <svg class="animate-nudge h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
                     </div>
                 </div>
@@ -382,9 +381,9 @@
             <div id="fitur" class="swiper-slide lp-slide relative bg-white">
                 <div class="lp-content w-full px-6 py-20" style="max-width:1440px;">
                     <div class="mx-auto max-w-2xl text-center">
-                        <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">Fitur</span>
-                        <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Semua yang Anda Butuhkan Untuk Mengelola Bisnis</h2>
-                        <p class="mt-3 text-lg text-slate-600">Dari pelanggan datang sampai laporan akhir bulan, semua tercatat otomatis.</p>
+                        <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">{{ sc('landing','fitur_eyebrow','Fitur') }}</span>
+                        <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">{{ sc('landing','fitur_judul','Semua yang Anda Butuhkan Untuk Mengelola Bisnis') }}</h2>
+                        <p class="mt-3 text-lg text-slate-600">{{ sc('landing','fitur_subjudul','Dari pelanggan datang sampai laporan akhir bulan, semua tercatat otomatis.') }}</p>
                     </div>
                     @php
                         $features = [
@@ -452,24 +451,24 @@
                 <div class="lp-mk-wrap">
                     <div class="lp-dash">
                         <div>
-                            <div class="lp-mk-eyebrow">Dashboard</div>
-                            <h2>Pantau Bisnis Anda dari Satu Dashboard</h2>
-                            <p class="lead">Semua angka penting — omzet, transaksi, produk terlaris, hingga target harian — dalam satu layar yang mudah dibaca.</p>
+                            <div class="lp-mk-eyebrow">{{ sc('landing','dashboard_eyebrow','Dashboard') }}</div>
+                            <h2>{{ sc('landing','dashboard_judul','Pantau Bisnis Anda dari Satu Dashboard') }}</h2>
+                            <p class="lead">{{ sc('landing','dashboard_subjudul','Semua angka penting — omzet, transaksi, produk terlaris, hingga target harian — dalam satu layar yang mudah dibaca.') }}</p>
                             <ul class="lp-check">
                                 @foreach (['Penjualan & Omzet real-time','Produk & Inventori','Laporan Keuangan','Multi Outlet','Manajemen User & Hak Akses'] as $c)
                                     <li><span class="ck"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.1 3.1 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg></span>{{ $c }}</li>
                                 @endforeach
                             </ul>
                         </div>
-                        <img src="{{ asset('assets/media/landing/section2.webp') }}" alt="Dashboard Mooda di laptop & ponsel" loading="lazy" decoding="async" draggable="false">
+                        <img src="{{ sc_img('landing','dashboard_img','assets/media/landing/section2.webp') }}" alt="Dashboard Mooda di laptop & ponsel" loading="lazy" decoding="async" draggable="false">
                     </div>
                 </div>
 
                 <div class="lp-mk-wrap" style="padding-top:0;">
                     <div style="text-align:center; max-width:640px; margin:0 auto;">
-                        <div class="lp-mk-eyebrow">Kenapa Mooda</div>
-                        <h2>Kenapa Memilih Mooda?</h2>
-                        <p class="lead" style="margin-left:auto; margin-right:auto;">Alasan ratusan bisnis kuliner mempercayakan operasional hariannya ke Mooda.</p>
+                        <div class="lp-mk-eyebrow">{{ sc('landing','kenapa_eyebrow','Kenapa Mooda') }}</div>
+                        <h2>{{ sc('landing','kenapa_judul','Kenapa Memilih Mooda?') }}</h2>
+                        <p class="lead" style="margin-left:auto; margin-right:auto;">{{ sc('landing','kenapa_subjudul','Alasan ratusan bisnis kuliner mempercayakan operasional hariannya ke Mooda.') }}</p>
                     </div>
                     <div class="lp-why">
                         @php $whys = [
@@ -514,8 +513,8 @@
                     .lp-flow-item .card p { margin:0; font-size:13.5px; color:#64748b; line-height:1.6; }
                 </style>
                 <div class="lp-steps-wrap">
-                    <h2>Cara Mudah Menggunakan Mooda</h2>
-                    <p class="steps-sub">Cukup 4 langkah — dari daftar akun sampai mulai jualan.</p>
+                    <h2>{{ sc('landing','cara_kerja_judul','Cara Mudah Menggunakan Mooda') }}</h2>
+                    <p class="steps-sub">{{ sc('landing','cara_kerja_subjudul','Cukup 4 langkah — dari daftar akun sampai mulai jualan.') }}</p>
                     <div class="lp-flow">
                         @php $mkSteps = [
                             ['1','Daftar Akun','Buat akun gratis dalam 1 menit.'],
@@ -536,17 +535,17 @@
             {{-- LIHAT APLIKASINYA (dipindah keluar dari section gabungan) --}}
             <div class="lp-mk">
                 <div class="lp-mk-wrap">
-                    <div class="lp-mk-eyebrow">Lihat Aplikasinya</div>
-                    <h2>Kasir cepat, tampilan bersih</h2>
-                    <p class="lead">Antarmuka POS satu layar — pilih menu, tambah keranjang, bayar. Dibuat untuk jam sibuk.</p>
+                    <div class="lp-mk-eyebrow">{{ sc('landing','showcase_eyebrow','Lihat Aplikasinya') }}</div>
+                    <h2>{{ sc('landing','showcase_judul','Kasir cepat, tampilan bersih') }}</h2>
+                    <p class="lead">{{ sc('landing','showcase_subjudul','Antarmuka POS satu layar — pilih menu, tambah keranjang, bayar. Dibuat untuk jam sibuk.') }}</p>
                     <div class="lp-show">
                         <figure>
-                            <img src="{{ asset('assets/media/landing/section3.webp') }}" alt="Layar kasir Mooda di tablet" loading="lazy" decoding="async" draggable="false">
-                            <figcaption>Kasir / POS di Tablet <span>Pilih menu &amp; bayar dalam satu layar.</span></figcaption>
+                            <img src="{{ sc_img('landing','showcase_img_1','assets/media/landing/section3.webp') }}" alt="Layar kasir Mooda di tablet" loading="lazy" decoding="async" draggable="false">
+                            <figcaption>{!! sc('landing','showcase_caption_1','Kasir / POS di Tablet <span>Pilih menu &amp; bayar dalam satu layar.</span>') !!}</figcaption>
                         </figure>
                         <figure>
-                            <img src="{{ asset('assets/media/landing/section3_1.webp') }}" alt="Mooda di perangkat mobile" loading="lazy" decoding="async" draggable="false">
-                            <figcaption>Jalan di HP &amp; Tablet <span>Buka lewat aplikasi atau browser, di mana saja.</span></figcaption>
+                            <img src="{{ sc_img('landing','showcase_img_2','assets/media/landing/section3_1.webp') }}" alt="Mooda di perangkat mobile" loading="lazy" decoding="async" draggable="false">
+                            <figcaption>{!! sc('landing','showcase_caption_2','Jalan di HP &amp; Tablet <span>Buka lewat aplikasi atau browser, di mana saja.</span>') !!}</figcaption>
                         </figure>
                     </div>
                 </div>
@@ -556,9 +555,9 @@
             <div id="harga" class="swiper-slide lp-slide relative bg-white">
                 <div class="lp-content w-full max-w-6xl px-6 py-14">
                     <div class="mx-auto max-w-2xl text-center">
-                        <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">Harga</span>
-                        <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Paket sederhana & transparan</h2>
-                        <p class="mt-3 text-lg text-slate-600">Pilih sesuai skala bisnis — dari deposit bayar-sesuai-pakai hingga enterprise. Tanpa biaya tersembunyi.</p>
+                        <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">{{ sc('landing','harga_eyebrow','Harga') }}</span>
+                        <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">{{ sc('landing','harga_judul','Paket sederhana & transparan') }}</h2>
+                        <p class="mt-3 text-lg text-slate-600">{{ sc('landing','harga_subjudul','Pilih sesuai skala bisnis — dari deposit bayar-sesuai-pakai hingga enterprise. Tanpa biaya tersembunyi.') }}</p>
                     </div>
                     <div class="mooda-price-shell mt-6">
                         @php
@@ -624,14 +623,14 @@
 
                         {{-- 1) STARTER — akun Deposit (bayar sesuai pemakaian) --}}
                         <div class="swiper-slide relative flex flex-col rounded-3xl border border-slate-200 bg-white p-8">
-                            <h3 class="text-xl font-bold text-slate-900">Starter</h3>
-                            <p class="mt-1.5 min-h-[40px] text-sm text-slate-500">Bayar sesuai pemakaian (deposit saldo) — cocok untuk baru mulai / musiman.</p>
+                            <h3 class="text-xl font-bold text-slate-900">{{ sc('landing','harga_starter_nama','Starter') }}</h3>
+                            <p class="mt-1.5 min-h-[40px] text-sm text-slate-500">{{ sc('landing','harga_starter_tagline','Bayar sesuai pemakaian (deposit saldo) — cocok untuk baru mulai / musiman.') }}</p>
                             <div class="mt-4">
                                 <div class="flex items-end gap-1">
-                                    <span class="text-4xl font-extrabold tracking-tight text-slate-900">Deposit</span>
-                                    <span class="pb-1 text-sm text-slate-500">/isi saldo</span>
+                                    <span class="text-4xl font-extrabold tracking-tight text-slate-900">{{ sc('landing','harga_starter_harga','Deposit') }}</span>
+                                    <span class="pb-1 text-sm text-slate-500">{{ sc('landing','harga_starter_satuan','/isi saldo') }}</span>
                                 </div>
-                                <div class="mt-1 text-sm text-slate-500">Top-up mulai Rp 25.000 · potong Rp 169 / transaksi</div>
+                                <div class="mt-1 text-sm text-slate-500">{{ sc('landing','harga_starter_note','Top-up mulai Rp 25.000 · potong Rp 169 / transaksi') }}</div>
                             </div>
                             <ul class="mt-5 flex-1 space-y-2.5">
                                 @foreach ($starterFeatures as $f)
@@ -641,7 +640,7 @@
                             @if ($maint)
                                 <span title="{{ $maintText }}" class="mooda-soon-btn w-full mt-7">{!! $soonSvg !!} {{ $maintText }}</span>
                             @else
-                                <a href="{{ route('register') }}" class="mt-7 inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition bg-indigo-600 text-white hover:bg-indigo-700">Mulai Deposit</a>
+                                <a href="{{ route('register') }}" class="mt-7 inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition bg-indigo-600 text-white hover:bg-indigo-700">{{ sc('landing','harga_starter_cta','Mulai Deposit') }}</a>
                             @endif
                         </div>
 
@@ -660,13 +659,13 @@
                                     : 'Bayar ' . $defMonths . ' bln di muka · total Rp ' . number_format($defTotal, 0, ',', '.') . ($defDisc > 0 ? ' · Hemat ' . $defDisc . '%' : '');
                             @endphp
                             <div class="swiper-slide relative flex flex-col rounded-3xl border bg-white p-8 {{ $mp['pop'] ? 'border-slate-200 ring-2 ring-indigo-500 shadow-xl' : 'border-slate-200' }}">
-                                @if ($mp['pop'])<span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 px-4 py-1 text-xs font-bold text-white shadow">Populer</span>@endif
+                                @if ($mp['pop'])<span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 px-4 py-1 text-xs font-bold text-white shadow">{{ sc('landing','harga_badge_populer','Populer') }}</span>@endif
                                 <h3 class="text-xl font-bold text-slate-900">{{ $mp['name'] }}</h3>
                                 <p class="mt-1.5 min-h-[40px] text-sm text-slate-500">{{ $mp['tagline'] }}</p>
                                 <div class="mt-4" data-plan-pricing>
                                     <div class="flex items-end gap-1">
                                         <span class="text-4xl font-extrabold tracking-tight text-slate-900" data-price-display>Rp {{ number_format($def['price_per_month'], 0, ',', '.') }}</span>
-                                        <span class="pb-1 text-sm text-slate-500">/bulan</span>
+                                        <span class="pb-1 text-sm text-slate-500">{{ sc('landing','harga_satuan_bulan','/bulan') }}</span>
                                     </div>
                                     <div class="mt-1 text-sm text-slate-500" data-price-note>{{ $defNote }}</div>
                                     <div class="plan-dur-wrap mt-4" role="tablist" aria-label="Pilih durasi langganan">
@@ -697,12 +696,12 @@
 
                         {{-- 4) CUSTOMIZE — kontrak 2 tahun, konsultasi WhatsApp --}}
                         <div class="swiper-slide relative flex flex-col rounded-3xl border-2 border-emerald-400 bg-white p-8 shadow-xl shadow-emerald-100">
-                            <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 px-4 py-1 text-xs font-bold text-white shadow">Fleksibel</span>
-                            <h3 class="text-xl font-bold text-slate-900">Customize</h3>
-                            <p class="mt-1.5 min-h-[40px] text-sm text-slate-500">Rakit paketmu sendiri — kontrak 2 tahun, fitur menyesuaikan bisnis.</p>
+                            <span class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 px-4 py-1 text-xs font-bold text-white shadow">{{ sc('landing','harga_custom_badge','Fleksibel') }}</span>
+                            <h3 class="text-xl font-bold text-slate-900">{{ sc('landing','harga_custom_nama','Customize') }}</h3>
+                            <p class="mt-1.5 min-h-[40px] text-sm text-slate-500">{{ sc('landing','harga_custom_tagline','Rakit paketmu sendiri — kontrak 2 tahun, fitur menyesuaikan bisnis.') }}</p>
                             <div class="mt-4 flex items-end gap-1">
-                                <span class="text-4xl font-extrabold tracking-tight text-slate-900">Custom</span>
-                                <span class="pb-1 text-sm text-slate-500">/per 2 tahun</span>
+                                <span class="text-4xl font-extrabold tracking-tight text-slate-900">{{ sc('landing','harga_custom_harga','Custom') }}</span>
+                                <span class="pb-1 text-sm text-slate-500">{{ sc('landing','harga_custom_satuan','/per 2 tahun') }}</span>
                             </div>
                             <ul class="mt-5 flex-1 space-y-2.5">
                                 @foreach ($customFeatures as $f)
@@ -711,7 +710,7 @@
                             </ul>
                             <a href="{{ $waCustom }}" target="_blank" rel="noopener" class="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90">
                                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                                Konsultasi via WhatsApp
+                                {{ sc('landing','harga_custom_cta','Konsultasi via WhatsApp') }}
                             </a>
                         </div>
 
@@ -748,9 +747,9 @@
             <div id="partner" class="swiper-slide lp-slide relative bg-white">
                 <div class="lp-content relative z-10 w-full py-24 text-center">
                     <div class="mx-auto max-w-3xl px-6">
-                        <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">Partner Kami</span>
-                        <h2 class="mt-3 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">Sudah berlangganan bersama Mooda</h2>
-                        <p class="mx-auto mt-4 max-w-xl text-lg text-slate-500">Bisnis kuliner yang telah mempercayakan operasional hariannya ke Mooda.</p>
+                        <span class="text-sm font-bold uppercase tracking-wider text-indigo-600">{{ sc('landing','partner_eyebrow','Partner Kami') }}</span>
+                        <h2 class="mt-3 text-balance text-3xl font-extrabold text-slate-900 sm:text-4xl">{{ sc('landing','partner_judul','Sudah berlangganan bersama Mooda') }}</h2>
+                        <p class="mx-auto mt-4 max-w-xl text-lg text-slate-500">{{ sc('landing','partner_subjudul','Bisnis kuliner yang telah mempercayakan operasional hariannya ke Mooda.') }}</p>
                     </div>
                     @php $reps = max(1, (int) ceil(10 / max(1, $partnerLogos->count()))); @endphp
                     <div class="lp-marquee mt-14">
@@ -816,16 +815,16 @@
                 <div class="mf-wrap" style="padding-top:48px;">
                     <div class="mf-cta-card">
                         <div>
-                            <h3>Siap Membuat Bisnis Anda Lebih Mudah?</h3>
-                            <p>Bergabung dengan ratusan bisnis lainnya dan rasakan kemudahan menggunakan Mooda.</p>
+                            <h3>{{ sc('landing','cta_judul','Siap Membuat Bisnis Anda Lebih Mudah?') }}</h3>
+                            <p>{{ sc('landing','cta_subjudul','Bergabung dengan ratusan bisnis lainnya dan rasakan kemudahan menggunakan Mooda.') }}</p>
                         </div>
                         <div class="mf-cta-actions">
                             @if (\App\Tenancy\Plan::maintenance())
                                 <span class="mooda-soon-btn">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
                             @else
-                                <a href="{{ route('register') }}" class="mf-btn mf-btn-light">Mulai Gratis Sekarang →</a>
+                                <a href="{{ route('register') }}" class="mf-btn mf-btn-light">{{ sc('landing','cta_tombol_daftar','Mulai Gratis Sekarang →') }}</a>
                             @endif
-                            <a href="https://wa.me/6282362211676?text={{ rawurlencode('Halo, saya ingin tanya tentang Mooda POS') }}" target="_blank" rel="noopener" class="mf-btn mf-btn-ghost">Hubungi Kami</a>
+                            <a href="https://wa.me/6282362211676?text={{ rawurlencode('Halo, saya ingin tanya tentang Mooda POS') }}" target="_blank" rel="noopener" class="mf-btn mf-btn-ghost">{{ sc('landing','cta_tombol_kontak','Hubungi Kami') }}</a>
                         </div>
                     </div>
                 </div>
@@ -833,8 +832,8 @@
                 <div class="mf-wrap mf-foot">
                     <div class="mf-foot-grid">
                         <div>
-                            <img src="{{ asset('assets/media/logos/mooda-logo-white.png') }}" alt="Mooda" class="mf-brand-logo">
-                            <p class="mf-tagline">POS modern untuk Cafe, Restoran, Coffee Shop, Bakery dan UMKM.</p>
+                            <img src="{{ sc_img('landing','footer_logo','assets/media/logos/mooda-logo-white.png') }}" alt="Mooda" class="mf-brand-logo">
+                            <p class="mf-tagline">{{ sc('landing','footer_tagline','POS modern untuk Cafe, Restoran, Coffee Shop, Bakery dan UMKM.') }}</p>
                             <div class="mf-social">
                                 <a href="{{ config('mooda.social_instagram', '#') }}" target="_blank" rel="noopener" aria-label="Instagram">
                                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2c3.2 0 3.6 0 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s0 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58 0-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s0-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2Zm0 1.8c-3.15 0-3.5 0-4.74.07-.9.04-1.38.19-1.7.31-.43.17-.74.37-1.06.69-.32.32-.52.63-.69 1.06-.12.32-.27.8-.31 1.7C3.4 8.86 3.4 9.2 3.4 12s0 3.14.06 4.39c.04.9.19 1.38.31 1.7.17.43.37.74.69 1.06.32.32.63.52 1.06.69.32.12.8.27 1.7.31 1.24.06 1.59.07 4.74.07s3.5 0 4.74-.07c.9-.04 1.38-.19 1.7-.31.43-.17.74-.37 1.06-.69.32-.32.52-.63.69-1.06.12-.32.27-.8.31-1.7.06-1.25.07-1.59.07-4.39s0-3.14-.07-4.39c-.04-.9-.19-1.38-.31-1.7a2.85 2.85 0 0 0-.69-1.06 2.85 2.85 0 0 0-1.06-.69c-.32-.12-.8-.27-1.7-.31C15.5 4 15.15 4 12 4Zm0 3.07a4.93 4.93 0 1 1 0 9.86 4.93 4.93 0 0 1 0-9.86Zm0 1.8a3.13 3.13 0 1 0 0 6.26 3.13 3.13 0 0 0 0-6.26Zm5.13-.87a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3Z"/></svg>
@@ -851,21 +850,21 @@
                             </div>
                         </div>
                         <div class="mf-col">
-                            <div class="mf-col-title">Kontak (CP)</div>
-                            <a href="https://wa.me/6282362211676" target="_blank" rel="noopener">0823-6221-1676</a>
+                            <div class="mf-col-title">{{ sc('landing','footer_kontak_judul','Kontak (CP)') }}</div>
+                            <a href="https://wa.me/6282362211676" target="_blank" rel="noopener">{{ sc('landing','footer_kontak_nomor','0823-6221-1676') }}</a>
                         </div>
                         <div class="mf-col">
-                            <div class="mf-col-title">Email</div>
-                            <a href="mailto:admin.moodaid@gmail.com">admin.moodaid@gmail.com</a>
+                            <div class="mf-col-title">{{ sc('landing','footer_email_judul','Email') }}</div>
+                            <a href="mailto:admin.moodaid@gmail.com">{{ sc('landing','footer_email','admin.moodaid@gmail.com') }}</a>
                         </div>
                         <div class="mf-col">
-                            <div class="mf-col-title">Website</div>
-                            <a href="{{ url('/') }}">mooda.id</a>
+                            <div class="mf-col-title">{{ sc('landing','footer_website_judul','Website') }}</div>
+                            <a href="{{ url('/') }}">{{ sc('landing','footer_website','mooda.id') }}</a>
                         </div>
                     </div>
                     <div class="mf-bottom">
-                        <span>© {{ date('Y') }} Mooda. Seluruh hak cipta dilindungi.</span>
-                        <span>POS modern untuk Cafe, Resto, Coffee Shop, Bakery &amp; UMKM</span>
+                        <span>© {{ date('Y') }} {{ sc('landing','footer_copyright','Mooda. Seluruh hak cipta dilindungi.') }}</span>
+                        <span>{!! sc('landing','footer_bottom_tagline','POS modern untuk Cafe, Resto, Coffee Shop, Bakery &amp; UMKM') !!}</span>
                     </div>
                 </div>
             </div>
@@ -896,11 +895,11 @@
     <div class="lp-fab">
         <a class="lp-fab-order" href="#harga">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12L8.1 15h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0020 6H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            <span class="lp-fab-txt">Pesan Sekarang</span>
+            <span class="lp-fab-txt">{{ sc('landing','fab_pesan','Pesan Sekarang') }}</span>
         </a>
         <a class="lp-fab-contact" href="{{ 'https://wa.me/6282362211676?text=' . rawurlencode('Halo, saya tertarik dengan aplikasi POS Mooda ini') }}" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            <span class="lp-fab-txt">Contact Us</span>
+            <span class="lp-fab-txt">{{ sc('landing','fab_kontak','Contact Us') }}</span>
         </a>
     </div>
 

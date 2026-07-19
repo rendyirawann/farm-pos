@@ -170,6 +170,15 @@
                 </a>
             </div>
 
+            {{-- KELOLA SITUS (CMS landing per-situs): Superadmin only --}}
+            <div
+                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('site-content.*') ? 'here show ' : '' }}">
+                <a href="{{ route('site-content.index') }}"
+                    class="menu-link px-4 {{ request()->routeIs('site-content.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Kelola Situs</span>
+                </a>
+            </div>
+
             {{-- MODE PEMELIHARAAN: Superadmin only --}}
             <div
                 class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('maintenance-settings.*') ? 'here show ' : '' }}">

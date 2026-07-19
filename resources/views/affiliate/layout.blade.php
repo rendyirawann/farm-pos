@@ -19,24 +19,24 @@
         <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between gap-4">
             <a href="{{ route('affiliate.home') }}" class="flex items-center gap-2">
                 <span class="grid place-items-center w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white font-black text-lg shadow-lg shadow-indigo-500/25">M</span>
-                <span class="font-extrabold text-lg text-slate-900">Mooda <span class="text-indigo-600">Affiliate</span></span>
+                <span class="font-extrabold text-lg text-slate-900">{!! sc('affiliate','nav_brand','Mooda <span class="text-indigo-600">Affiliate</span>') !!}</span>
             </a>
             <nav class="hidden lg:flex items-center gap-1 text-sm font-semibold text-slate-600">
-                <a href="https://mooda.id" class="rounded-full px-4 py-1.5 hover:bg-indigo-50 hover:text-indigo-700 transition">Beranda</a>
-                <a href="https://mooda.id/#fitur" class="rounded-full px-4 py-1.5 hover:bg-indigo-50 hover:text-indigo-700 transition">Fitur</a>
-                <a href="{{ route('affiliate.home') }}" class="rounded-full px-4 py-1.5 text-indigo-700 bg-indigo-50 transition">Affiliate</a>
-                <a href="https://blog.mooda.id" class="rounded-full px-4 py-1.5 hover:bg-indigo-50 hover:text-indigo-700 transition">Blog</a>
-                <a href="#cara-kerja" class="rounded-full px-4 py-1.5 hover:bg-indigo-50 hover:text-indigo-700 transition">FAQ</a>
+                <a href="https://mooda.id" class="rounded-full px-4 py-1.5 hover:bg-indigo-50 hover:text-indigo-700 transition">{{ sc('affiliate','nav_beranda','Beranda') }}</a>
+                <a href="https://mooda.id/#fitur" class="rounded-full px-4 py-1.5 hover:bg-indigo-50 hover:text-indigo-700 transition">{{ sc('affiliate','nav_fitur','Fitur') }}</a>
+                <a href="{{ route('affiliate.home') }}" class="rounded-full px-4 py-1.5 text-indigo-700 bg-indigo-50 transition">{{ sc('affiliate','nav_affiliate','Affiliate') }}</a>
+                <a href="https://blog.mooda.id" class="rounded-full px-4 py-1.5 hover:bg-indigo-50 hover:text-indigo-700 transition">{{ sc('affiliate','nav_blog','Blog') }}</a>
+                <a href="#cara-kerja" class="rounded-full px-4 py-1.5 hover:bg-indigo-50 hover:text-indigo-700 transition">{{ sc('affiliate','nav_faq','FAQ') }}</a>
             </nav>
             <div class="flex items-center gap-2 text-sm font-semibold">
                 @if ($isAff)
-                    <a href="{{ route('affiliate.dashboard') }}" class="px-3 py-2 rounded-lg text-slate-600 hover:bg-indigo-50 hover:text-indigo-700">Dashboard</a>
+                    <a href="{{ route('affiliate.dashboard') }}" class="px-3 py-2 rounded-lg text-slate-600 hover:bg-indigo-50 hover:text-indigo-700">{{ sc('affiliate','nav_dashboard','Dashboard') }}</a>
                     <form method="POST" action="{{ route('affiliate.logout') }}">@csrf
-                        <button class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200">Keluar</button>
+                        <button class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200">{{ sc('affiliate','nav_keluar','Keluar') }}</button>
                     </form>
                 @else
-                    <a href="{{ route('affiliate.login') }}" class="px-4 py-2 rounded-lg text-slate-600 hover:bg-indigo-50 hover:text-indigo-700">Masuk</a>
-                    <a href="{{ route('affiliate.register') }}" class="px-4 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-600/25">Daftar Affiliate</a>
+                    <a href="{{ route('affiliate.login') }}" class="px-4 py-2 rounded-lg text-slate-600 hover:bg-indigo-50 hover:text-indigo-700">{{ sc('affiliate','nav_masuk','Masuk') }}</a>
+                    <a href="{{ route('affiliate.register') }}" class="px-4 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-600/25">{{ sc('affiliate','nav_daftar','Daftar Affiliate') }}</a>
                 @endif
             </div>
         </div>
@@ -53,9 +53,9 @@
                 <div class="lg:col-span-2">
                     <div class="flex items-center gap-2 mb-3">
                         <span class="grid place-items-center w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white font-black">M</span>
-                        <span class="font-extrabold text-lg text-white">mooda</span>
+                        <span class="font-extrabold text-lg text-white">{{ sc('affiliate','footer_brand','mooda') }}</span>
                     </div>
-                    <p class="text-sm leading-relaxed text-slate-400 max-w-xs mb-5">Solusi POS modern untuk Cafe, Resto, Bakery, dan berbagai jenis usaha.</p>
+                    <p class="text-sm leading-relaxed text-slate-400 max-w-xs mb-5">{{ sc('affiliate','footer_deskripsi','Solusi POS modern untuk Cafe, Resto, Bakery, dan berbagai jenis usaha.') }}</p>
                     <div class="flex items-center gap-3">
                         @foreach ([['instagram','IG'],['facebook','FB'],['youtube','YT'],['tiktok','TT']] as [$k,$abbr])
                             <a href="{{ config('mooda.social_' . $k, '#') }}" target="_blank" rel="noopener" class="grid place-items-center w-9 h-9 rounded-full bg-white/10 hover:bg-indigo-600 text-slate-300 hover:text-white text-xs font-bold transition">{{ $abbr }}</a>
@@ -63,34 +63,34 @@
                     </div>
                 </div>
                 <div>
-                    <h4 class="text-white font-bold mb-4 text-sm uppercase tracking-wide">Produk</h4>
+                    <h4 class="text-white font-bold mb-4 text-sm uppercase tracking-wide">{{ sc('affiliate','footer_kolom_produk','Produk') }}</h4>
                     <ul class="space-y-2.5 text-sm">
-                        <li><a href="https://mooda.id/#fitur" class="hover:text-indigo-400 transition">Fitur POS</a></li>
-                        <li><a href="https://mooda.id/#harga" class="hover:text-indigo-400 transition">Harga</a></li>
-                        <li><a href="https://mooda.id" class="hover:text-indigo-400 transition">Integrasi</a></li>
-                        <li><a href="https://mooda.id" class="hover:text-indigo-400 transition">Update</a></li>
+                        <li><a href="https://mooda.id/#fitur" class="hover:text-indigo-400 transition">{{ sc('affiliate','footer_produk_fitur','Fitur POS') }}</a></li>
+                        <li><a href="https://mooda.id/#harga" class="hover:text-indigo-400 transition">{{ sc('affiliate','footer_produk_harga','Harga') }}</a></li>
+                        <li><a href="https://mooda.id" class="hover:text-indigo-400 transition">{{ sc('affiliate','footer_produk_integrasi','Integrasi') }}</a></li>
+                        <li><a href="https://mooda.id" class="hover:text-indigo-400 transition">{{ sc('affiliate','footer_produk_update','Update') }}</a></li>
                     </ul>
                 </div>
                 <div>
-                    <h4 class="text-white font-bold mb-4 text-sm uppercase tracking-wide">Perusahaan</h4>
+                    <h4 class="text-white font-bold mb-4 text-sm uppercase tracking-wide">{{ sc('affiliate','footer_kolom_perusahaan','Perusahaan') }}</h4>
                     <ul class="space-y-2.5 text-sm">
-                        <li><a href="https://mooda.id" class="hover:text-indigo-400 transition">Tentang Kami</a></li>
-                        <li><a href="https://blog.mooda.id" class="hover:text-indigo-400 transition">Blog</a></li>
-                        <li><a href="https://mooda.id" class="hover:text-indigo-400 transition">Kontak</a></li>
+                        <li><a href="https://mooda.id" class="hover:text-indigo-400 transition">{{ sc('affiliate','footer_perusahaan_tentang','Tentang Kami') }}</a></li>
+                        <li><a href="https://blog.mooda.id" class="hover:text-indigo-400 transition">{{ sc('affiliate','footer_perusahaan_blog','Blog') }}</a></li>
+                        <li><a href="https://mooda.id" class="hover:text-indigo-400 transition">{{ sc('affiliate','footer_perusahaan_kontak','Kontak') }}</a></li>
                     </ul>
                 </div>
                 <div>
-                    <h4 class="text-white font-bold mb-4 text-sm uppercase tracking-wide">Kontak</h4>
+                    <h4 class="text-white font-bold mb-4 text-sm uppercase tracking-wide">{{ sc('affiliate','footer_kolom_kontak','Kontak') }}</h4>
                     <ul class="space-y-2.5 text-sm">
-                        <li class="flex items-center gap-2"><span>📞</span><a href="https://wa.me/{{ config('mooda.support_wa', '6282362211676') }}" class="hover:text-indigo-400 transition">0823-6221-1676</a></li>
-                        <li class="flex items-center gap-2"><span>✉️</span><a href="mailto:hello@mooda.id" class="hover:text-indigo-400 transition">hello@mooda.id</a></li>
-                        <li class="flex items-center gap-2"><span>🔗</span><a href="https://affiliate.mooda.id" class="hover:text-indigo-400 transition">affiliate.mooda.id</a></li>
+                        <li class="flex items-center gap-2"><span>📞</span><a href="https://wa.me/{{ config('mooda.support_wa', '6282362211676') }}" class="hover:text-indigo-400 transition">{{ sc('affiliate','footer_kontak_telepon','0823-6221-1676') }}</a></li>
+                        <li class="flex items-center gap-2"><span>✉️</span><a href="mailto:hello@mooda.id" class="hover:text-indigo-400 transition">{{ sc('affiliate','footer_kontak_email','hello@mooda.id') }}</a></li>
+                        <li class="flex items-center gap-2"><span>🔗</span><a href="https://affiliate.mooda.id" class="hover:text-indigo-400 transition">{{ sc('affiliate','footer_kontak_situs','affiliate.mooda.id') }}</a></li>
                     </ul>
                 </div>
             </div>
         </div>
         <div class="border-t border-white/10">
-            <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-6 text-center text-sm text-slate-400">&copy; {{ date('Y') }} Mooda. All rights reserved.</div>
+            <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-6 text-center text-sm text-slate-400">&copy; {{ date('Y') }} {{ sc('affiliate','footer_copyright','Mooda. All rights reserved.') }}</div>
         </div>
     </footer>
 </body>

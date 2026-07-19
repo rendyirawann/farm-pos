@@ -37,6 +37,7 @@ use App\Http\Controllers\Backend\Superadmin\TenantController;
 use App\Http\Controllers\Backend\Superadmin\DepositSettingController;
 use App\Http\Controllers\Backend\Superadmin\DokuChannelController;
 use App\Http\Controllers\Backend\Superadmin\PartnerLogoController;
+use App\Http\Controllers\Backend\Superadmin\SiteContentController;
 use App\Http\Controllers\Backend\Superadmin\MaintenanceController;
 
 /*
@@ -170,6 +171,10 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance'])->group(function
         Route::post('/admin/partner-logos/{partnerLogo}/toggle', [PartnerLogoController::class, 'toggle'])->name('partner-logos.toggle');
         Route::delete('/admin/partner-logos/{partnerLogo}', [PartnerLogoController::class, 'destroy'])->name('partner-logos.destroy');
         Route::post('/admin/partner-logos-limit', [PartnerLogoController::class, 'updateLimit'])->name('partner-logos.limit');
+
+        // Kelola Situs (CMS landing per-situs: mooda.id / blog / affiliate) — Superadmin
+        Route::get('/admin/kelola-situs', [SiteContentController::class, 'index'])->name('site-content.index');
+        Route::post('/admin/kelola-situs/{site}', [SiteContentController::class, 'update'])->name('site-content.update');
 
         // Mode Pemeliharaan (platform-wide, Superadmin)
         Route::get('/admin/maintenance-settings', [MaintenanceController::class, 'index'])->name('maintenance-settings.index');
