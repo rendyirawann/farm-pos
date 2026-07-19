@@ -353,9 +353,9 @@
             <div class="lp-hero2 relative">
                 <style>
                     .lp-hero2 { background: linear-gradient(160deg,#f6f4ff 0%,#eef2ff 48%,#faf5ff 100%); }
-                    .lp-hero2-inner { max-width: 1180px; margin: 0 auto; padding: 122px 20px 66px;
-                        display: grid; grid-template-columns: 1.05fr 1fr; gap: 44px; align-items: center; }
-                    @media (max-width: 900px){ .lp-hero2-inner{ grid-template-columns: 1fr; padding: 108px 20px 48px; text-align: center; } }
+                    .lp-hero2-inner { max-width: 1320px; margin: 0 auto; padding: 118px 28px 64px;
+                        display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 40px; align-items: center; }
+                    @media (max-width: 960px){ .lp-hero2-inner{ grid-template-columns: 1fr; padding: 104px 20px 44px; text-align: center; } }
                     .lp-hero2-badge { display:inline-flex; align-items:center; gap:8px; background:#fff; border:1px solid #e5e7ff;
                         color:#4f46e5; font-weight:700; font-size:12.5px; padding:7px 15px; border-radius:999px; box-shadow:0 6px 18px -8px rgba(79,70,229,.35); }
                     .lp-hero2 h1 { font-size: clamp(30px,4.5vw,52px); font-weight:800; line-height:1.07; letter-spacing:-.025em; color:#0f172a; margin:18px 0 0; text-wrap:balance; }
@@ -374,20 +374,22 @@
                     @media (max-width:900px){ .lp-hero2-trust{ justify-content:center; } }
                     .lp-hero2-stars { color:#f59e0b; font-size:16px; letter-spacing:2px; }
                     .lp-hero2-trust em { font-style:normal; color:#64748b; font-size:13px; }
-                    .lp-hero2-visual { position:relative; }
-                    .lp-hero2-visual img { width:100%; height:auto; display:block; filter: drop-shadow(0 30px 55px rgba(79,70,229,.22)); }
-                    .lp-stat { position:absolute; background:#fff; border-radius:14px; padding:10px 14px; box-shadow:0 18px 42px -18px rgba(15,23,42,.4); display:flex; align-items:center; gap:10px; }
-                    .lp-stat .ic { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; color:#fff; font-size:15px; flex:0 0 auto; }
-                    .lp-stat .t { font-size:11px; color:#94a3b8; line-height:1; margin-bottom:2px; }
+                    .lp-hero2-visual { display:flex; align-items:center; gap:16px; }
+                    @media (max-width:960px){ .lp-hero2-visual{ flex-direction:column; } }
+                    .lp-hero2-visual .dev { flex:1 1 auto; min-width:0; }
+                    .lp-hero2-visual .dev img { width:100%; height:auto; display:block; filter: drop-shadow(0 30px 55px rgba(79,70,229,.22)); }
+                    .lp-statcol { display:flex; flex-direction:column; gap:12px; flex:0 0 190px; }
+                    @media (max-width:960px){ .lp-statcol{ flex-flow:row wrap; justify-content:center; flex-basis:auto; } }
+                    .lp-stat { background:#fff; border-radius:14px; padding:12px 14px; box-shadow:0 16px 40px -20px rgba(15,23,42,.32); display:flex; align-items:center; gap:10px; }
+                    .lp-stat .ic { width:36px; height:36px; border-radius:10px; display:grid; place-items:center; color:#fff; font-size:16px; flex:0 0 auto; }
+                    .lp-stat .t { font-size:11px; color:#94a3b8; line-height:1; margin-bottom:3px; }
                     .lp-stat .v { font-size:14px; font-weight:800; color:#0f172a; line-height:1.15; }
-                    .lp-stat-1 { top:4%; left:-3%; } .lp-stat-2 { top:40%; right:-5%; } .lp-stat-3 { bottom:5%; left:5%; }
-                    @media (max-width:900px){ .lp-stat{ display:none; } }
                 </style>
                 <div class="lp-hero2-inner">
                     <div>
                         <span class="lp-hero2-badge">★ POS Modern untuk Cafe, Resto &amp; UMKM</span>
-                        <h1>Kelola Restoran Lebih <span class="g">Cepat, Rapi &amp; Cuan</span></h1>
-                        <p class="sub">Satukan kasir, dapur (kitchen display), inventori, hingga laporan bisnis dalam satu platform yang mudah digunakan. Untuk restoran, cafe &amp; warung — bisa multi-outlet.</p>
+                        <h1>Dengan Mooda <span class="g">Usaha jadi Lebih Mudah</span></h1>
+                        <p class="sub">Aplikasi POS lengkap untuk membantu kamu mengelola kasir, pesanan, inventori, hingga laporan bisnis dalam satu platform yang mudah digunakan.</p>
                         <div class="lp-hero2-actions">
                             @if (\App\Tenancy\Plan::maintenance())
                                 <span class="mooda-soon-btn">{{ \App\Tenancy\Plan::maintenanceText() }}</span>
@@ -402,10 +404,13 @@
                         </div>
                     </div>
                     <div class="lp-hero2-visual">
-                        <img src="{{ asset('assets/media/landing/hero.webp') }}" alt="Aplikasi Mooda di tablet & ponsel" loading="eager" decoding="async" draggable="false">
-                        <div class="lp-stat lp-stat-1"><div class="ic" style="background:#4f46e5">🛒</div><div><div class="t">Order Masuk</div><div class="v">12</div></div></div>
-                        <div class="lp-stat lp-stat-2"><div class="ic" style="background:#059669">↑</div><div><div class="t">Omzet Hari Ini</div><div class="v">Rp 18.520.000</div></div></div>
-                        <div class="lp-stat lp-stat-3"><div class="ic" style="background:#f59e0b">🍳</div><div><div class="t">Kitchen Ready</div><div class="v">8 Pesanan</div></div></div>
+                        <div class="dev"><img src="{{ asset('assets/media/landing/hero.webp') }}" alt="Aplikasi Mooda di tablet & ponsel" loading="eager" decoding="async" draggable="false"></div>
+                        <div class="lp-statcol">
+                            <div class="lp-stat"><div class="ic" style="background:#4f46e5">🛒</div><div><div class="t">Order Masuk</div><div class="v">12</div></div></div>
+                            <div class="lp-stat"><div class="ic" style="background:#059669">↑</div><div><div class="t">Omzet Hari Ini</div><div class="v">Rp 18.520.000</div></div></div>
+                            <div class="lp-stat"><div class="ic" style="background:#f59e0b">🍳</div><div><div class="t">Kitchen Ready</div><div class="v">8 Pesanan</div></div></div>
+                            <div class="lp-stat"><div class="ic" style="background:#7c3aed">▦</div><div><div class="t">QRIS</div><div class="v">Connected</div></div></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -478,7 +483,7 @@
             <div class="lp-mk">
                 <style>
                     .lp-mk { background:#fff; }
-                    .lp-mk-wrap { max-width:1180px; margin:0 auto; padding:72px 20px; }
+                    .lp-mk-wrap { max-width:1320px; margin:0 auto; padding:72px 28px; }
                     .lp-mk-eyebrow { font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#4f46e5; }
                     .lp-mk h2 { font-size:clamp(24px,3.4vw,38px); font-weight:800; letter-spacing:-.02em; color:#0f172a; margin:8px 0 0; text-wrap:balance; }
                     .lp-mk .lead { margin-top:10px; color:#64748b; font-size:16px; max-width:60ch; line-height:1.6; }
