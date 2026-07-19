@@ -1017,7 +1017,13 @@
             $('#append-banner').removeClass('d-none');
             $('#append-submit-wrap').removeClass('d-none');
             $('#checkout-normal').addClass('d-none'); // sembunyikan metode bayar & tombol Bayar
-            try { bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('cart-offcanvas')).show(); } catch (e) {}
+            // Buka keranjang HANYA di layar kecil. Di desktop keranjang sudah tampil inline
+            // (offcanvas-md) -> memanggil offcanvas.show() akan membuat backdrop menggelapkan layar.
+            try {
+                if (window.matchMedia('(max-width: 767.98px)').matches) {
+                    bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('cart-offcanvas')).show();
+                }
+            } catch (e) {}
         }
 
         function exitAppendMode() {
@@ -1298,8 +1304,19 @@
         $('body').on('click', '.btn-append-order', function () {
             const id = $(this).data('id');
             const label = 'Pesanan ' + $(this).data('label');
-            try { bootstrap.Modal.getInstance(document.getElementById('modal-detail'))?.hide(); } catch (e) {}
-            enterAppendMode(id, label);
+            const modalEl = document.getElementById('modal-detail');
+            const inst = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+            if (inst) {
+                // Masuk mode tambah SETELAH modal benar-benar tertutup (backdrop dibersihkan
+                // Bootstrap) -> mencegah layar menggelap / harus klik 2x.
+                modalEl.addEventListener('hidden.bs.modal', function handler() {
+                    modalEl.removeEventListener('hidden.bs.modal', handler);
+                    enterAppendMode(id, label);
+                }, { once: true });
+                inst.hide();
+            } else {
+                enterAppendMode(id, label);
+            }
         });
 
         // Cetak struk pesanan OFFLINE — langsung dari data lokal, tanpa jaringan.
