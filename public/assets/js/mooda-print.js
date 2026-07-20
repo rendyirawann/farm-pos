@@ -99,7 +99,7 @@ window.MoodaPrint = (function () {
         rule();
         (r.items || []).forEach(it => {
             line(String(it.name));
-            if (it.addons && it.addons.length) it.addons.forEach(a => line('  + ' + (a.name || '')));
+            if (it.addons && it.addons.length) it.addons.forEach(a => line('  + ' + (a.name || '') + ((a.qty > 1) ? ' x' + a.qty : '')));
             row('  ' + it.qty + ' x ' + money(it.price), money(it.subtotal));
             if (it.notes) line('  * ' + it.notes);
         });
@@ -146,7 +146,7 @@ window.MoodaPrint = (function () {
         o.push(sep);
         (r.items || []).forEach(it => {
             o.push(String(it.name));
-            if (it.addons && it.addons.length) it.addons.forEach(a => o.push('  + ' + (a.name || '')));
+            if (it.addons && it.addons.length) it.addons.forEach(a => o.push('  + ' + (a.name || '') + ((a.qty > 1) ? ' x' + a.qty : '')));
             o.push(row('  ' + it.qty + ' x ' + money(it.price), money(it.subtotal)));
             if (it.notes) o.push('  * ' + it.notes);
         });

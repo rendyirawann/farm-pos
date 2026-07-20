@@ -170,7 +170,7 @@
                             <td>
                                 <span class="item-name">{{ $d->menu->name ?? 'Menu dihapus' }}</span>
                                 @if (!empty($d->addons))
-                                    <div class="item-meta">+ {{ collect($d->addons)->map(fn ($a) => is_array($a) ? ($a['name'] ?? '') : $a)->filter()->implode(', ') }}</div>
+                                    <div class="item-meta">+ {{ collect($d->addons)->map(fn ($a) => is_array($a) ? (($a['name'] ?? '') . (($a['qty'] ?? 1) > 1 ? ' ×' . $a['qty'] : '')) : $a)->filter()->implode(', ') }}</div>
                                 @endif
                                 @if ($d->notes)<div class="item-meta">Catatan: {{ $d->notes }}</div>@endif
                             </td>

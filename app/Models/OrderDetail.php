@@ -22,7 +22,7 @@ class OrderDetail extends Model
     ];
 
     protected $casts = [
-        'addons' => 'array', // [{"name":"Extra Keju","price":5000}, ...]
+        'addons' => 'array', // [{"id":1,"name":"Extra Keju","price":5000,"qty":2}, ...]
     ];
 
     public function order()

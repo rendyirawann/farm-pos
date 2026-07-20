@@ -255,7 +255,7 @@
                         .done(function (o) {
                             let rows = (o.items || []).map(function (it) {
                                 const addons = (it.addons || []).length
-                                    ? '<div class="fs-8 text-muted">+ ' + it.addons.map(a => typeof a === 'string' ? a : (a.name || '')).join(', ') + '</div>' : '';
+                                    ? '<div class="fs-8 text-muted">+ ' + it.addons.map(a => typeof a === 'string' ? a : ((a.name || '') + (a.qty > 1 ? ' ×' + a.qty : ''))).join(', ') + '</div>' : '';
                                 const notes = it.notes ? '<div class="fs-8 text-warning">Catatan: ' + $('<div>').text(it.notes).html() + '</div>' : '';
                                 return `<tr>
                                     <td><span class="fw-semibold text-gray-800">${$('<div>').text(it.name).html()}</span>${addons}${notes}</td>

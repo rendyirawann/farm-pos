@@ -541,7 +541,12 @@
         }
 
         // ================= CART =================
-        function cartLineTotal(item) { return item.unit * item.qty; }
+        // Total baris = harga menu × qty menu + Σ(harga add-on × qty add-on). Add-on LEPAS dari qty menu.
+        function cartLineTotal(item) {
+            const base = (item.menu_unit != null ? item.menu_unit : item.unit) * item.qty;
+            const addonSum = (item.addons || []).reduce((s, a) => s + a.price * (a.qty || 1), 0);
+            return base + addonSum;
+        }
 
         function renderCart() {
             const box = $('#cart-items');
@@ -551,14 +556,22 @@
             } else {
                 $('#cart-empty').addClass('d-none');
                 cart.forEach((it, idx) => {
-                    const addonTxt = it.addons.length ? `<div class="fs-8 text-primary">+ ${it.addons.map(a => esc(a.name)).join(', ')}</div>` : '';
+                    const addonRows = (it.addons || []).map(a => `
+                        <div class="d-flex align-items-center justify-content-between mt-1">
+                            <span class="fs-8 text-primary">+ ${esc(a.name)}${a.price ? ` <span class="text-muted">(${rupiah(a.price)})</span>` : ''}</span>
+                            <span class="d-flex align-items-center">
+                                <button class="btn btn-icon btn-xs btn-light-danger addon-qty-dec" data-aid="${a.id}"><i class="ki-outline ki-minus fs-8"></i></button>
+                                <span class="mx-1 fw-bold fs-8">${a.qty}</span>
+                                <button class="btn btn-icon btn-xs btn-light-primary addon-qty-inc" data-aid="${a.id}"><i class="ki-outline ki-plus fs-8"></i></button>
+                            </span>
+                        </div>`).join('');
                     box.append(`
                         <div class="cart-row border-bottom py-2" data-idx="${idx}">
                             <div class="d-flex align-items-start justify-content-between">
-                                <div class="me-2">
+                                <div class="me-2 flex-grow-1">
                                     <div class="fw-bold text-gray-800 fs-7">${esc(it.name)}</div>
-                                    ${addonTxt}
-                                    <div class="text-muted fs-8">${rupiah(it.unit)}</div>
+                                    <div class="text-muted fs-8">${rupiah(it.menu_unit)}</div>
+                                    ${addonRows}
                                 </div>
                                 <div class="text-end">
                                     <div class="d-flex align-items-center justify-content-end mb-1">
@@ -621,12 +634,15 @@
             });
         }
 
-        function addToCart(menu, qty, addonIds, note) {
-            const addons = menu.addons.filter(a => addonIds.includes(a.id));
-            const unit = menu.price + addons.reduce((s, a) => s + a.price, 0);
+        // addonSel: [{id, qty}] (dari popup). Simpan add-on ber-qty + harga menu terpisah.
+        function addToCart(menu, qty, addonSel, note) {
+            const addons = (addonSel || []).map(sel => {
+                const a = menu.addons.find(x => x.id === sel.id);
+                return a ? { id: a.id, name: a.name, price: a.price, qty: Math.max(1, sel.qty || 1) } : null;
+            }).filter(Boolean);
             cart.push({
-                menu_id: menu.id, name: menu.name, base_price: menu.price,
-                addons, addon_ids: addons.map(a => a.id), qty: qty, note: note || '', unit
+                menu_id: menu.id, name: menu.name, menu_unit: menu.price,
+                addons, qty: qty, note: note || ''
             });
             renderCart();
         }
@@ -739,20 +755,47 @@
             list.append('<label class="fw-semibold fs-7 text-muted mb-2 d-block">Pilih Add-On</label>');
             menu.addons.forEach(a => {
                 list.append(`
-                    <label class="form-check form-check-custom form-check-solid mb-2 d-flex justify-content-between">
-                        <span><input class="form-check-input me-2 addon-check" type="checkbox" value="${a.id}"> ${esc(a.name)}</span>
-                        <span class="text-success fw-bold">+ ${rupiah(a.price)}</span>
-                    </label>`);
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="form-check form-check-custom form-check-solid d-flex align-items-center mb-0">
+                            <input class="form-check-input me-2 addon-check" type="checkbox" value="${a.id}">
+                            <span>${esc(a.name)} <span class="text-success fw-bold ms-1">+ ${rupiah(a.price)}</span></span>
+                        </label>
+                        <div class="d-flex align-items-center">
+                            <button type="button" class="btn btn-icon btn-xs btn-light-danger addon-modal-dec" data-id="${a.id}"><i class="ki-outline ki-minus fs-7"></i></button>
+                            <input type="number" min="1" value="1" class="form-control form-control-sm form-control-solid mx-1 text-center addon-qty-input" data-id="${a.id}" style="width:56px" disabled>
+                            <button type="button" class="btn btn-icon btn-xs btn-light-primary addon-modal-inc" data-id="${a.id}"><i class="ki-outline ki-plus fs-7"></i></button>
+                        </div>
+                    </div>`);
             });
             $('#modal-addon').modal('show');
+        });
+
+        // Centang add-on -> aktifkan kotak qty-nya (default 1).
+        $('#addon-list').on('change', '.addon-check', function() {
+            const q = $(this).closest('div').find('.addon-qty-input[data-id="' + this.value + '"]');
+            q.prop('disabled', !this.checked);
+            if (this.checked && (!q.val() || Number(q.val()) < 1)) q.val(1);
+        });
+        // Stepper qty add-on di dalam popup (otomatis mencentang add-on tsb).
+        $('#addon-list').on('click', '.addon-modal-inc, .addon-modal-dec', function() {
+            const id = $(this).data('id');
+            const q = $('.addon-qty-input[data-id="' + id + '"]');
+            const chk = $('.addon-check[value="' + id + '"]');
+            if (!chk.prop('checked')) { chk.prop('checked', true); q.prop('disabled', false); }
+            let v = Math.max(1, Number(q.val() || 1));
+            v = $(this).hasClass('addon-modal-inc') ? v + 1 : Math.max(1, v - 1);
+            q.val(v);
         });
 
         $('#btn-addon-confirm').on('click', function() {
             const menu = MENUS.find(m => String(m.id) === String($('#addon-menu-id').val()));
             if (!menu) return;
-            const ids = $('.addon-check:checked').map((i, el) => Number(el.value)).get();
+            const addonSel = $('.addon-check:checked').map((i, el) => ({
+                id: Number(el.value),
+                qty: Math.max(1, Number($('.addon-qty-input[data-id="' + el.value + '"]').val() || 1))
+            })).get();
             const qty = Math.max(1, Number($('#addon-qty').val() || 1));
-            addToCart(menu, qty, ids, $('#addon-note').val());
+            addToCart(menu, qty, addonSel, $('#addon-note').val());
             flyToCart(window.__addonSrc);
             $('#modal-addon').modal('hide');
         });
@@ -762,6 +805,20 @@
         $('#cart-items').on('click', '.qty-dec', function() {
             const i = $(this).closest('.cart-row').data('idx');
             if (cart[i].qty > 1) cart[i].qty--; else cart.splice(i, 1);
+            renderCart();
+        });
+        // Stepper qty PER ADD-ON di baris keranjang (lepas dari qty menu).
+        $('#cart-items').on('click', '.addon-qty-inc', function() {
+            const i = $(this).closest('.cart-row').data('idx');
+            const a = (cart[i].addons || []).find(x => x.id == $(this).data('aid'));
+            if (a) { a.qty++; renderCart(); }
+        });
+        $('#cart-items').on('click', '.addon-qty-dec', function() {
+            const i = $(this).closest('.cart-row').data('idx');
+            const aid = $(this).data('aid');
+            const a = (cart[i].addons || []).find(x => x.id == aid);
+            if (!a) return;
+            if (a.qty > 1) a.qty--; else cart[i].addons = cart[i].addons.filter(x => x.id != aid);
             renderCart();
         });
         $('#cart-items').on('click', '.cart-remove', function() { cart.splice($(this).closest('.cart-row').data('idx'), 1); renderCart(); });
@@ -812,7 +869,7 @@
                 customer_name: $('#customer-name').val().trim(),
                 table_no: selectedTable || null,
                 promo_id: $('#promo-select').val() || null,
-                cart: cart.map(it => ({ menu_id: it.menu_id, qty: it.qty, addon_ids: it.addon_ids, note: it.note })),
+                cart: cart.map(it => ({ menu_id: it.menu_id, qty: it.qty, addons: it.addons.map(a => ({ id: a.id, qty: a.qty })), note: it.note })),
             };
             if (withPayment) {
                 const method = $('input[name="pay_method"]:checked').val();
@@ -917,7 +974,7 @@
 
         // Bangun struk siap-cetak dari keranjang saat ini (dipakai mode offline, tanpa jaringan).
         function buildReceiptFromCart(payload, invoiceNo) {
-            const subtotal = cart.reduce((s, it) => s + ((it.unit || 0) * it.qty), 0);
+            const subtotal = cart.reduce((s, it) => s + cartLineTotal(it), 0);
             let discount = 0;
             const opt = $('#promo-select').find(':selected');
             if (opt.val()) {
@@ -938,8 +995,8 @@
                 table_no: payload.table_no || null,
                 datetime: new Date().toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
                 items: cart.map(it => ({
-                    name: it.name, qty: it.qty, price: it.unit || 0, subtotal: (it.unit || 0) * it.qty,
-                    addons: (it.addons || []).map(a => a.name), notes: it.note || null,
+                    name: it.name, qty: it.qty, price: it.menu_unit || 0, subtotal: cartLineTotal(it),
+                    addons: (it.addons || []).map(a => ({ name: a.name, qty: a.qty, price: a.price })), notes: it.note || null,
                 })),
                 subtotal: subtotal, discount_amount: discount, tax: tax, grand_total: total,
                 payment_method: payload.payment_method || null,
@@ -1018,6 +1075,8 @@
         // ========== MODE TAMBAH: gabung item ke pesanan BELUM LUNAS ==========
         let appendOrder = null; // {id, label} saat mode tambah aktif
 
+        let appendFloatTimer = null;
+
         function enterAppendMode(id, label) {
             appendOrder = { id: id, label: label };
             cart = []; renderCart();
@@ -1026,15 +1085,26 @@
             $('#append-submit-wrap').removeClass('d-none');
             $('#checkout-normal').addClass('d-none'); // sembunyikan metode bayar & tombol Bayar
             $('#append-float-label').text(label);
-            // Di layar kecil: JANGAN buka keranjang otomatis. Tampilkan notif floating "silakan tambah
-            // menu" + Batal; user memilih menu lalu buka keranjang manual untuk submit.
-            if (window.matchMedia('(max-width: 767.98px)').matches) {
-                $('#append-float-notif').removeClass('d-none');
+            // Notif floating pengingat "sedang menambah menu ke pesanan" — tampil di SEMUA layar.
+            // HP: JANGAN buka keranjang otomatis; notif jadi pengingat utama (menetap).
+            // PC/tablet: notif tampil lalu AUTO-TUTUP 10 detik (mode tambah tetap aktif via banner).
+            showAppendFloat();
+        }
+
+        function showAppendFloat() {
+            if (appendFloatTimer) { clearTimeout(appendFloatTimer); appendFloatTimer = null; }
+            $('#append-float-notif').removeClass('d-none');
+            if (!window.matchMedia('(max-width: 767.98px)').matches) {
+                appendFloatTimer = setTimeout(function () {
+                    $('#append-float-notif').addClass('d-none');
+                    appendFloatTimer = null;
+                }, 10000); // PC/tablet: tutup otomatis setelah 10 detik
             }
         }
 
         function exitAppendMode() {
             appendOrder = null;
+            if (appendFloatTimer) { clearTimeout(appendFloatTimer); appendFloatTimer = null; }
             $('#append-banner').addClass('d-none');
             $('#append-submit-wrap').addClass('d-none');
             $('#append-float-notif').addClass('d-none');
@@ -1052,7 +1122,7 @@
                 method: 'POST',
                 data: {
                     _token: CSRF,
-                    cart: cart.map(it => ({ menu_id: it.menu_id, qty: it.qty, addon_ids: it.addon_ids, note: it.note })),
+                    cart: cart.map(it => ({ menu_id: it.menu_id, qty: it.qty, addons: it.addons.map(a => ({ id: a.id, qty: a.qty })), note: it.note })),
                 },
                 timeout: 25000
             }).done(res => {
@@ -1295,7 +1365,7 @@
                     cash_received: o.cash_received, change_amount: o.change_amount
                 };
                 const rows = res.items.map(it => {
-                    const ad = (it.addons && it.addons.length) ? `<div class="fs-8 text-primary">+ ${it.addons.map(a => esc(a.name)).join(', ')}</div>` : '';
+                    const ad = (it.addons && it.addons.length) ? `<div class="fs-8 text-primary">+ ${it.addons.map(a => esc(a.name) + (a.qty > 1 ? ' ×' + a.qty : '')).join(', ')}</div>` : '';
                     const nt = it.notes ? `<div class="fs-8 text-muted fst-italic">“${esc(it.notes)}”</div>` : '';
                     return `<div class="d-flex justify-content-between border-bottom py-2">
                         <div><span class="fw-bold">${it.qty}x</span> ${esc(it.name)}${ad}${nt}</div>
@@ -1354,7 +1424,7 @@
             if (!rec || !rec.receipt) return;
             const r = rec.receipt; window.__lastDetail = r;
             const rows = (r.items || []).map(it => {
-                const ad = (it.addons && it.addons.length) ? `<div class="fs-8 text-primary">+ ${it.addons.map(a => esc(a)).join(', ')}</div>` : '';
+                const ad = (it.addons && it.addons.length) ? `<div class="fs-8 text-primary">+ ${it.addons.map(a => esc(a.name) + (a.qty > 1 ? ' ×' + a.qty : '')).join(', ')}</div>` : '';
                 const nt = it.notes ? `<div class="fs-8 text-muted fst-italic">“${esc(it.notes)}”</div>` : '';
                 return `<div class="d-flex justify-content-between border-bottom py-2"><div><span class="fw-bold">${it.qty}x</span> ${esc(it.name)}${ad}${nt}</div><div class="fw-bold">${rupiah(it.subtotal)}</div></div>`;
             }).join('');

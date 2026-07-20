@@ -201,11 +201,15 @@ class KasirController extends Controller
     public function storeOrder(Request $request)
     {
         $request->validate([
-            'cart'           => 'required|array|min:1',
-            'cart.*.menu_id' => 'required|integer',
-            'cart.*.qty'     => 'required|integer|min:1',
-            'payment_method' => 'nullable|in:cash,qris',
-            'client_txn_id'  => 'nullable|string|max:64',
+            'cart'                => 'required|array|min:1',
+            'cart.*.menu_id'      => 'required|integer',
+            'cart.*.qty'          => 'required|integer|min:1',
+            'cart.*.addons'       => 'nullable|array',
+            'cart.*.addons.*.id'  => 'required_with:cart.*.addons|integer',
+            'cart.*.addons.*.qty' => 'required_with:cart.*.addons|integer|min:1',
+            'cart.*.addon_ids'    => 'nullable|array',
+            'payment_method'      => 'nullable|in:cash,qris',
+            'client_txn_id'       => 'nullable|string|max:64',
         ]);
 
         $clientTxnId = $request->input('client_txn_id');
@@ -319,9 +323,13 @@ class KasirController extends Controller
     public function addItems($id, Request $request)
     {
         $request->validate([
-            'cart'           => 'required|array|min:1',
-            'cart.*.menu_id' => 'required|integer',
-            'cart.*.qty'     => 'required|integer|min:1',
+            'cart'                => 'required|array|min:1',
+            'cart.*.menu_id'      => 'required|integer',
+            'cart.*.qty'          => 'required|integer|min:1',
+            'cart.*.addons'       => 'nullable|array',
+            'cart.*.addons.*.id'  => 'required_with:cart.*.addons|integer',
+            'cart.*.addons.*.qty' => 'required_with:cart.*.addons|integer|min:1',
+            'cart.*.addon_ids'    => 'nullable|array',
         ]);
 
         try {
@@ -786,28 +794,45 @@ class KasirController extends Controller
             }
             $qty = max(1, (int) ($row['qty'] ?? 1));
 
-            $addonIds = array_filter(array_map('intval', (array) ($row['addon_ids'] ?? [])));
-            $addonSnapshot = [];
-            $addonPrice = 0;
-            if (!empty($addonIds)) {
-                $addons = MenuAddon::where('menu_id', $menu->id)
-                    ->whereIn('id', $addonIds)
-                    ->where('is_active', true)
-                    ->get();
-                foreach ($addons as $a) {
-                    $addonPrice += (float) $a->price;
-                    $addonSnapshot[] = ['id' => $a->id, 'name' => $a->name, 'price' => (float) $a->price];
+            // Add-on: format baru [{id,qty}] (qty per add-on, LEPAS dari qty menu).
+            // Fallback ke format lama addon_ids[] (qty=1/add-on) untuk payload/offline lama.
+            $addonQtyById = [];
+            foreach ((array) ($row['addons'] ?? []) as $ad) {
+                $aid = (int) ($ad['id'] ?? 0);
+                if ($aid <= 0) {
+                    continue;
+                }
+                $addonQtyById[$aid] = max(1, (int) ($ad['qty'] ?? 1));
+            }
+            if (empty($addonQtyById)) {
+                foreach (array_filter(array_map('intval', (array) ($row['addon_ids'] ?? []))) as $aid) {
+                    $addonQtyById[$aid] = 1;
                 }
             }
 
-            $unitPrice = (float) $menu->price + $addonPrice;
-            $lineSubtotal = $unitPrice * $qty;
+            $addonSnapshot = [];
+            $addonPrice = 0; // Σ(harga add-on × qty add-on)
+            if (!empty($addonQtyById)) {
+                $addons = MenuAddon::where('menu_id', $menu->id)
+                    ->whereIn('id', array_keys($addonQtyById))
+                    ->where('is_active', true)
+                    ->get();
+                foreach ($addons as $a) {
+                    $aQty = $addonQtyById[$a->id] ?? 1;
+                    $addonPrice += (float) $a->price * $aQty;
+                    $addonSnapshot[] = ['id' => $a->id, 'name' => $a->name, 'price' => (float) $a->price, 'qty' => $aQty];
+                }
+            }
+
+            // MODEL HARGA: (menu × qtyMenu) + Σ(add-on × qtyAddon). Add-on TIDAK ikut qty menu.
+            $menuPrice = (float) $menu->price;
+            $lineSubtotal = $menuPrice * $qty + $addonPrice;
             $subtotal += $lineSubtotal;
 
             $items[] = [
                 'menu_id'  => $menu->id,
                 'qty'      => $qty,
-                'price'    => $unitPrice,
+                'price'    => $menuPrice, // harga menu saja; add-on ada di snapshot + subtotal
                 'subtotal' => $lineSubtotal,
                 'addons'   => $addonSnapshot ?: null,
                 'notes'    => $row['note'] ?? ($row['notes'] ?? null),

@@ -82,7 +82,7 @@
                 @if (!empty($item->addons))
                     @foreach ($item->addons as $addon)
                         <tr>
-                            <td colspan="3" class="addon">+ {{ $addon['name'] ?? '' }}</td>
+                            <td colspan="3" class="addon">+ {{ $addon['name'] ?? '' }}@if (($addon['qty'] ?? 1) > 1) &times;{{ $addon['qty'] }}@endif</td>
                         </tr>
                     @endforeach
                 @endif

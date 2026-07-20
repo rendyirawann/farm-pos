@@ -73,7 +73,7 @@
                                                         </span>
                                                         @if (!empty($item->addons))
                                                             <span class="fs-8 fw-semibold text-primary">
-                                                                + {{ collect($item->addons)->pluck('name')->implode(', ') }}
+                                                                + {{ collect($item->addons)->map(fn ($a) => ($a['name'] ?? '') . (($a['qty'] ?? 1) > 1 ? ' ×' . $a['qty'] : ''))->implode(', ') }}
                                                             </span>
                                                         @endif
                                                         @if ($item->notes)
@@ -164,7 +164,7 @@
                                                         </span>
                                                         @if (!empty($item->addons))
                                                             <span class="fs-8 fw-semibold text-muted">
-                                                                + {{ collect($item->addons)->pluck('name')->implode(', ') }}
+                                                                + {{ collect($item->addons)->map(fn ($a) => ($a['name'] ?? '') . (($a['qty'] ?? 1) > 1 ? ' ×' . $a['qty'] : ''))->implode(', ') }}
                                                             </span>
                                                         @endif
                                                     </div>
