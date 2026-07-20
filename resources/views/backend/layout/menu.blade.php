@@ -143,49 +143,58 @@
                 </a>
             </div>
 
-            {{-- SETELAN DEPOSIT: Superadmin only --}}
-            <div
-                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('deposit-settings.*') ? 'here show ' : '' }}">
-                <a href="{{ route('deposit-settings.index') }}"
-                    class="menu-link px-4 {{ request()->routeIs('deposit-settings.*') ? 'active ' : '' }}">
-                    <span class="menu-title">Setelan Deposit</span>
-                </a>
+            {{-- PAYMENT (dropdown): Setelan Deposit + Channel VA DOKU — Superadmin only --}}
+            @php($payActive = request()->routeIs('deposit-settings.*') || request()->routeIs('doku-channels.*'))
+            <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
+                class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention menu-here-bg me-0 me-lg-2 {{ $payActive ? 'here show ' : '' }}">
+                <span class="menu-link px-4 {{ $payActive ? 'active ' : '' }}">
+                    <span class="menu-title">Payment</span>
+                    <span class="menu-arrow d-lg-none"></span>
+                </span>
+                <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-210px">
+                    <div class="menu-item {{ request()->routeIs('deposit-settings.*') ? 'here show ' : '' }}">
+                        <a class="menu-link py-3 {{ request()->routeIs('deposit-settings.*') ? 'active ' : '' }}" href="{{ route('deposit-settings.index') }}">
+                            <span class="menu-icon"><i class="ki-outline ki-wallet fs-2"></i></span>
+                            <span class="menu-title">Setelan Deposit</span>
+                        </a>
+                    </div>
+                    <div class="menu-item {{ request()->routeIs('doku-channels.*') ? 'here show ' : '' }}">
+                        <a class="menu-link py-3 {{ request()->routeIs('doku-channels.*') ? 'active ' : '' }}" href="{{ route('doku-channels.index') }}">
+                            <span class="menu-icon"><i class="ki-outline ki-bank fs-2"></i></span>
+                            <span class="menu-title">Channel VA DOKU</span>
+                        </a>
+                    </div>
+                </div>
             </div>
 
-            {{-- CHANNEL VA DOKU: Superadmin only --}}
-            <div
-                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('doku-channels.*') ? 'here show ' : '' }}">
-                <a href="{{ route('doku-channels.index') }}"
-                    class="menu-link px-4 {{ request()->routeIs('doku-channels.*') ? 'active ' : '' }}">
-                    <span class="menu-title">Channel VA DOKU</span>
-                </a>
-            </div>
-
-            {{-- LOGO PARTNER (landing): Superadmin only --}}
-            <div
-                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('partner-logos.*') ? 'here show ' : '' }}">
-                <a href="{{ route('partner-logos.index') }}"
-                    class="menu-link px-4 {{ request()->routeIs('partner-logos.*') ? 'active ' : '' }}">
-                    <span class="menu-title">Logo Partner</span>
-                </a>
-            </div>
-
-            {{-- KELOLA SITUS (CMS landing per-situs): Superadmin only --}}
-            <div
-                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('site-content.*') ? 'here show ' : '' }}">
-                <a href="{{ route('site-content.index') }}"
-                    class="menu-link px-4 {{ request()->routeIs('site-content.*') ? 'active ' : '' }}">
-                    <span class="menu-title">Kelola Situs</span>
-                </a>
-            </div>
-
-            {{-- MODE PEMELIHARAAN: Superadmin only --}}
-            <div
-                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('maintenance-settings.*') ? 'here show ' : '' }}">
-                <a href="{{ route('maintenance-settings.index') }}"
-                    class="menu-link px-4 {{ request()->routeIs('maintenance-settings.*') ? 'active ' : '' }}">
-                    <span class="menu-title">Mode Pemeliharaan</span>
-                </a>
+            {{-- SITUS (dropdown): Kelola Situs + Logo Partner + Mode Pemeliharaan — Superadmin only --}}
+            @php($situsActive = request()->routeIs('site-content.*') || request()->routeIs('partner-logos.*') || request()->routeIs('maintenance-settings.*'))
+            <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
+                class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention menu-here-bg me-0 me-lg-2 {{ $situsActive ? 'here show ' : '' }}">
+                <span class="menu-link px-4 {{ $situsActive ? 'active ' : '' }}">
+                    <span class="menu-title">Situs</span>
+                    <span class="menu-arrow d-lg-none"></span>
+                </span>
+                <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-210px">
+                    <div class="menu-item {{ request()->routeIs('site-content.*') ? 'here show ' : '' }}">
+                        <a class="menu-link py-3 {{ request()->routeIs('site-content.*') ? 'active ' : '' }}" href="{{ route('site-content.index') }}">
+                            <span class="menu-icon"><i class="ki-outline ki-global fs-2"></i></span>
+                            <span class="menu-title">Kelola Situs</span>
+                        </a>
+                    </div>
+                    <div class="menu-item {{ request()->routeIs('partner-logos.*') ? 'here show ' : '' }}">
+                        <a class="menu-link py-3 {{ request()->routeIs('partner-logos.*') ? 'active ' : '' }}" href="{{ route('partner-logos.index') }}">
+                            <span class="menu-icon"><i class="ki-outline ki-picture fs-2"></i></span>
+                            <span class="menu-title">Logo Partner</span>
+                        </a>
+                    </div>
+                    <div class="menu-item {{ request()->routeIs('maintenance-settings.*') ? 'here show ' : '' }}">
+                        <a class="menu-link py-3 {{ request()->routeIs('maintenance-settings.*') ? 'active ' : '' }}" href="{{ route('maintenance-settings.index') }}">
+                            <span class="menu-icon"><i class="ki-outline ki-setting-2 fs-2"></i></span>
+                            <span class="menu-title">Mode Pemeliharaan</span>
+                        </a>
+                    </div>
+                </div>
             </div>
         @endcan
 
