@@ -385,24 +385,20 @@
                         <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">{{ sc('landing','fitur_judul','Semua yang Anda Butuhkan Untuk Mengelola Bisnis') }}</h2>
                         <p class="mt-3 text-lg text-slate-600">{{ sc('landing','fitur_subjudul','Dari pelanggan datang sampai laporan akhir bulan, semua tercatat otomatis.') }}</p>
                     </div>
-                    @php
-                        $features = [
-                            ['M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', 'Kasir / POS Satu Layar', 'Input nama, pilih menu + add-on, dan bayar dalam satu halaman. Cepat & anti ribet.', 'from-indigo-500 to-blue-500'],
-                            ['M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m-3.75 0h15a.75.75 0 0 1 .75.75v8.25a.75.75 0 0 1-.75.75h-15a.75.75 0 0 1-.75-.75v-8.25a.75.75 0 0 1 .75-.75Z', 'Kitchen Display', 'Pesanan tampil di layar dapur. Status masak per item terpantau, tidak ada yang terlewat.', 'from-rose-500 to-orange-500'],
-                            ['M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m-3.75 0h15a.75.75 0 0 1 .75.75v8.25a.75.75 0 0 1-.75.75h-15a.75.75 0 0 1-.75-.75v-8.25a.75.75 0 0 1 .75-.75Z', 'Menu & Add-on', 'Kelola kategori, menu, foto, promo, dan add-on (tambahan) beserta harganya dengan mudah.', 'from-violet-500 to-purple-500'],
-                            ['M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z', 'Tunai & QRIS', 'Bayar di depan (struk lunas) atau di belakang. Tunai hitung kembalian otomatis, atau QRIS.', 'from-emerald-500 to-teal-500'],
-                            ['M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z', 'Laporan & Analitik', 'Laporan penjualan, produk terlaris, dan target penjualan harian—tercatat otomatis.', 'from-amber-500 to-yellow-500'],
-                            ['M9 12.75 11.25 15 15 9.75m-3-7.036A11.96 11.96 0 0 1 3.6 6.6 12 12 0 0 0 3 8.25c0 5.6 3.82 10.3 9 11.6 5.18-1.3 9-6 9-11.6 0-.56-.04-1.11-.12-1.65a11.96 11.96 0 0 1-8.4-3.89Z', 'Multi-Outlet & Tablet', 'Data tiap bisnis terisolasi penuh, hak akses staf, & bisa dipakai di web maupun aplikasi tablet.', 'from-slate-700 to-slate-900'],
-                        ];
-                    @endphp
+                    @php $features = \App\Support\SiteContent::repeater('landing', 'features'); @endphp
                     <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                        @foreach ($features as [$path, $title, $desc, $grad])
+                        @foreach ($features as $f)
+                            @php
+                                $col = \App\Support\SiteContent::color($f['color'] ?? 'indigo');
+                                $img = !empty($f['image']) ? \App\Support\SiteContent::itemImage($f['image']) : '';
+                                $svg = \App\Support\SiteContent::iconSvg($f['icon'] ?? '', 'h-6 w-6');
+                            @endphp
                             <div class="group rounded-2xl border border-slate-200 bg-white p-6 transition duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-100">
-                                <div class="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br {{ $grad }} text-white shadow-lg">
-                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $path }}"/></svg>
+                                <div class="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br {{ $col['grad'] }} text-white shadow-lg overflow-hidden">
+                                    @if ($img)<img src="{{ $img }}" alt="{{ $f['title'] ?? '' }}" class="h-full w-full object-cover">@elseif ($svg){!! $svg !!}@else<span class="text-xl leading-none">{{ $f['icon'] ?: '★' }}</span>@endif
                                 </div>
-                                <h3 class="mt-4 text-lg font-bold">{{ $title }}</h3>
-                                <p class="mt-1.5 text-sm leading-relaxed text-slate-600">{{ $desc }}</p>
+                                <h3 class="mt-4 text-lg font-bold">{{ $f['title'] ?? '' }}</h3>
+                                <p class="mt-1.5 text-sm leading-relaxed text-slate-600">{{ $f['desc'] ?? '' }}</p>
                             </div>
                         @endforeach
                     </div>
@@ -471,16 +467,16 @@
                         <p class="lead" style="margin-left:auto; margin-right:auto;">{{ sc('landing','kenapa_subjudul','Alasan ratusan bisnis kuliner mempercayakan operasional hariannya ke Mooda.') }}</p>
                     </div>
                     <div class="lp-why">
-                        @php $whys = [
-                            ['⚡','#4f46e5','Cepat & Mudah','Antarmuka simpel, transaksi lebih cepat & efisien.'],
-                            ['🛡️','#059669','Aman & Terpercaya','Data aman di cloud dengan backup otomatis.'],
-                            ['📈','#f59e0b','Bertumbuh Bersama','Fitur lengkap untuk dukung bisnismu berkembang.'],
-                            ['🌐','#7c3aed','Akses Dimana Saja','Kelola bisnis dari mana saja lewat semua perangkat.'],
-                        ]; @endphp
-                        @foreach ($whys as [$ic,$bg,$t,$d])
-                            <div class="lp-why-card" style="--wc:{{ $bg }}">
-                                <div class="lp-why-ic">{{ $ic }}</div>
-                                <h3>{{ $t }}</h3><p>{{ $d }}</p>
+                        @php $whys = \App\Support\SiteContent::repeater('landing', 'whys'); @endphp
+                        @foreach ($whys as $w)
+                            @php
+                                $col = \App\Support\SiteContent::color($w['color'] ?? 'indigo');
+                                $img = !empty($w['image']) ? \App\Support\SiteContent::itemImage($w['image']) : '';
+                                $svg = \App\Support\SiteContent::iconSvg($w['icon'] ?? '', 'h-7 w-7');
+                            @endphp
+                            <div class="lp-why-card" style="--wc:{{ $col['hex'] }}">
+                                <div class="lp-why-ic" style="overflow:hidden">@if ($img)<img src="{{ $img }}" alt="{{ $w['title'] ?? '' }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">@elseif ($svg){!! $svg !!}@else{{ $w['icon'] ?: '★' }}@endif</div>
+                                <h3>{{ $w['title'] ?? '' }}</h3><p>{{ $w['desc'] ?? '' }}</p>
                             </div>
                         @endforeach
                     </div>

@@ -62,6 +62,12 @@ class SiteContentController extends Controller
                 $messages["images.$key.max"]   = 'Ukuran gambar "' . ($f['label'] ?? $key) . '" maksimal 1MB.';
             }
         }
+        // Validasi gambar ikon repeater (nested: rep_img[key][idx]).
+        $rules['rep_img.*.*'] = ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:1024'];
+        $messages['rep_img.*.*.image'] = 'Gambar ikon harus berupa gambar.';
+        $messages['rep_img.*.*.mimes'] = 'Gambar ikon hanya boleh JPG, JPEG, atau PNG.';
+        $messages['rep_img.*.*.max']   = 'Ukuran gambar ikon maksimal 1MB.';
+
         $request->validate($rules, $messages);
 
         $texts     = (array) $request->input('fields', []);
@@ -101,11 +107,73 @@ class SiteContentController extends Controller
             }
         }
 
+        // ===== Seksi REPEATER (Fitur, Kenapa, dst) =====
+        $this->saveRepeaters($request, $site, $sites[$site]['repeaters'] ?? []);
+
         SiteContent::flush();
 
         return redirect()
             ->route('site-content.index', ['situs' => $site])
             ->with('success', 'Konten "' . ($sites[$site]['label'] ?? $site) . '" berhasil disimpan.');
+    }
+
+    /** Simpan seksi repeater: parse baris + upload gambar per item + JSON ke SiteOption. */
+    private function saveRepeaters(Request $request, string $site, array $repeaters): void
+    {
+        $repInput = (array) $request->input('rep', []);
+        foreach ($repeaters as $rkey => $rdef) {
+            $optKey  = "$site.$rkey";
+            $rows    = (array) ($repInput[$rkey] ?? []);
+            $default = config("site_repeaters.sites.$site.$rkey.default", []);
+
+            // Gambar lama (untuk hapus file yatim setelah simpan).
+            $oldImages = [];
+            foreach (SiteContent::repeater($site, $rkey) as $oi) {
+                if (! empty($oi['image'])) {
+                    $oldImages[] = $oi['image'];
+                }
+            }
+
+            $items = [];
+            $usedImages = [];
+            foreach ($rows as $i => $row) {
+                $title = trim((string) ($row['title'] ?? ''));
+                $desc  = trim((string) ($row['desc'] ?? ''));
+                $icon  = trim((string) ($row['icon'] ?? ''));
+                $color = (string) ($row['color'] ?? 'indigo');
+                $image = $row['image_existing'] ?? null;
+
+                if (! empty($row['remove_image'])) {
+                    $image = null;
+                }
+                if ($request->hasFile("rep_img.$rkey.$i")) {
+                    $image = $request->file("rep_img.$rkey.$i")->store("site/$site", 'public');
+                }
+
+                // Lewati baris kosong total.
+                if ($title === '' && $desc === '' && $icon === '' && empty($image)) {
+                    continue;
+                }
+                if (! empty($image)) {
+                    $usedImages[] = $image;
+                }
+                $items[] = ['icon' => $icon, 'image' => $image, 'color' => $color, 'title' => $title, 'desc' => $desc];
+            }
+
+            // Kosong atau identik default -> pakai bawaan (hapus baris).
+            if (empty($items) || $items === $default) {
+                SiteOption::where('key', $optKey)->delete();
+            } else {
+                SiteOption::set($optKey, json_encode($items, JSON_UNESCAPED_UNICODE));
+            }
+
+            // Bersihkan file gambar lama yang tak lagi dipakai.
+            foreach ($oldImages as $img) {
+                if (! in_array($img, $usedImages, true)) {
+                    $this->deleteImage($img);
+                }
+            }
+        }
     }
 
     private function deleteImage(?string $path): void

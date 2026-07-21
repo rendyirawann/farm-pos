@@ -51,9 +51,62 @@ class SiteContent
         return $default !== '' ? asset($default) : '';
     }
 
-    /** Registry field per situs (dari config/site_content.php) untuk form admin. */
+    /** Registry field per situs (field tetap + repeater) untuk form admin. */
     public static function sites(): array
     {
-        return config('site_content.sites', []);
+        $sites = config('site_content.sites', []);
+        $reps  = config('site_repeaters.sites', []);
+        foreach ($sites as $k => &$s) {
+            $s['repeaters'] = $reps[$k] ?? [];
+        }
+        return $sites;
+    }
+
+    /** Data seksi repeater: JSON tersimpan bila ada, selain itu default dari config. */
+    public static function repeater(string $site, string $key): array
+    {
+        $val = static::raw($site, $key);
+        if ($val) {
+            $decoded = json_decode($val, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+        return config("site_repeaters.sites.$site.$key.default", []);
+    }
+
+    /** Registry ikon (key => [label, svg]). */
+    public static function icons(): array
+    {
+        return config('site_icons', []);
+    }
+
+    /** Render <svg> ikon berdasarkan key; string kosong bila key tak dikenal. */
+    public static function iconSvg(string $key, string $class = 'h-6 w-6', float $stroke = 1.7): string
+    {
+        $ic = config("site_icons.$key");
+        if (! $ic) {
+            return '';
+        }
+        return '<svg class="' . e($class) . '" fill="none" stroke="currentColor" stroke-width="' . $stroke
+            . '" viewBox="0 0 24 24">' . $ic['svg'] . '</svg>';
+    }
+
+    /** Peta warna preset (key => [label, grad, hex]). */
+    public static function colors(): array
+    {
+        return config('site_repeaters.colors', []);
+    }
+
+    public static function color(string $key): array
+    {
+        $c = config('site_repeaters.colors', []);
+        return $c[$key] ?? (reset($c) ?: ['grad' => 'from-indigo-500 to-blue-500', 'hex' => '#4f46e5', 'label' => 'Indigo']);
+    }
+
+    /** URL gambar item repeater (path di disk public). */
+    public static function itemImage(?string $path): string
+    {
+        return $path ? Storage::disk('public')->url($path) : '';
     }
 }
