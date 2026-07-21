@@ -118,7 +118,7 @@ return array (
               'key' => 'hero_cta_demo',
               'label' => 'Tombol sekunder hero (demo)',
               'type' => 'text',
-              'default' => 'Coba Demo',
+              'default' => 'Lihat Demo Via WA',
             ),
             6 => 
             array (
@@ -220,28 +220,6 @@ return array (
               'label' => 'Subjudul section',
               'type' => 'textarea',
               'default' => 'Alasan ratusan bisnis kuliner mempercayakan operasional hariannya ke Mooda.',
-            ),
-          ),
-        ),
-        5 => 
-        array (
-          'key' => 'cara_kerja',
-          'label' => 'Section Cara Menggunakan',
-          'fields' => 
-          array (
-            0 => 
-            array (
-              'key' => 'cara_kerja_judul',
-              'label' => 'Judul section cara kerja',
-              'type' => 'text',
-              'default' => 'Cara Mudah Menggunakan Mooda',
-            ),
-            1 => 
-            array (
-              'key' => 'cara_kerja_subjudul',
-              'label' => 'Subjudul section cara kerja',
-              'type' => 'textarea',
-              'default' => 'Cukup 4 langkah — dari daftar akun sampai mulai jualan.',
             ),
           ),
         ),

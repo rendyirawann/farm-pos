@@ -368,7 +368,7 @@
                         @else
                             <a href="{{ route('register') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-indigo-900/40 transition hover:bg-indigo-700">{{ sc('landing','hero_cta_daftar','Coba Gratis Sekarang') }}</a>
                         @endif
-                        <a href="#harga" class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-base font-semibold text-white backdrop-blur transition hover:bg-white/20">{{ sc('landing','hero_cta_demo','Coba Demo') }}</a>
+                        <a href="https://wa.me/6282362211676?text={{ rawurlencode('Halo, saya ingin lihat demo Mooda POS.') }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 text-base font-semibold text-white backdrop-blur transition hover:bg-white/20">{{ sc('landing','hero_cta_demo','Lihat Demo Via WA') }}</a>
                     </div>
                     <div class="lp-scrollhint mt-7 inline-flex items-center gap-2 text-sm text-slate-300">
                         <span>{{ sc('landing','hero_scroll_hint','Scroll untuk menjelajah') }}</span>
@@ -483,49 +483,6 @@
                 </div>
 
                 {{-- (Section Integrasi dihapus sesuai permintaan) --}}
-            </div>
-
-            {{-- CARA MUDAH MENGGUNAKAN MOODA (gaya mockup, 4 langkah, terang) --}}
-            <div class="lp-steps">
-                <style>
-                    .lp-steps { background:#f6f7fc; }
-                    .lp-steps-wrap { max-width:1440px; margin:0 auto; padding:8px 28px 76px; }
-                    .lp-steps h2 { text-align:center; font-size:clamp(24px,3.2vw,34px); font-weight:800; color:#0f172a; letter-spacing:-.02em; margin:0 0 8px; }
-                    .lp-steps .steps-sub { text-align:center; color:#64748b; font-size:16px; max-width:52ch; margin:0 auto 38px; line-height:1.6; }
-                    .lp-flow { display:grid; grid-template-columns:repeat(4,1fr); gap:26px; position:relative; align-items:start; }
-                    @media (max-width:900px){ .lp-flow{ grid-template-columns:1fr 1fr; gap:30px; } }
-                    @media (max-width:520px){ .lp-flow{ grid-template-columns:1fr; } }
-                    /* garis flow putus-putus di belakang node (level tengah node) */
-                    .lp-flow::before { content:''; position:absolute; top:34px; left:12.5%; right:12.5%; height:3px; z-index:0;
-                        background:repeating-linear-gradient(90deg,#c7d2fe 0 9px, transparent 9px 18px); }
-                    @media (max-width:900px){ .lp-flow::before{ display:none; } }
-                    .lp-flow-item { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; text-align:center; }
-                    .lp-flow-item .node { width:68px; height:68px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#7c3aed); color:#fff; font-weight:800; font-size:25px; display:grid; place-items:center; box-shadow:0 16px 30px -10px rgba(99,102,241,.75); border:6px solid #f6f7fc; }
-                    .lp-flow-item .card { margin-top:20px; width:100%; background:#fff; border:1px solid #eceef7; border-radius:22px; padding:22px 18px; box-shadow:0 16px 36px -26px rgba(15,23,42,.5); transition:transform .2s, box-shadow .25s; }
-                    .lp-flow-item:nth-child(even) .card { margin-top:44px; }
-                    @media (max-width:900px){ .lp-flow-item:nth-child(even) .card{ margin-top:20px; } }
-                    .lp-flow-item:hover .card { transform:translateY(-6px); box-shadow:0 30px 52px -26px rgba(99,102,241,.4); }
-                    .lp-flow-item .card h3 { margin:0 0 5px; font-size:16.5px; font-weight:800; color:#0f172a; }
-                    .lp-flow-item .card p { margin:0; font-size:13.5px; color:#64748b; line-height:1.6; }
-                </style>
-                <div class="lp-steps-wrap">
-                    <h2>{{ sc('landing','cara_kerja_judul','Cara Mudah Menggunakan Mooda') }}</h2>
-                    <p class="steps-sub">{{ sc('landing','cara_kerja_subjudul','Cukup 4 langkah — dari daftar akun sampai mulai jualan.') }}</p>
-                    <div class="lp-flow">
-                        @php $mkSteps = [
-                            ['1','Daftar Akun','Buat akun gratis dalam 1 menit.'],
-                            ['2','Setup Produk','Tambahkan menu, harga, dan stok.'],
-                            ['3','Mulai Jualan','Proses transaksi cepat dengan POS Mooda.'],
-                            ['4','Pantau Penjualan','Lihat laporan & analitik kapan saja, di mana saja.'],
-                        ]; @endphp
-                        @foreach ($mkSteps as [$n,$t,$d])
-                            <div class="lp-flow-item">
-                                <div class="node">{{ $n }}</div>
-                                <div class="card"><h3>{{ $t }}</h3><p>{{ $d }}</p></div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
             </div>
 
             {{-- LIHAT APLIKASINYA (dipindah keluar dari section gabungan) --}}
