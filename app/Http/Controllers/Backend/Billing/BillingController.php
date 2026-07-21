@@ -8,6 +8,8 @@ use App\Models\Tenant;
 use App\Models\DepositTopup;
 use App\Models\DokuVaChannel;
 use App\Services\DepositService;
+use App\Services\Tripay\Tripay;
+use App\Support\Billing;
 use App\Tenancy\Plan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,10 +38,11 @@ class BillingController extends Controller
 
         $clientKey = config('services.midtrans.client_key');
         $isProduction = (bool) config('services.midtrans.is_production', false);
-        $driver = config('billing.driver', 'midtrans');
+        $driver = Billing::driver();
         $dokuChannels = $driver === 'doku' ? DokuVaChannel::activeForCurrentEnv() : collect();
+        $tripayChannels = $driver === 'tripay' ? (new Tripay())->paymentChannels() : [];
 
-        return view('backend.billing.index', compact('tenant', 'plans', 'history', 'clientKey', 'isProduction', 'driver', 'dokuChannels'));
+        return view('backend.billing.index', compact('tenant', 'plans', 'history', 'clientKey', 'isProduction', 'driver', 'dokuChannels', 'tripayChannels'));
     }
 
     /**
@@ -97,9 +100,16 @@ class BillingController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Durasi langganan tidak valid.'], 422);
         }
 
-        // Driver DOKU (Virtual Account SNAP). Default 'midtrans' -> cabang ini dilewati.
-        if (config('billing.driver') === 'doku') {
+        $driver = Billing::driver();
+
+        // Driver DOKU (Virtual Account SNAP).
+        if ($driver === 'doku') {
             return $this->checkoutDoku($tenant, $planKey, (int) $amount, $months, $request->input('bank'));
+        }
+
+        // Driver Tripay (Closed Payment, customer pilih channel).
+        if ($driver === 'tripay') {
+            return $this->checkoutTripay($tenant, $planKey, (int) $amount, $months, (string) $request->input('method', ''));
         }
 
         try {
@@ -262,6 +272,89 @@ class BillingController extends Controller
     }
 
     /**
+     * Webhook Tripay (route publik, dikecualikan CSRF). Verifikasi X-Callback-Signature
+     * (HMAC-SHA256 raw body dgn private key), lalu aktivasi langganan (DSP-SUB-) / deposit (DSP-DEP-).
+     * Idempoten via activateSubscription/activateTopup (lockForUpdate).
+     */
+    public function tripayWebhook(Request $request)
+    {
+        $tripay = new Tripay();
+        $raw    = $request->getContent();               // WAJIB raw body (bukan re-encode).
+        $sig    = $request->header('X-Callback-Signature');
+
+        if (! $tripay->verifyCallbackSignature($raw, $sig)) {
+            Log::warning('Tripay webhook: signature tidak valid');
+            return response()->json(['success' => false, 'message' => 'Invalid signature'], 403);
+        }
+
+        $data        = json_decode($raw, true) ?: [];
+        $merchantRef = (string) ($data['merchant_ref'] ?? '');
+        $status      = strtoupper((string) ($data['status'] ?? ''));
+        $paid        = (int) ($data['amount_received'] ?? $data['total_amount'] ?? $data['amount'] ?? 0);
+        $method      = (string) ($data['payment_method_code'] ?? $data['payment_method'] ?? '');
+
+        Log::info('Tripay webhook diterima', ['ref' => $merchantRef, 'status' => $status, 'paid' => $paid]);
+
+        if ($merchantRef === '') {
+            return response()->json(['success' => true]);
+        }
+
+        $succeeded = $status === 'PAID';
+        $failed    = in_array($status, ['EXPIRED', 'FAILED', 'REFUND'], true);
+
+        // Nominal transaksi yang KITA minta (di-echo balik Tripay sbg data.amount). JANGAN pakai
+        // amount_received (itu sudah dipotong fee_merchant -> bisa lebih kecil & memicu false-negative).
+        $expected = (int) ($data['amount'] ?? 0);
+
+        // Langganan?
+        $subscription = Subscription::where('midtrans_order_id', $merchantRef)->first();
+        if ($subscription) {
+            if ($succeeded) {
+                if ($expected > 0 && (int) $subscription->amount !== $expected) {
+                    Log::warning('Tripay webhook: nominal langganan tak cocok — TIDAK diaktifkan', [
+                        'ref' => $merchantRef, 'expected' => $subscription->amount, 'amount' => $expected,
+                    ]);
+                } else {
+                    $this->activateSubscription($subscription, 'tripay:' . $method);
+                }
+            } elseif ($failed) {
+                // Jangan menimpa langganan yg SUDAH 'paid' (mis. REFUND / callback telat) -> tangani reversal manual.
+                if ($subscription->status === 'paid') {
+                    Log::warning('Tripay webhook: status ' . $status . ' untuk langganan yang SUDAH paid — perlu penanganan manual', ['ref' => $merchantRef]);
+                } else {
+                    $subscription->update(['status' => 'failed']);
+                }
+            }
+            return response()->json(['success' => true]);
+        }
+
+        // Top-up deposit?
+        $topup = DepositTopup::where('midtrans_order_id', $merchantRef)->first();
+        if ($topup) {
+            if ($succeeded) {
+                if ($expected > 0 && (int) $topup->amount !== $expected) {
+                    Log::warning('Tripay webhook: nominal top-up tak cocok — TIDAK dikreditkan', [
+                        'ref' => $merchantRef, 'expected' => $topup->amount, 'amount' => $expected,
+                    ]);
+                } else {
+                    $this->activateTopup($topup, 'tripay:' . $method);
+                }
+            } elseif ($failed) {
+                // Poin yg sudah dikreditkan tidak di-debit di sini; jangan tandai 'failed' bila sudah 'paid'.
+                if ($topup->status === 'paid') {
+                    Log::warning('Tripay webhook: status ' . $status . ' untuk top-up yang SUDAH paid — perlu penanganan manual (refund poin)', ['ref' => $merchantRef]);
+                } else {
+                    $topup->update(['status' => 'failed']);
+                }
+            }
+            return response()->json(['success' => true]);
+        }
+
+        Log::info('Tripay webhook: order tak ditemukan', ['ref' => $merchantRef]);
+        return response()->json(['success' => true]);
+    }
+
+    /**
      * Checkout langganan via DOKU SNAP Virtual Account (Close Amount).
      * Membuat Subscription pending + VA, mengembalikan detail VA ke front-end.
      */
@@ -322,6 +415,70 @@ class BillingController extends Controller
         } catch (\Throwable $e) {
             Log::error('DOKU subscription checkout failed: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => 'Gagal memproses pembayaran DOKU: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Checkout langganan via Tripay (Closed Payment). Membuat Subscription pending,
+     * meminta transaksi ke Tripay dgn channel pilihan customer, kembalikan checkout_url.
+     */
+    private function checkoutTripay($tenant, string $planKey, int $amount, int $months, string $method)
+    {
+        try {
+            $tripay = new Tripay();
+            if (! $tripay->isConfigured()) {
+                return response()->json(['status' => 'error', 'message' => 'Tripay belum dikonfigurasi.'], 500);
+            }
+            if ($method === '' || ! $tripay->channelActive($method)) {
+                return response()->json(['status' => 'error', 'message' => 'Metode pembayaran tidak valid atau belum aktif.'], 422);
+            }
+
+            $subscription = DB::transaction(function () use ($tenant, $planKey, $amount, $months) {
+                $orderId = 'DSP-SUB-' . strtoupper(Str::random(6)) . '-' . $tenant->id . '-' . substr((string) Str::uuid(), 0, 8);
+                return Subscription::create([
+                    'tenant_id'         => $tenant->id,
+                    'plan'              => $planKey,
+                    'amount'            => $amount,
+                    'billing_period'    => (string) $months,
+                    'status'            => 'pending',
+                    'midtrans_order_id' => $orderId,   // dipakai sebagai merchant_ref Tripay
+                ]);
+            });
+
+            $res = $tripay->createClosedTransaction([
+                'method'         => $method,
+                'merchant_ref'   => $subscription->midtrans_order_id,
+                'amount'         => $amount,
+                'customer_name'  => Auth::user()->name,
+                'customer_email' => Auth::user()->email ?: ('tenant' . $tenant->id . '@mooda.id'),
+                'customer_phone' => $tenant->phone,
+                'order_items'    => [[
+                    'sku'      => 'plan-' . $planKey,
+                    'name'     => 'Langganan ' . Plan::name($planKey) . ' (' . $months . ' bulan)',
+                    'price'    => $amount,
+                    'quantity' => 1,
+                ]],
+                'callback_url'   => url('/api/tripay-webhook'),
+                'return_url'     => route('billing.index'),
+            ]);
+
+            if (! ($res['success'] ?? false) || empty($res['data']['checkout_url'])) {
+                $subscription->update(['status' => 'failed']);
+                Log::error('Tripay subscription checkout gagal', ['res' => $res]);
+                return response()->json(['status' => 'error', 'message' => 'Gagal membuat transaksi Tripay: ' . ($res['message'] ?? 'unknown')], 500);
+            }
+
+            $subscription->update(['payment_type' => 'tripay:' . $method]);
+
+            return response()->json([
+                'status'       => 'success',
+                'driver'       => 'tripay',
+                'order_id'     => $subscription->midtrans_order_id,
+                'checkout_url' => $res['data']['checkout_url'],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Tripay subscription checkout failed: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Gagal memproses pembayaran Tripay. Silakan coba lagi.'], 500);
         }
     }
 

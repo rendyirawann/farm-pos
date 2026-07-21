@@ -144,7 +144,7 @@
             </div>
 
             {{-- PAYMENT (dropdown): Setelan Deposit + Channel VA DOKU — Superadmin only --}}
-            @php($payActive = request()->routeIs('deposit-settings.*') || request()->routeIs('doku-channels.*'))
+            @php($payActive = request()->routeIs('payment-gateway.*') || request()->routeIs('deposit-settings.*') || request()->routeIs('doku-channels.*'))
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
                 class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention menu-here-bg me-0 me-lg-2 {{ $payActive ? 'here show ' : '' }}">
                 <span class="menu-link px-4 {{ $payActive ? 'active ' : '' }}">
@@ -152,6 +152,12 @@
                     <span class="menu-arrow d-lg-none"></span>
                 </span>
                 <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-210px">
+                    <div class="menu-item {{ request()->routeIs('payment-gateway.*') ? 'here show ' : '' }}">
+                        <a class="menu-link py-3 {{ request()->routeIs('payment-gateway.*') ? 'active ' : '' }}" href="{{ route('payment-gateway.index') }}">
+                            <span class="menu-icon"><i class="ki-outline ki-credit-cart fs-2"></i></span>
+                            <span class="menu-title">Payment Gateway</span>
+                        </a>
+                    </div>
                     <div class="menu-item {{ request()->routeIs('deposit-settings.*') ? 'here show ' : '' }}">
                         <a class="menu-link py-3 {{ request()->routeIs('deposit-settings.*') ? 'active ' : '' }}" href="{{ route('deposit-settings.index') }}">
                             <span class="menu-icon"><i class="ki-outline ki-wallet fs-2"></i></span>

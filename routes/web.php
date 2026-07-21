@@ -36,6 +36,7 @@ use App\Http\Controllers\Backend\Billing\DepositController;
 use App\Http\Controllers\Backend\Superadmin\TenantController;
 use App\Http\Controllers\Backend\Superadmin\DepositSettingController;
 use App\Http\Controllers\Backend\Superadmin\DokuChannelController;
+use App\Http\Controllers\Backend\Superadmin\PaymentGatewayController;
 use App\Http\Controllers\Backend\Superadmin\PartnerLogoController;
 use App\Http\Controllers\Backend\Superadmin\SiteContentController;
 use App\Http\Controllers\Backend\Superadmin\MaintenanceController;
@@ -163,6 +164,10 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance'])->group(function
         Route::put('/admin/doku-channels/{channel}', [DokuChannelController::class, 'update'])->name('doku-channels.update');
         Route::post('/admin/doku-channels/{channel}/toggle', [DokuChannelController::class, 'toggle'])->name('doku-channels.toggle');
         Route::delete('/admin/doku-channels/{channel}', [DokuChannelController::class, 'destroy'])->name('doku-channels.destroy');
+
+        // Payment Gateway aktif (pilih SATU: midtrans / doku / tripay) — platform-wide, Superadmin
+        Route::get('/admin/payment-gateway', [PaymentGatewayController::class, 'index'])->name('payment-gateway.index');
+        Route::post('/admin/payment-gateway', [PaymentGatewayController::class, 'update'])->name('payment-gateway.update');
 
         // Logo Partner (marquee landing) — platform-wide, Superadmin
         Route::get('/admin/partner-logos', [PartnerLogoController::class, 'index'])->name('partner-logos.index');
@@ -335,6 +340,9 @@ Route::post('/api/subscription-webhook', [BillingController::class, 'webhook']);
 // Webhook DOKU (diteruskan oleh doku-gateway; gateway sudah verifikasi Bearer JWT).
 // Menangani langganan (DSP-SUB-) & top-up deposit (DSP-DEP-).
 Route::post('/api/doku-webhook', [BillingController::class, 'dokuWebhook']);
+
+// Webhook Tripay (X-Callback-Signature diverifikasi di controller). Langganan (DSP-SUB-) & deposit (DSP-DEP-).
+Route::post('/api/tripay-webhook', [BillingController::class, 'tripayWebhook']);
 
 // Load Routes Authentication (Login, Register, Reset Password)
 require __DIR__ . '/auth.php';

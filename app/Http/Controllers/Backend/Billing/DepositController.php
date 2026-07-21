@@ -7,6 +7,8 @@ use App\Models\DepositTopup;
 use App\Models\DepositTransaction;
 use App\Models\DokuVaChannel;
 use App\Services\DepositService;
+use App\Services\Tripay\Tripay;
+use App\Support\Billing;
 use App\Tenancy\DepositConfig;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -46,8 +48,9 @@ class DepositController extends Controller
             'maintenanceText'  => config('billing.maintenance_text', 'Segera hadir.'),
             'clientKey'        => config('services.midtrans.client_key'),
             'isProduction'     => (bool) config('services.midtrans.is_production', false),
-            'driver'           => config('billing.driver', 'midtrans'),
-            'dokuChannels'     => config('billing.driver') === 'doku' ? DokuVaChannel::activeForCurrentEnv() : collect(),
+            'driver'           => Billing::driver(),
+            'dokuChannels'     => Billing::driver() === 'doku' ? DokuVaChannel::activeForCurrentEnv() : collect(),
+            'tripayChannels'   => Billing::driver() === 'tripay' ? (new Tripay())->paymentChannels() : [],
             'monthlyActive'    => $tenant->monthlyActive(),
             'needsInitial'     => $this->deposit->needsInitialTopup($tenant),
             'initialTopup'     => DepositConfig::initialTopup(),
@@ -106,9 +109,16 @@ class DepositController extends Controller
             return response()->json(['status' => 'error', 'message' => $msg], 422);
         }
 
-        // Driver DOKU (Virtual Account SNAP). Default 'midtrans' -> cabang ini dilewati.
-        if (config('billing.driver') === 'doku') {
+        $driver = Billing::driver();
+
+        // Driver DOKU (Virtual Account SNAP).
+        if ($driver === 'doku') {
             return $this->checkoutDoku($tenant, (int) $amount, (int) $points, $request->input('bank'));
+        }
+
+        // Driver Tripay (Closed Payment, customer pilih channel).
+        if ($driver === 'tripay') {
+            return $this->checkoutTripay($tenant, (int) $amount, (int) $points, (string) $request->input('method', ''));
         }
 
         try {
@@ -253,6 +263,69 @@ class DepositController extends Controller
         } catch (\Throwable $e) {
             Log::error('DOKU deposit checkout failed: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => 'Gagal memproses top-up DOKU: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Checkout top-up deposit via Tripay (Closed Payment). Membuat DepositTopup pending,
+     * meminta transaksi ke Tripay dgn channel pilihan customer, kembalikan checkout_url.
+     */
+    private function checkoutTripay($tenant, int $amount, int $points, string $method)
+    {
+        try {
+            $tripay = new Tripay();
+            if (! $tripay->isConfigured()) {
+                return response()->json(['status' => 'error', 'message' => 'Tripay belum dikonfigurasi.'], 500);
+            }
+            if ($method === '' || ! $tripay->channelActive($method)) {
+                return response()->json(['status' => 'error', 'message' => 'Metode pembayaran tidak valid atau belum aktif.'], 422);
+            }
+
+            $topup = DB::transaction(function () use ($tenant, $amount, $points) {
+                $orderId = 'DSP-DEP-' . strtoupper(Str::random(6)) . '-' . $tenant->id . '-' . substr((string) Str::uuid(), 0, 8);
+                return DepositTopup::create([
+                    'tenant_id'         => $tenant->id,
+                    'amount'            => $amount,
+                    'points'            => $points,
+                    'status'            => 'pending',
+                    'midtrans_order_id' => $orderId,   // dipakai sebagai merchant_ref Tripay
+                ]);
+            });
+
+            $res = $tripay->createClosedTransaction([
+                'method'         => $method,
+                'merchant_ref'   => $topup->midtrans_order_id,
+                'amount'         => $amount,
+                'customer_name'  => Auth::user()->name,
+                'customer_email' => Auth::user()->email ?: ('tenant' . $tenant->id . '@mooda.id'),
+                'customer_phone' => $tenant->phone,
+                'order_items'    => [[
+                    'sku'      => 'deposit-' . $amount,
+                    'name'     => 'Top-up Deposit (' . number_format($points, 0, ',', '.') . ' saldo)',
+                    'price'    => $amount,
+                    'quantity' => 1,
+                ]],
+                'callback_url'   => url('/api/tripay-webhook'),
+                'return_url'     => route('deposit.index'),
+            ]);
+
+            if (! ($res['success'] ?? false) || empty($res['data']['checkout_url'])) {
+                $topup->update(['status' => 'failed']);
+                Log::error('Tripay deposit checkout gagal', ['res' => $res]);
+                return response()->json(['status' => 'error', 'message' => 'Gagal membuat transaksi Tripay: ' . ($res['message'] ?? 'unknown')], 500);
+            }
+
+            $topup->update(['payment_type' => 'tripay:' . $method]);
+
+            return response()->json([
+                'status'       => 'success',
+                'driver'       => 'tripay',
+                'order_id'     => $topup->midtrans_order_id,
+                'checkout_url' => $res['data']['checkout_url'],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Tripay deposit checkout failed: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Gagal memproses top-up Tripay. Silakan coba lagi.'], 500);
         }
     }
 }

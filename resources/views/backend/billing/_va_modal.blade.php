@@ -1,5 +1,6 @@
 {{-- Modal & helper Virtual Account DOKU (dipakai billing/index & billing/deposit saat driver=doku). --}}
 @php $dokuChannelsJs = ($dokuChannels ?? collect())->map(fn ($c) => ['channel' => $c->channel, 'name' => $c->name])->values(); @endphp
+@php $tripayChannelsJs = collect($tripayChannels ?? [])->map(fn ($c) => ['code' => $c['code'] ?? '', 'name' => $c['name'] ?? '', 'group' => $c['group'] ?? ''])->values(); @endphp
 
 <div class="modal fade" id="dokuVaModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -60,5 +61,21 @@
             });
         };
         new bootstrap.Modal(document.getElementById('dokuVaModal')).show();
+    };
+
+    // ===== Tripay: customer pilih channel (0 -> error, 1 -> langsung, >1 -> dialog pilih) =====
+    window.TRIPAY_CHANNELS = @json($tripayChannelsJs);
+    window.tripayPickChannel = function () {
+        var chans = window.TRIPAY_CHANNELS || [];
+        if (chans.length === 0) return Promise.reject('Belum ada metode pembayaran Tripay yang aktif. Hubungi admin.');
+        if (chans.length === 1) return Promise.resolve(chans[0].code);
+        var opts = {};
+        chans.forEach(function (c) { opts[c.code] = c.name + (c.group ? ' (' + c.group + ')' : ''); });
+        return Swal.fire({
+            title: 'Pilih Metode Pembayaran', input: 'select', inputOptions: opts,
+            inputPlaceholder: 'Pilih metode pembayaran', showCancelButton: true,
+            confirmButtonText: 'Lanjut', cancelButtonText: 'Batal',
+            inputValidator: function (v) { return !v && 'Silakan pilih metode pembayaran.'; },
+        }).then(function (r) { return r.isConfirmed ? r.value : Promise.reject('__cancel__'); });
     };
 </script>

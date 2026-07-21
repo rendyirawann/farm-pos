@@ -254,7 +254,7 @@
 
 @push('scripts')
     @include('backend.billing._va_modal')
-    @if ($driver !== 'doku')
+    @if ($driver === 'midtrans')
     <script src="https://app.{{ $isProduction ? '' : 'sandbox.' }}midtrans.com/snap/snap.js"
         data-client-key="{{ $clientKey }}"></script>
     @endif
@@ -280,17 +280,20 @@
             const original = btn.innerHTML;
             const unlock = () => { btn.disabled = false; btn.innerHTML = original; };
 
-            const doCheckout = (bank) => {
+            const doCheckout = (opts) => {
+                opts = opts || {};
                 btn.disabled = true;
                 btn.innerHTML = 'Memproses...';
                 fetch("{{ route('deposit.checkout') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                    body: JSON.stringify({ amount: amount, bank: bank }),
+                    body: JSON.stringify({ amount: amount, bank: opts.bank || null, method: opts.method || null }),
                 })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.status === 'success' && data.driver === 'doku' && data.va_number) {
+                    if (data.status === 'success' && data.driver === 'tripay' && data.checkout_url) {
+                        window.location.href = data.checkout_url;
+                    } else if (data.status === 'success' && data.driver === 'doku' && data.va_number) {
                         window.showDokuVa(data);
                     } else if (data.status === 'success' && data.snap_token) {
                         if (typeof snap === 'undefined') { Swal.fire('Gagal', 'Gagal memuat Midtrans.', 'error'); return; }
@@ -309,9 +312,11 @@
             };
 
             if (BILLING_DRIVER === 'doku') {
-                window.dokuPickBank().then(doCheckout).catch(err => { if (err && err !== '__cancel__') Swal.fire('Info', err, 'info'); });
+                window.dokuPickBank().then(bank => doCheckout({ bank: bank })).catch(err => { if (err && err !== '__cancel__') Swal.fire('Info', err, 'info'); });
+            } else if (BILLING_DRIVER === 'tripay') {
+                window.tripayPickChannel().then(method => doCheckout({ method: method })).catch(err => { if (err && err !== '__cancel__') Swal.fire('Info', err, 'info'); });
             } else {
-                doCheckout(null);
+                doCheckout({});
             }
         }
 

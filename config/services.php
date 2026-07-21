@@ -71,6 +71,26 @@ return [
         'own_public_key'  => env('DOKU_OWN_PUBLIC_KEY'),
     ],
 
+    /*
+    | Tripay (payment gateway aggregator). Dipakai oleh App\Services\Tripay\Tripay.
+    | Kredensial DARI DASHBOARD TRIPAY (Pengaturan -> Merchant / Sandbox):
+    |   - merchant_code : Kode Merchant (mis. T51781 utk sandbox)
+    |   - api_key       : API Key (sandbox diawali "DEV-")
+    |   - private_key   : Private Key -> tanda tangan HMAC-SHA256
+    | is_production=false -> sandbox (https://tripay.co.id/api-sandbox).
+    | JANGAN commit nilai asli — isi hanya di .env server.
+    */
+    'tripay' => [
+        'merchant_code'   => env('TRIPAY_MERCHANT_CODE'),
+        'api_key'         => env('TRIPAY_API_KEY'),
+        'private_key'     => env('TRIPAY_PRIVATE_KEY'),
+        'is_production'   => env('TRIPAY_IS_PRODUCTION', false),
+        'sandbox_base'    => env('TRIPAY_SANDBOX_BASE', 'https://tripay.co.id/api-sandbox'),
+        'production_base' => env('TRIPAY_PRODUCTION_BASE', 'https://tripay.co.id/api'),
+        // Masa berlaku transaksi (jam) untuk Closed Payment.
+        'expiry_hours'    => (int) env('TRIPAY_EXPIRY_HOURS', 24),
+    ],
+
     'reverb' => [
         'app_id' => env('REVERB_APP_ID'),
         'key' => env('REVERB_APP_KEY'),
