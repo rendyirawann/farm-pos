@@ -291,8 +291,8 @@
                 })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.status === 'success' && data.driver === 'tripay' && data.checkout_url) {
-                        window.location.href = data.checkout_url;
+                    if (data.status === 'success' && data.driver === 'tripay') {
+                        window.showTripayPayment(data);
                     } else if (data.status === 'success' && data.driver === 'doku' && data.va_number) {
                         window.showDokuVa(data);
                     } else if (data.status === 'success' && data.snap_token) {

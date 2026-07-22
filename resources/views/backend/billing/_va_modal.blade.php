@@ -79,3 +79,64 @@
         }).then(function (r) { return r.isConfirmed ? r.value : Promise.reject('__cancel__'); });
     };
 </script>
+
+{{-- ===== Modal pembayaran Tripay IN-APP (VA / QRIS tampil di Mooda, tanpa redirect) ===== --}}
+<div class="modal fade" id="tripayPayModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Selesaikan Pembayaran</h3>
+                <div class="btn btn-icon btn-sm btn-active-light-primary" data-bs-dismiss="modal"><i class="ki-outline ki-cross fs-2"></i></div>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4"><span class="badge badge-light-primary fs-7 fw-bold" id="tp-method">Pembayaran</span></div>
+                <div id="tp-va-wrap">
+                    <div class="text-muted fs-7 mb-1">Nomor Virtual Account</div>
+                    <div class="d-flex align-items-center justify-content-between rounded p-4 mb-2" style="background:#0f172a;">
+                        <span class="fw-bolder fs-2 text-white" id="tp-va" style="font-family:monospace;letter-spacing:1px;">-</span>
+                        <button type="button" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;" id="tp-copy"><i class="ki-outline ki-copy fs-5 text-white"></i> Salin</button>
+                    </div>
+                </div>
+                <div id="tp-qr-wrap" class="text-center">
+                    <div class="text-muted fs-7 mb-2">Scan QRIS dengan aplikasi e-wallet / m-banking</div>
+                    <img id="tp-qr" src="" alt="QRIS" style="width:230px;height:230px;border:1px solid #e5e7eb;border-radius:12px;object-fit:contain;background:#fff;padding:6px;">
+                </div>
+                <div class="separator my-4"></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Nominal</span><span class="fw-bold fs-3 text-gray-900" id="tp-amount">-</span></div>
+                <div class="d-flex justify-content-between"><span class="text-muted">Bayar sebelum</span><span class="fw-bold" id="tp-expired">-</span></div>
+                <div class="alert alert-primary mt-4 fs-7 mb-0">Bayar <b>tepat</b> sejumlah di atas. Pembayaran <b>otomatis terverifikasi</b> — halaman boleh ditutup, saldo bertambah otomatis.</div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" target="_blank" rel="noopener" class="btn btn-light" id="tp-checkout">Buka Halaman Tripay</a>
+                <button type="button" class="btn btn-primary" onclick="window.location.reload()">Cek Status</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.showTripayPayment = function (data) {
+        document.getElementById('tp-method').textContent = data.payment_name || 'Pembayaran';
+        var isQr = !!data.qr_url;
+        document.getElementById('tp-va-wrap').style.display = isQr ? 'none' : 'block';
+        document.getElementById('tp-qr-wrap').style.display = isQr ? 'block' : 'none';
+        if (isQr) {
+            document.getElementById('tp-qr').src = data.qr_url;
+        } else {
+            var va = (data.pay_code || '').toString();
+            document.getElementById('tp-va').textContent = va || '-';
+            var cp = document.getElementById('tp-copy');
+            cp.onclick = function () {
+                if (navigator.clipboard) navigator.clipboard.writeText(va);
+                cp.innerHTML = '<i class="ki-outline ki-check fs-5 text-white"></i> Tersalin';
+                setTimeout(function () { cp.innerHTML = '<i class="ki-outline ki-copy fs-5 text-white"></i> Salin'; }, 1800);
+            };
+        }
+        document.getElementById('tp-amount').textContent = 'Rp ' + Number(data.amount || 0).toLocaleString('id-ID');
+        var exp = data.expired_time ? new Date(data.expired_time * 1000) : null;
+        document.getElementById('tp-expired').textContent = (exp && !isNaN(exp)) ? exp.toLocaleString('id-ID') : '-';
+        var co = document.getElementById('tp-checkout');
+        if (data.checkout_url) { co.href = data.checkout_url; co.style.display = ''; } else { co.style.display = 'none'; }
+        new bootstrap.Modal(document.getElementById('tripayPayModal')).show();
+    };
+</script>

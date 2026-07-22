@@ -317,11 +317,19 @@ class DepositController extends Controller
 
             $topup->update(['payment_type' => 'tripay:' . $method]);
 
+            $d = $res['data'];
             return response()->json([
                 'status'       => 'success',
                 'driver'       => 'tripay',
                 'order_id'     => $topup->midtrans_order_id,
-                'checkout_url' => $res['data']['checkout_url'],
+                'reference'    => $d['reference'] ?? null,
+                'method'       => $method,
+                'payment_name' => $d['payment_name'] ?? $method,
+                'pay_code'     => $d['pay_code'] ?? null,   // nomor VA (bila VA)
+                'qr_url'       => $d['qr_url'] ?? null,      // gambar QR (bila QRIS)
+                'amount'       => (int) ($d['amount'] ?? $amount),
+                'expired_time' => $d['expired_time'] ?? null, // unix timestamp
+                'checkout_url' => $d['checkout_url'],        // fallback halaman Tripay
             ]);
         } catch (\Throwable $e) {
             Log::error('Tripay deposit checkout failed: ' . $e->getMessage());
