@@ -95,6 +95,8 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
 
     // --- DASHBOARD (accessible by ALL authenticated roles) ---
     Route::get('/admin/dashboard', [DashboardAdminController::class, 'index'])->name('dashboard');
+    // Tampil/sembunyi panduan "Setup Awal" di dashboard (preferensi per-tenant)
+    Route::post('/admin/dashboard/onboarding-toggle', [DashboardAdminController::class, 'toggleOnboarding'])->name('dashboard.onboarding-toggle');
     // Toggle mode tampilan Superadmin: analytics (platform) <-> pos (kasir)
     Route::get('/admin/view-mode/{mode}', [DashboardAdminController::class, 'switchMode'])->name('view-mode.switch');
     // Superadmin memilih toko yang dioperasikan di mode POS

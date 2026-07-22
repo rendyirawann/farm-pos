@@ -11,72 +11,6 @@
     <div id="kt_app_content" class="app-content flex-column-fluid mt-5">
         <div id="kt_app_content_container" class="app-container container-xxl">
 
-            {{-- ============ STATUS DEPOSIT ============ --}}
-            <div class="card card-flush mb-8">
-                <div class="card-header pt-5">
-                    <h3 class="card-title fw-bold text-gray-800 fs-2">Plan Deposit / Saldo</h3>
-                    <div class="card-toolbar">
-                        <span class="badge badge-light-{{ $isDeposit ? 'success' : 'secondary' }} fs-6 fw-bold">
-                            Mode: {{ $isDeposit ? 'Deposit (Saldo)' : 'Bulanan' }}
-                        </span>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="row g-5">
-                        <div class="col-md-4">
-                            <div class="fs-7 text-muted">Sisa Saldo</div>
-                            <div class="fs-2x fw-bold text-gray-900">Rp {{ number_format($balance, 0, ',', '.') }}</div>
-                            <div class="w-100 bg-light-primary rounded mt-2" style="height: 8px">
-                                <div class="bg-primary rounded" style="height: 8px; width: {{ $pctOfMax }}%"></div>
-                            </div>
-                            <div class="fs-8 text-muted mt-1">Batas maksimum: {{ $maxPoints ? 'Rp ' . number_format($maxPoints, 0, ',', '.') : 'Tanpa batas' }}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="fs-7 text-muted">Potongan per transaksi</div>
-                            <div class="fs-2x fw-bold text-gray-900">Rp {{ number_format($fee, 0, ',', '.') }}</div>
-                            <div class="fs-8 text-muted mt-1">Dipotong saat pesanan diselesaikan.</div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="fs-7 text-muted">Saldo hangus pada</div>
-                            <div class="fs-2x fw-bold text-gray-900">
-                                {{ $tenant->deposit_expires_at ? $tenant->deposit_expires_at->translatedFormat('d M Y') : '—' }}
-                            </div>
-                            <div class="fs-8 text-muted mt-1">Bila tak ada aktivitas {{ $expiryDays }} hari.</div>
-                        </div>
-                    </div>
-
-                    @if ($monthlyActive)
-                        <div class="alert alert-info d-flex flex-column flex-sm-row align-items-sm-center justify-content-between mt-6 mb-0">
-                            <div class="d-flex align-items-center">
-                                <i class="ki-outline ki-information-5 fs-2x text-info me-4"></i>
-                                <div>
-                                    <h5 class="mb-1 text-gray-900">Anda sedang memakai plan bulanan</h5>
-                                    <span class="text-gray-700">Saldo deposit <b>dibekukan</b> (Rp{{ number_format($balance, 0, ',', '.') }} tetap tersimpan) dan tidak dipotong selama langganan bulanan aktif. Bila beralih ke deposit sekarang, <b>langganan bulanan akan hangus</b>.</span>
-                                </div>
-                            </div>
-                            <form action="{{ route('deposit.switch') }}" method="POST" class="mt-3 mt-sm-0 form-switch-deposit">
-                                @csrf
-                                <button type="submit" class="btn btn-sm btn-light-danger">Beralih ke Deposit</button>
-                            </form>
-                        </div>
-                    @elseif (!$isDeposit)
-                        <div class="alert alert-primary d-flex flex-column flex-sm-row align-items-sm-center justify-content-between mt-6 mb-0">
-                            <div class="d-flex align-items-center">
-                                <i class="ki-outline ki-wallet fs-2x text-primary me-4"></i>
-                                <div>
-                                    <h5 class="mb-1 text-gray-900">Aktifkan plan deposit</h5>
-                                    <span class="text-gray-700">Bayar sesuai pemakaian: top-up saldo, tiap transaksi dipotong Rp{{ number_format($fee, 0, ',', '.') }}. Cocok untuk usaha yang belum mau langganan bulanan.</span>
-                                </div>
-                            </div>
-                            <form action="{{ route('deposit.switch') }}" method="POST" class="mt-3 mt-sm-0 form-switch-deposit">
-                                @csrf
-                                <button type="submit" class="btn btn-sm btn-primary">Gunakan Plan Deposit</button>
-                            </form>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
             {{-- ============ PILIHAN TOP-UP ============ --}}
             <div class="card card-flush mb-8">
                 <div class="card-header pt-5">
@@ -177,6 +111,72 @@
                            target="_blank" class="btn btn-success">
                             <i class="ki-outline ki-whatsapp fs-3 me-2"></i>Chat Admin via WhatsApp
                         </a>
+                    @endif
+                </div>
+            </div>
+
+            {{-- ============ STATUS DEPOSIT ============ --}}
+            <div class="card card-flush mb-8">
+                <div class="card-header pt-5">
+                    <h3 class="card-title fw-bold text-gray-800 fs-2">Plan Deposit / Saldo</h3>
+                    <div class="card-toolbar">
+                        <span class="badge badge-light-{{ $isDeposit ? 'success' : 'secondary' }} fs-6 fw-bold">
+                            Mode: {{ $isDeposit ? 'Deposit (Saldo)' : 'Bulanan' }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-5">
+                        <div class="col-md-4">
+                            <div class="fs-7 text-muted">Sisa Saldo</div>
+                            <div class="fs-2x fw-bold text-gray-900">Rp {{ number_format($balance, 0, ',', '.') }}</div>
+                            <div class="w-100 bg-light-primary rounded mt-2" style="height: 8px">
+                                <div class="bg-primary rounded" style="height: 8px; width: {{ $pctOfMax }}%"></div>
+                            </div>
+                            <div class="fs-8 text-muted mt-1">Batas maksimum: {{ $maxPoints ? 'Rp ' . number_format($maxPoints, 0, ',', '.') : 'Tanpa batas' }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="fs-7 text-muted">Potongan per transaksi</div>
+                            <div class="fs-2x fw-bold text-gray-900">Rp {{ number_format($fee, 0, ',', '.') }}</div>
+                            <div class="fs-8 text-muted mt-1">Dipotong saat pesanan diselesaikan.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="fs-7 text-muted">Saldo hangus pada</div>
+                            <div class="fs-2x fw-bold text-gray-900">
+                                {{ $tenant->deposit_expires_at ? $tenant->deposit_expires_at->translatedFormat('d M Y') : '—' }}
+                            </div>
+                            <div class="fs-8 text-muted mt-1">Bila tak ada aktivitas {{ $expiryDays }} hari.</div>
+                        </div>
+                    </div>
+
+                    @if ($monthlyActive)
+                        <div class="alert alert-info d-flex flex-column flex-sm-row align-items-sm-center justify-content-between mt-6 mb-0">
+                            <div class="d-flex align-items-center">
+                                <i class="ki-outline ki-information-5 fs-2x text-info me-4"></i>
+                                <div>
+                                    <h5 class="mb-1 text-gray-900">Anda sedang memakai plan bulanan</h5>
+                                    <span class="text-gray-700">Saldo deposit <b>dibekukan</b> (Rp{{ number_format($balance, 0, ',', '.') }} tetap tersimpan) dan tidak dipotong selama langganan bulanan aktif. Bila beralih ke deposit sekarang, <b>langganan bulanan akan hangus</b>.</span>
+                                </div>
+                            </div>
+                            <form action="{{ route('deposit.switch') }}" method="POST" class="mt-3 mt-sm-0 form-switch-deposit">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-light-danger">Beralih ke Deposit</button>
+                            </form>
+                        </div>
+                    @elseif (!$isDeposit)
+                        <div class="alert alert-primary d-flex flex-column flex-sm-row align-items-sm-center justify-content-between mt-6 mb-0">
+                            <div class="d-flex align-items-center">
+                                <i class="ki-outline ki-wallet fs-2x text-primary me-4"></i>
+                                <div>
+                                    <h5 class="mb-1 text-gray-900">Aktifkan plan deposit</h5>
+                                    <span class="text-gray-700">Bayar sesuai pemakaian: top-up saldo, tiap transaksi dipotong Rp{{ number_format($fee, 0, ',', '.') }}. Cocok untuk usaha yang belum mau langganan bulanan.</span>
+                                </div>
+                            </div>
+                            <form action="{{ route('deposit.switch') }}" method="POST" class="mt-3 mt-sm-0 form-switch-deposit">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-primary">Gunakan Plan Deposit</button>
+                            </form>
+                        </div>
                     @endif
                 </div>
             </div>

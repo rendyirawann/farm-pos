@@ -53,8 +53,23 @@
                     : 0;
             @endphp
 
-            {{-- ONBOARDING: misi setup awal (otomatis tercentang saat selesai; hilang bila semua beres). --}}
-            @if (isset($onboarding) && ! $onboarding['done'])
+            {{-- Toggle tampil/sembunyi panduan Setup Awal (preferensi per-tenant, tetap terlihat walau kartu disembunyikan) --}}
+            @if (isset($onboarding) && $onboarding['has_tenant'])
+                <div class="d-flex justify-content-end align-items-center mb-3">
+                    <form method="POST" action="{{ route('dashboard.onboarding-toggle') }}" id="onb-toggle-form" class="m-0">
+                        @csrf
+                        <label class="form-check form-switch form-check-custom form-check-solid mb-0">
+                            <input class="form-check-input" type="checkbox" name="show" value="1"
+                                {{ $onboarding['show'] ? 'checked' : '' }}
+                                onchange="document.getElementById('onb-toggle-form').submit()">
+                            <span class="form-check-label fw-semibold text-gray-600 fs-8 ms-2">Panduan Setup Awal</span>
+                        </label>
+                    </form>
+                </div>
+            @endif
+
+            {{-- ONBOARDING: misi setup awal (otomatis tercentang saat selesai; tampil/sembunyi via toggle di atas). --}}
+            @if (isset($onboarding) && $onboarding['show'])
                 <div class="card border-0 shadow-sm mb-6 mb-xl-8 border-start border-4 border-primary" id="onboarding-card">
                     <div class="card-body p-6">
                         <div class="d-flex align-items-center flex-wrap gap-2 mb-2">

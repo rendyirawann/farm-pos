@@ -151,6 +151,21 @@
 
                 <div class="d-flex flex-center flex-column flex-column-fluid pb-15 pb-lg-20 my-12">
 
+                    @if (request()->boolean('activated') || request()->boolean('active') || session('status'))
+                        <div class="alert alert-success d-flex align-items-center w-100 mb-8" role="alert">
+                            <i class="ki-outline ki-check-circle fs-2x text-success me-3"></i>
+                            <span class="fw-semibold text-gray-800">
+                                @if (request()->boolean('activated'))
+                                    Akun Anda berhasil diaktifkan 🎉 Silakan login kembali untuk mulai memakai Mooda.
+                                @elseif (request()->boolean('active'))
+                                    Akun Anda sudah aktif. Silakan login.
+                                @else
+                                    {{ session('status') }}
+                                @endif
+                            </span>
+                        </div>
+                    @endif
+
                     <form class="form w-100" id="kt_sign_in_form" method="POST" action="{{ route('login') }}">
                         @csrf
 

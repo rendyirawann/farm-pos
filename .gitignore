@@ -52,3 +52,6 @@ animasi.mp4
 /section2.png
 /section3.png
 /section3_1.png
+
+# backup .env (jangan pernah di-commit — berisi rahasia)
+.env.bak*

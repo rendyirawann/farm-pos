@@ -131,16 +131,33 @@ class DashboardAdminController extends Controller
         //   - Langkah 1 & 2 (Toko/Struk & Menu/Kategori): owner ATAU admin.
         //   - Langkah 3 (Setup Karyawan): owner saja.
         $u = auth()->user();
+        $onbDone = (bool) ($onbSettings && $onbMaster && $onbEmployees);
+        // Preferensi tampil/sembunyi panduan (per-tenant, di SiteOption).
+        // Belum diset -> ikuti otomatis (tampil bila belum selesai). '1' = paksa tampil, '0' = sembunyi.
+        $onbPref = $u->tenant_id ? \App\Models\SiteOption::get('dash_onboarding.' . $u->tenant_id) : null;
+        $onbShow = $onbPref === null ? ! $onbDone : ($onbPref === '1');
         $onboarding = [
             'settings'      => (bool) $onbSettings,
             'master'        => (bool) $onbMaster,
             'employees'     => (bool) $onbEmployees,
             'can_store'     => (bool) ($u->hasRole('owner') || $u->hasRole('admin')),
             'can_employees' => (bool) $u->hasRole('owner'),
-            'done'          => (bool) ($onbSettings && $onbMaster && $onbEmployees),
+            'done'          => $onbDone,
+            'show'          => (bool) $onbShow,
+            'has_tenant'    => (bool) $u->tenant_id,
         ];
 
         return view('backend.dashboard.index', compact('unavailableMenus', 'topProducts', 'chartData', 'summary', 'selectedMonth', 'monthOptions', 'onboarding'));
+    }
+
+    /** Toggle tampil/sembunyi panduan "Setup Awal" di dashboard (preferensi per-tenant). */
+    public function toggleOnboarding(\Illuminate\Http\Request $request)
+    {
+        $tenantId = auth()->user()->tenant_id;
+        if ($tenantId) {
+            \App\Models\SiteOption::set('dash_onboarding.' . $tenantId, $request->has('show') ? '1' : '0');
+        }
+        return back();
     }
 
     /** Alihkan tampilan Superadmin: 'analytics' (platform) <-> 'pos' (kasir). */

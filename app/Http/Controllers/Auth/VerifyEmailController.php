@@ -6,22 +6,33 @@ use App\Http\Controllers\Controller;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 
 class VerifyEmailController extends Controller
 {
     /**
-     * Mark the authenticated user's email address as verified.
+     * Aktivasi akun via link email. Setelah aktivasi: logout lalu arahkan ke
+     * halaman login ("silakan login kembali"). Bila akun sudah aktif, tetap
+     * diarahkan ke login (halaman aktivasi tak bisa dipakai lagi).
      */
     public function __invoke(EmailVerificationRequest $request): RedirectResponse
     {
-        if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
+        $justVerified = false;
+
+        if (! $request->user()->hasVerifiedEmail()) {
+            if ($request->user()->markEmailAsVerified()) {
+                // Memicu App\Listeners\GrantStarterOnVerified (bonus saldo Starter).
+                event(new Verified($request->user()));
+                $justVerified = true;
+            }
         }
 
-        if ($request->user()->markEmailAsVerified()) {
-            event(new Verified($request->user()));
-        }
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-        return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
+        // Pakai query param (bukan flash) agar pesan selamat dari session invalidate.
+        $flag = $justVerified ? 'activated' : 'active';
+        return redirect()->route('login', [$flag => 1]);
     }
 }
