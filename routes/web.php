@@ -75,6 +75,10 @@ Route::get('/', function () {
     return view('landing', ['partnerLogos' => \App\Models\PartnerLogo::forLanding()]);
 })->name('landing');
 
+// Halaman checkout (contoh publik) — memperlihatkan alur bayar Mooda (VA/QRIS) untuk
+// verifikasi merchant pembayaran. Checkout sebenarnya ada di /admin/deposit (perlu login).
+Route::get('/checkout-demo', fn () => view('checkout-demo'))->name('checkout-demo');
+
 // SEO: sitemap.xml (dinamis — domain mengikuti APP_URL). Dirujuk di robots.txt.
 Route::get('/sitemap.xml', function () {
     $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"

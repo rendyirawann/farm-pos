@@ -1,0 +1,149 @@
+%PDF-1.4
+%ту╧╙
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 2802 >>
+stream
+0.310 0.275 0.898 rg 0.00 749.89 595.28 92.00 re f
+1.000 1.000 1.000 rg BT /F2 20 Tf 55.00 799.89 Td (Mooda Ч Alur & Skema Pembayaran) Tj ET
+0.850 0.860 0.980 rg BT /F1 10.5 Tf 55.00 775.89 Td (Dokumentasi verifikasi merchant pembayaran \(Tripay\)  Х  https://mooda.id) Tj ET
+0.310 0.275 0.898 rg BT /F2 13.5 Tf 55.00 713.89 Td (1.  Tentang Mooda) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 55.00 693.89 Td (Mooda adalah aplikasi Point of Sale \(POS\) / kasir berbasis web \(SaaS\) untuk restoran,) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 55.00 679.39 Td (cafe, dan warung. Pengguna Mooda adalah PEMILIK USAHA \(disebut 'tenant'\) yang memakai) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 55.00 664.89 Td (aplikasi untuk mengelola kasir, dapur, menu, dan laporan penjualan.) Tj ET
+0.310 0.275 0.898 rg BT /F2 13.5 Tf 55.00 638.39 Td (2.  Di mana pembayaran digunakan?) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 55.00 618.39 Td (Pembayaran \(Tripay\) digunakan oleh PEMILIK USAHA di dalam aplikasi \(area member, setelah) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 55.00 603.89 Td (login\) untuk membayar biaya layanan Mooda Ч yaitu:) Tj ET
+0.950 0.960 0.990 rg 55.00 529.39 485.28 54.00 re f
+1 w 0.870 0.890 0.960 RG 55.00 529.39 485.28 54.00 re S
+0.060 0.090 0.160 rg BT /F2 11 Tf 69.00 565.39 Td (a\) Top-up Saldo / Deposit) Tj ET
+0.300 0.350 0.420 rg BT /F1 10 Tf 69.00 549.39 Td (Pemilik usaha mengisi saldo. Model bayar-per-transaksi: tiap pesanan yang diselesaikan) Tj ET
+0.300 0.350 0.420 rg BT /F1 10 Tf 69.00 536.39 Td (dipotong Rp169 dari saldo. Menu: 'Deposit'.) Tj ET
+0.950 0.960 0.990 rg 55.00 465.39 485.28 54.00 re f
+1 w 0.870 0.890 0.960 RG 55.00 465.39 485.28 54.00 re S
+0.060 0.090 0.160 rg BT /F2 11 Tf 69.00 501.39 Td (b\) Langganan Bulanan) Tj ET
+0.300 0.350 0.420 rg BT /F1 10 Tf 69.00 485.39 Td (Pemilik usaha membayar paket langganan Mooda per bulan untuk memakai aplikasi. Menu:) Tj ET
+0.300 0.350 0.420 rg BT /F1 10 Tf 69.00 472.39 Td ('Langganan'.) Tj ET
+0.300 0.350 0.420 rg BT /F1 10 Tf 55.00 453.39 Td (Catatan: pembayaran ini BUKAN untuk pembeli makanan di kasir, melainkan untuk pemilik usaha) Tj ET
+0.300 0.350 0.420 rg BT /F1 10 Tf 55.00 438.89 Td (membayar biaya berlangganan / saldo aplikasi Mooda.) Tj ET
+0.310 0.275 0.898 rg BT /F2 13.5 Tf 55.00 410.39 Td (3.  Metode pembayaran) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 55.00 390.39 Td (Virtual Account \(BRI, BNI, Mandiri, BCA\) dan QRIS Ч diproses melalui Tripay \(Closed) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 55.00 375.89 Td (Payment\). URL callback \(IPN\): https://mooda.id/api/tripay-webhook) Tj ET
+1 w 0.850 0.870 0.930 RG 55.00 58.00 m 540.28 58.00 l S
+0.300 0.350 0.420 rg BT /F1 9 Tf 55.00 42.00 Td (Mooda  Х  https://mooda.id) Tj ET
+0.300 0.350 0.420 rg BT /F1 9 Tf 500.28 42.00 Td (Hal. 1/2) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 5407 >>
+stream
+0.310 0.275 0.898 rg 0.00 781.89 595.28 60.00 re f
+1.000 1.000 1.000 rg BT /F2 16 Tf 55.00 803.89 Td (4.  Skema / Flow Transaksi) Tj ET
+1.000 1.000 1.000 rg 81.00 707.89 433.28 42.00 re f
+1.2 w 0.820 0.850 0.930 RG 81.00 707.89 433.28 42.00 re S
+0.310 0.275 0.898 rg 81.00 707.89 5.00 42.00 re f
+0.310 0.275 0.898 rg 97.00 718.89 20.00 20.00 re f
+1.000 1.000 1.000 rg BT /F2 11 Tf 104.19 724.89 Td (1) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 129.00 731.89 Td (Pemilik usaha login ke aplikasi Mooda) Tj ET
+1.2 w 0.600 0.640 0.720 RG 297.64 707.89 m 297.64 693.89 l S
+0.500 0.550 0.640 rg 293.64 693.89 m 301.64 693.89 l 297.64 687.89 l h f
+1.000 1.000 1.000 rg 81.00 645.89 433.28 42.00 re f
+1.2 w 0.820 0.850 0.930 RG 81.00 645.89 433.28 42.00 re S
+0.310 0.275 0.898 rg 81.00 645.89 5.00 42.00 re f
+0.310 0.275 0.898 rg 97.00 656.89 20.00 20.00 re f
+1.000 1.000 1.000 rg BT /F2 11 Tf 104.19 662.89 Td (2) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 129.00 669.89 Td (Buka halaman Deposit / Langganan) Tj ET
+1.2 w 0.600 0.640 0.720 RG 297.64 645.89 m 297.64 631.89 l S
+0.500 0.550 0.640 rg 293.64 631.89 m 301.64 631.89 l 297.64 625.89 l h f
+1.000 1.000 1.000 rg 81.00 583.89 433.28 42.00 re f
+1.2 w 0.820 0.850 0.930 RG 81.00 583.89 433.28 42.00 re S
+0.310 0.275 0.898 rg 81.00 583.89 5.00 42.00 re f
+0.310 0.275 0.898 rg 97.00 594.89 20.00 20.00 re f
+1.000 1.000 1.000 rg BT /F2 11 Tf 104.19 600.89 Td (3) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 129.00 607.89 Td (Pilih paket + metode bayar \(Virtual Account / QRIS\)) Tj ET
+1.2 w 0.600 0.640 0.720 RG 297.64 583.89 m 297.64 569.89 l S
+0.500 0.550 0.640 rg 293.64 569.89 m 301.64 569.89 l 297.64 563.89 l h f
+1.000 1.000 1.000 rg 81.00 521.89 433.28 42.00 re f
+1.2 w 0.820 0.850 0.930 RG 81.00 521.89 433.28 42.00 re S
+0.310 0.275 0.898 rg 81.00 521.89 5.00 42.00 re f
+0.310 0.275 0.898 rg 97.00 532.89 20.00 20.00 re f
+1.000 1.000 1.000 rg BT /F2 11 Tf 104.19 538.89 Td (4) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 129.00 549.89 Td (Mooda kirim permintaan transaksi ke Tripay \(Closed Payment,) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 129.00 536.89 Td (ber-signature\)) Tj ET
+1.2 w 0.600 0.640 0.720 RG 297.64 521.89 m 297.64 507.89 l S
+0.500 0.550 0.640 rg 293.64 507.89 m 301.64 507.89 l 297.64 501.89 l h f
+1.000 1.000 1.000 rg 81.00 459.89 433.28 42.00 re f
+1.2 w 0.820 0.850 0.930 RG 81.00 459.89 433.28 42.00 re S
+0.310 0.275 0.898 rg 81.00 459.89 5.00 42.00 re f
+0.310 0.275 0.898 rg 97.00 470.89 20.00 20.00 re f
+1.000 1.000 1.000 rg BT /F2 11 Tf 104.19 476.89 Td (5) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 129.00 483.89 Td (Tripay membuat transaksi -> Nomor VA / QRIS + Halaman Checkout) Tj ET
+1.2 w 0.600 0.640 0.720 RG 297.64 459.89 m 297.64 445.89 l S
+0.500 0.550 0.640 rg 293.64 445.89 m 301.64 445.89 l 297.64 439.89 l h f
+1.000 1.000 1.000 rg 81.00 397.89 433.28 42.00 re f
+1.2 w 0.820 0.850 0.930 RG 81.00 397.89 433.28 42.00 re S
+0.020 0.590 0.410 rg 81.00 397.89 5.00 42.00 re f
+0.020 0.590 0.410 rg 97.00 408.89 20.00 20.00 re f
+1.000 1.000 1.000 rg BT /F2 11 Tf 104.19 414.89 Td (6) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 129.00 421.89 Td (Pemilik usaha membayar via VA / QRIS) Tj ET
+1.2 w 0.600 0.640 0.720 RG 297.64 397.89 m 297.64 383.89 l S
+0.500 0.550 0.640 rg 293.64 383.89 m 301.64 383.89 l 297.64 377.89 l h f
+1.000 1.000 1.000 rg 81.00 335.89 433.28 42.00 re f
+1.2 w 0.820 0.850 0.930 RG 81.00 335.89 433.28 42.00 re S
+0.310 0.275 0.898 rg 81.00 335.89 5.00 42.00 re f
+0.310 0.275 0.898 rg 97.00 346.89 20.00 20.00 re f
+1.000 1.000 1.000 rg BT /F2 11 Tf 104.19 352.89 Td (7) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 129.00 359.89 Td (Tripay kirim callback \(IPN\) ke https://mooda.id/api/tripay-webhook) Tj ET
+1.2 w 0.600 0.640 0.720 RG 297.64 335.89 m 297.64 321.89 l S
+0.500 0.550 0.640 rg 293.64 321.89 m 301.64 321.89 l 297.64 315.89 l h f
+1.000 1.000 1.000 rg 81.00 273.89 433.28 42.00 re f
+1.2 w 0.820 0.850 0.930 RG 81.00 273.89 433.28 42.00 re S
+0.020 0.590 0.410 rg 81.00 273.89 5.00 42.00 re f
+0.020 0.590 0.410 rg 97.00 284.89 20.00 20.00 re f
+1.000 1.000 1.000 rg BT /F2 11 Tf 104.19 290.89 Td (8) Tj ET
+0.060 0.090 0.160 rg BT /F1 10.5 Tf 129.00 297.89 Td (Mooda verifikasi signature -> saldo bertambah / langganan aktif) Tj ET
+0.310 0.275 0.898 rg BT /F2 13 Tf 55.00 251.89 Td (5.  Detail Teknis) Tj ET
+0.300 0.350 0.420 rg BT /F1 9.8 Tf 55.00 233.89 Td (Х Buat transaksi: POST https://tripay.co.id/api/transaction/create \(Closed Payment\).) Tj ET
+0.300 0.350 0.420 rg BT /F1 9.8 Tf 55.00 219.89 Td (  Signature = HMAC-SHA256\(kode_merchant + merchant_ref + amount, private_key\).) Tj ET
+0.300 0.350 0.420 rg BT /F1 9.8 Tf 55.00 205.89 Td (Х Callback/IPN: POST https://mooda.id/api/tripay-webhook Ч server memverifikasi header) Tj ET
+0.300 0.350 0.420 rg BT /F1 9.8 Tf 55.00 191.89 Td (  X-Callback-Signature \(HMAC-SHA256 atas body, private_key\) sebelum memproses.) Tj ET
+0.300 0.350 0.420 rg BT /F1 9.8 Tf 55.00 177.89 Td (Х URL Checkout dari Tripay ditampilkan ke pemilik usaha untuk menyelesaikan pembayaran.) Tj ET
+0.300 0.350 0.420 rg BT /F1 9.8 Tf 55.00 163.89 Td (Х Contoh nominal: Deposit Rp25.000 / Rp50.000; Langganan sesuai paket bulanan.) Tj ET
+1 w 0.850 0.870 0.930 RG 55.00 58.00 m 540.28 58.00 l S
+0.300 0.350 0.420 rg BT /F1 9 Tf 55.00 42.00 Td (Dokumen ini dibuat untuk keperluan verifikasi merchant Tripay.) Tj ET
+0.300 0.350 0.420 rg BT /F1 9 Tf 500.28 42.00 Td (Hal. 2/2) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000224 00000 n 
+0000000326 00000 n 
+0000003180 00000 n 
+0000003322 00000 n 
+0000008781 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R >>
+startxref
+8923
+%%EOF
