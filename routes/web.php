@@ -34,6 +34,7 @@ use App\Http\Controllers\Backend\DownloadAppController;
 use App\Http\Controllers\Backend\Billing\BillingController;
 use App\Http\Controllers\Backend\Billing\DepositController;
 use App\Http\Controllers\Backend\Superadmin\TenantController;
+use App\Http\Controllers\Backend\Superadmin\DemoAccountController;
 use App\Http\Controllers\Backend\Superadmin\DepositSettingController;
 use App\Http\Controllers\Backend\Superadmin\DokuChannelController;
 use App\Http\Controllers\Backend\Superadmin\PaymentGatewayController;
@@ -87,8 +88,9 @@ Route::get('/sitemap.xml', function () {
     return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
 })->name('sitemap');
 
-// Group Middleware untuk User yang sudah Login (+ blokir user yang di-ban + mode pemeliharaan)
-Route::middleware(['auth', 'forbid-banned-user', 'maintenance'])->group(function () {
+// Group Middleware untuk User yang sudah Login (+ blokir user yang di-ban + mode pemeliharaan
+// + wajib email terverifikasi/aktif; akun lama sudah di-grandfather via migration)
+Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->group(function () {
 
     // --- DASHBOARD (accessible by ALL authenticated roles) ---
     Route::get('/admin/dashboard', [DashboardAdminController::class, 'index'])->name('dashboard');
@@ -152,6 +154,11 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance'])->group(function
         Route::post('/admin/tenants/{id}/reset-data', [TenantController::class, 'resetData'])->name('tenants.reset-data');
         Route::post('/admin/tenants/{id}/subscription', [TenantController::class, 'updateSubscription'])->name('tenants.subscription.update');
         Route::delete('/admin/tenants/{id}', [TenantController::class, 'destroy'])->name('tenants.destroy');
+
+        // Akun Demo (generate tenant + owner + kasir + saldo Rp5.000; deposit Rp5.000 ke akun) — Superadmin
+        Route::get('/admin/demo-accounts', [DemoAccountController::class, 'index'])->name('demo-accounts.index');
+        Route::post('/admin/demo-accounts/generate', [DemoAccountController::class, 'generate'])->name('demo-accounts.generate');
+        Route::post('/admin/demo-accounts/deposit', [DemoAccountController::class, 'deposit'])->name('demo-accounts.deposit');
 
         // Setelan Plan Deposit (platform-wide, Superadmin)
         Route::get('/admin/deposit-settings', [DepositSettingController::class, 'index'])->name('deposit-settings.index');
@@ -312,8 +319,9 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance'])->group(function
         Route::post('/admin/users/mass-delete', [UserController::class, 'massDelete'])->name('users.mass-delete');
         Route::get('/admin/get-user-show-log/{id}', [UserController::class, 'getLoginSession'])->name('get-user-show-log');
         Route::get('/admin/get-user-show-log-activity/{id}', [UserController::class, 'getActivity'])->name('get-user-show-log-activity');
-        Route::post('/admin/users/{id}/ban', [UserController::class, 'ban'])->name('users.ban');
-        Route::post('/admin/users/{id}/unban', [UserController::class, 'unban'])->name('users.unban');
+        // Nonaktifkan / aktifkan user (ban/unban) — KHUSUS Superadmin.
+        Route::post('/admin/users/{id}/ban', [UserController::class, 'ban'])->middleware('role:Superadmin')->name('users.ban');
+        Route::post('/admin/users/{id}/unban', [UserController::class, 'unban'])->middleware('role:Superadmin')->name('users.unban');
         Route::get('/admin/select/role', [RoleController::class, 'select'])->name('role.select');
 
         // --- Role / Hak Akses management: KHUSUS Superadmin (role bersifat global lintas-tenant) ---

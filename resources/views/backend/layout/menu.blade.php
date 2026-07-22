@@ -143,6 +143,14 @@
                 </a>
             </div>
 
+            {{-- AKUN DEMO: Superadmin only --}}
+            <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('demo-accounts.*') ? 'here show ' : '' }}">
+                <a href="{{ route('demo-accounts.index') }}"
+                    class="menu-link px-4 {{ request()->routeIs('demo-accounts.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Akun Demo</span>
+                </a>
+            </div>
+
             {{-- PAYMENT (dropdown): Setelan Deposit + Channel VA DOKU — Superadmin only --}}
             @php($payActive = request()->routeIs('payment-gateway.*') || request()->routeIs('deposit-settings.*') || request()->routeIs('doku-channels.*'))
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"

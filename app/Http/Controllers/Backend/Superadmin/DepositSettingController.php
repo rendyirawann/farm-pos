@@ -118,8 +118,20 @@ class DepositSettingController extends Controller
             'note'      => ['nullable', 'string', 'max:255'],
         ]);
 
-        // Poin diambil dari paket/tier aktif — server-side, anti-manipulasi.
-        $points = DepositConfig::pointsFor((int) $data['amount']);
+        $amount = (int) $data['amount'];
+
+        // Opsi KHUSUS SUPERADMIN: Rp5.000 (di luar tier publik) -> 5.000 saldo.
+        if ($amount === 5000) {
+            if (! auth()->user()->isSuperadmin()) {
+                return redirect()->route('deposit-settings.index')
+                    ->with('error', 'Opsi top-up Rp5.000 khusus Superadmin.');
+            }
+            $points = 5000;
+        } else {
+            // Poin diambil dari paket/tier aktif — server-side, anti-manipulasi.
+            $points = DepositConfig::pointsFor($amount);
+        }
+
         if ($points === null) {
             return redirect()->route('deposit-settings.index')
                 ->with('error', 'Paket top-up tidak valid. Silakan pilih paket yang tersedia.');
@@ -130,15 +142,15 @@ class DepositSettingController extends Controller
         app(DepositService::class)->manualCredit(
             $tenant,
             (int) $points,
-            (int) $data['amount'],
+            $amount,
             auth()->id(),
             $data['note'] ?? ''
         );
 
         return redirect()->route('deposit-settings.index')->with(
             'success',
-            'Top-up manual berhasil: +' . number_format($points, 0, ',', '.') . ' saldo (paket Rp'
-                . number_format($data['amount'], 0, ',', '.') . ') ke ' . $tenant->name . '.'
+            'Top-up manual berhasil: +' . number_format($points, 0, ',', '.') . ' saldo (Rp'
+                . number_format($amount, 0, ',', '.') . ') ke ' . $tenant->name . '.'
         );
     }
 }

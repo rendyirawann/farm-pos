@@ -42,8 +42,21 @@ class RegisteredUserController extends Controller
             'category'      => ['nullable', 'in:resto,cafe,umkm'],
             'name'          => ['required', 'string', 'max:255'],
             'phone'         => ['nullable', 'string', 'max:30'],
-            'email'         => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'email'         => [
+                'required', 'string', 'lowercase', 'email:rfc', 'max:255',
+                // Anti-inject + rapi: hanya huruf/angka dengan pemisah tunggal titik/strip/underscore
+                // (tanpa simbol lain, tanpa titik berurutan, tanpa titik di awal/akhir).
+                'regex:/^[a-z0-9]+([._-][a-z0-9]+)*@[a-z0-9]+([.-][a-z0-9]+)*\.[a-z]{2,}$/',
+                'unique:' . User::class,
+                function ($attribute, $value, $fail) {
+                    if (substr_count(Str::before($value, '@'), '.') > 2) {
+                        $fail('Email jangan pakai terlalu banyak titik (maksimal 2 sebelum tanda @).');
+                    }
+                },
+            ],
             'password'      => ['required', 'confirmed', Rules\Password::defaults()],
+        ], [
+            'email.regex' => 'Format email tidak valid. Gunakan huruf/angka dengan pemisah titik/strip/underscore tunggal, tanpa simbol lain.',
         ]);
 
         $user = DB::transaction(function () use ($request) {
@@ -82,13 +95,14 @@ class RegisteredUserController extends Controller
             return $user;
         });
 
-        event(new Registered($user));
+        // Kirim email verifikasi (link aktivasi) versi branded — dikirim eksplisit (anti dobel).
+        $user->sendEmailVerificationNotification();
 
         Auth::login($user);
 
-        // Arahkan ke halaman billing: wajib berlangganan dulu sebelum memakai fitur.
-        return redirect()->route('billing.index')
-            ->with('warning', 'Akun & data bisnis Anda berhasil dibuat. Silakan pilih paket & lakukan pembayaran untuk mengaktifkan sistem.');
+        // Wajib aktivasi via link email dulu. Setelah aktif: otomatis jadi Starter + saldo Rp2.000.
+        return redirect()->route('verification.notice')
+            ->with('status', 'Akun berhasil dibuat! Kami sudah mengirim link aktivasi ke email Anda (' . $user->email . '). Klik link tersebut untuk mengaktifkan akun & dapat saldo Starter Rp2.000.');
     }
 
     /** Catat pemakaian kode referral (cookie mooda_ref) oleh tenant yang baru daftar. */

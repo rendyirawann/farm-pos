@@ -5,13 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Spatie\Permission\Traits\HasRoles;
 use Cog\Contracts\Ban\Bannable as BannableContract;
 use Cog\Laravel\Ban\Traits\Bannable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids; // 1. Ini penawar errornya
 use App\Models\Concerns\BelongsToTenant;
+use App\Notifications\VerifyAccountNotification;
 
-class User extends Authenticatable implements BannableContract
+class User extends Authenticatable implements BannableContract, MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     // 2. Masukkan HasUuids ke dalam use
@@ -36,6 +38,7 @@ class User extends Authenticatable implements BannableContract
         'phone',
         'is_active',
         'password',
+        'email_verified_at',
     ];
 
     /**
@@ -69,5 +72,11 @@ class User extends Authenticatable implements BannableContract
     public function isSuperadmin(): bool
     {
         return $this->hasRole('Superadmin');
+    }
+
+    /** Kirim email verifikasi (link aktivasi) versi branded Mooda. */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyAccountNotification());
     }
 }

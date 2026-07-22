@@ -28,6 +28,12 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Order::observe(\App\Observers\OrderObserver::class);
         \App\Models\OrderDetail::observe(\App\Observers\OrderDetailObserver::class);
 
+        // Aktivasi email (link) -> tenant jadi Starter (mode deposit) + bonus saldo Rp2.000.
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Auth\Events\Verified::class,
+            \App\Listeners\GrantStarterOnVerified::class
+        );
+
         // Paksa HTTPS di Production/VPS agar tidak terjadi Mixed Content
         if (config('app.env') === 'production') {
             URL::forceRootUrl(config('app.url'));

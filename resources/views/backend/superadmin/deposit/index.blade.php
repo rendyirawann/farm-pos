@@ -158,6 +158,7 @@
                                 <label class="form-label fw-semibold">Paket Top-up</label>
                                 <select name="amount" class="form-select" required>
                                     <option value="">— pilih paket —</option>
+                                    <option value="5000">Rp5.000 → 5.000 saldo (khusus Superadmin)</option>
                                     @foreach ($activeTiers as $tier)
                                         <option value="{{ $tier->amount }}">Rp{{ number_format($tier->amount, 0, ',', '.') }} → {{ number_format($tier->points, 0, ',', '.') }} saldo</option>
                                     @endforeach

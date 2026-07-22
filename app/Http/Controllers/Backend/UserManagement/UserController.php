@@ -191,7 +191,7 @@ class UserController extends Controller implements HasMiddleware
                     if ($user->can('user.edit')) {
                         $btn .= '<button class="btn btn-sm btn-icon btn-light-primary btn-edit" data-id="' . $row->id . '" title="Edit"><i class="ki-outline ki-pencil fs-4"></i></button>';
                     }
-                    if ($user->can('user.ban') && $row->id !== $user->id) {
+                    if ($iAmSuperadmin && $row->id !== $user->id) {
                         if ($row->isBanned()) {
                             $btn .= '<button class="btn btn-sm btn-icon btn-light-success" title="Aktifkan" onclick="unbanUser(\'' . $row->id . '\')"><i class="ki-outline ki-check fs-4"></i></button>';
                         } else {
