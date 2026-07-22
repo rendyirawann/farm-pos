@@ -209,6 +209,7 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
 
         // FAQ / Q&A landing (mooda.id) — Superadmin
         Route::get('/admin/faqs', [FaqController::class, 'index'])->name('faqs.index');
+        Route::post('/admin/faqs/reorder', [FaqController::class, 'reorder'])->name('faqs.reorder');
         Route::post('/admin/faqs', [FaqController::class, 'store'])->name('faqs.store');
         Route::put('/admin/faqs/{faq}', [FaqController::class, 'update'])->name('faqs.update');
         Route::post('/admin/faqs/{faq}/toggle', [FaqController::class, 'toggle'])->name('faqs.toggle');

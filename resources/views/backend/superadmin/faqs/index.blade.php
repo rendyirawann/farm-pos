@@ -45,12 +45,15 @@
         <div class="card card-flush">
             <div class="card-header pt-5"><h3 class="card-title fw-bold">Daftar FAQ ({{ $faqs->count() }})</h3></div>
             <div class="card-body">
+                <div class="text-muted fs-8 mb-3"><i class="ki-outline ki-information-5 fs-6"></i> Seret ikon <b>⠿</b> untuk mengubah urutan — otomatis tersimpan.</div>
+                <div id="faq-sortable">
                 @forelse ($faqs as $f)
-                    <div class="border rounded p-4 mb-3 {{ $f->is_active ? '' : 'bg-light-secondary' }}">
+                    <div class="faq-row border rounded p-4 mb-3 {{ $f->is_active ? '' : 'bg-light-secondary' }}" data-id="{{ $f->id }}">
                         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                             <div class="flex-grow-1" style="min-width:260px;">
                                 <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                                    <span class="badge badge-light-secondary">#{{ $f->sort_order }}</span>
+                                    <span class="faq-drag text-gray-500" style="cursor:grab;font-size:18px;line-height:1;user-select:none;" title="Seret untuk mengubah urutan">⠿</span>
+                                    <span class="badge badge-light-secondary faq-order">#{{ $f->sort_order }}</span>
                                     <span class="badge badge-light-{{ $f->is_active ? 'success' : 'secondary' }}">{{ $f->is_active ? 'Aktif' : 'Nonaktif' }}</span>
                                     <span class="fw-bold text-gray-900">{{ $f->question }}</span>
                                 </div>
@@ -90,8 +93,39 @@
                 @empty
                     <div class="text-muted text-center py-8">Belum ada FAQ. Tambahkan lewat form di atas.</div>
                 @endforelse
+                </div>
             </div>
         </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var el = document.getElementById('faq-sortable');
+                if (!el || typeof Sortable === 'undefined') return;
+                Sortable.create(el, {
+                    handle: '.faq-drag',
+                    animation: 150,
+                    ghostClass: 'bg-light-primary',
+                    onEnd: function () {
+                        var rows = el.querySelectorAll('.faq-row');
+                        var ids = Array.prototype.map.call(rows, function (r) { return r.getAttribute('data-id'); });
+                        // update nomor urut secara visual
+                        Array.prototype.forEach.call(rows, function (r, i) {
+                            var b = r.querySelector('.faq-order');
+                            if (b) b.textContent = '#' + (i + 1);
+                        });
+                        fetch("{{ route('faqs.reorder') }}", {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                            body: JSON.stringify({ order: ids }),
+                        }).then(function (r) { return r.json(); }).then(function () {
+                            if (window.toastr) toastr.success('Urutan FAQ disimpan.');
+                        }).catch(function () {
+                            if (window.Swal) Swal.fire('Gagal', 'Gagal menyimpan urutan. Muat ulang halaman.', 'error');
+                        });
+                    },
+                });
+            });
+        </script>
 
     </div>
 </div>

@@ -35,6 +35,18 @@ class FaqController extends Controller
         ]);
     }
 
+    /** Simpan urutan baru (drag & drop). Body: order = [id, id, ...] sesuai posisi. */
+    public function reorder(Request $request)
+    {
+        $this->guard();
+        $ids = array_values(array_filter(array_map('intval', (array) $request->input('order', []))));
+        foreach ($ids as $i => $id) {
+            Faq::where('id', $id)->update(['sort_order' => $i + 1]);
+        }
+
+        return response()->json(['status' => 'success', 'count' => count($ids)]);
+    }
+
     public function store(Request $request)
     {
         $this->guard();
