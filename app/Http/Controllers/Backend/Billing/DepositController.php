@@ -50,7 +50,7 @@ class DepositController extends Controller
             'isProduction'     => (bool) config('services.midtrans.is_production', false),
             'driver'           => Billing::driver(),
             'dokuChannels'     => Billing::driver() === 'doku' ? DokuVaChannel::activeForCurrentEnv() : collect(),
-            'tripayChannels'   => Billing::driver() === 'tripay' ? (new Tripay())->paymentChannels() : [],
+            'tripayChannels'   => Billing::driver() === 'tripay' ? \App\Models\TripayChannel::activeOrdered() : collect(),
             'monthlyActive'    => $tenant->monthlyActive(),
             'needsInitial'     => $this->deposit->needsInitialTopup($tenant),
             'initialTopup'     => DepositConfig::initialTopup(),
@@ -277,7 +277,7 @@ class DepositController extends Controller
             if (! $tripay->isConfigured()) {
                 return response()->json(['status' => 'error', 'message' => 'Tripay belum dikonfigurasi.'], 500);
             }
-            if ($method === '' || ! $tripay->channelActive($method)) {
+            if ($method === '' || ! \App\Models\TripayChannel::where('code', $method)->where('is_active', true)->exists()) {
                 return response()->json(['status' => 'error', 'message' => 'Metode pembayaran tidak valid atau belum aktif.'], 422);
             }
 

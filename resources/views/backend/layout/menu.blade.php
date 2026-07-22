@@ -152,7 +152,7 @@
             </div>
 
             {{-- PAYMENT (dropdown): Setelan Deposit + Channel VA DOKU — Superadmin only --}}
-            @php($payActive = request()->routeIs('payment-gateway.*') || request()->routeIs('deposit-settings.*') || request()->routeIs('doku-channels.*'))
+            @php($payActive = request()->routeIs('payment-gateway.*') || request()->routeIs('deposit-settings.*') || request()->routeIs('doku-channels.*') || request()->routeIs('tripay-channels.*'))
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
                 class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention menu-here-bg me-0 me-lg-2 {{ $payActive ? 'here show ' : '' }}">
                 <span class="menu-link px-4 {{ $payActive ? 'active ' : '' }}">
@@ -176,6 +176,12 @@
                         <a class="menu-link py-3 {{ request()->routeIs('doku-channels.*') ? 'active ' : '' }}" href="{{ route('doku-channels.index') }}">
                             <span class="menu-icon"><i class="ki-outline ki-bank fs-2"></i></span>
                             <span class="menu-title">Channel VA DOKU</span>
+                        </a>
+                    </div>
+                    <div class="menu-item {{ request()->routeIs('tripay-channels.*') ? 'here show ' : '' }}">
+                        <a class="menu-link py-3 {{ request()->routeIs('tripay-channels.*') ? 'active ' : '' }}" href="{{ route('tripay-channels.index') }}">
+                            <span class="menu-icon"><i class="ki-outline ki-abstract-26 fs-2"></i></span>
+                            <span class="menu-title">Channel Tripay</span>
                         </a>
                     </div>
                 </div>

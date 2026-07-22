@@ -35,7 +35,7 @@ class PaymentGatewayController extends Controller
         $tripayInfo = [
             'configured' => $tripay->isConfigured(),
             'production' => $tripay->isProduction(),
-            'channels'   => $tripay->isConfigured() ? count($tripay->paymentChannels()) : 0,
+            'channels'   => \App\Models\TripayChannel::where('is_active', true)->count(),
         ];
 
         return view('backend.superadmin.payment-gateway.index', [

@@ -40,7 +40,7 @@ class BillingController extends Controller
         $isProduction = (bool) config('services.midtrans.is_production', false);
         $driver = Billing::driver();
         $dokuChannels = $driver === 'doku' ? DokuVaChannel::activeForCurrentEnv() : collect();
-        $tripayChannels = $driver === 'tripay' ? (new Tripay())->paymentChannels() : [];
+        $tripayChannels = $driver === 'tripay' ? \App\Models\TripayChannel::activeOrdered() : collect();
 
         return view('backend.billing.index', compact('tenant', 'plans', 'history', 'clientKey', 'isProduction', 'driver', 'dokuChannels', 'tripayChannels'));
     }
@@ -429,7 +429,7 @@ class BillingController extends Controller
             if (! $tripay->isConfigured()) {
                 return response()->json(['status' => 'error', 'message' => 'Tripay belum dikonfigurasi.'], 500);
             }
-            if ($method === '' || ! $tripay->channelActive($method)) {
+            if ($method === '' || ! \App\Models\TripayChannel::where('code', $method)->where('is_active', true)->exists()) {
                 return response()->json(['status' => 'error', 'message' => 'Metode pembayaran tidak valid atau belum aktif.'], 422);
             }
 

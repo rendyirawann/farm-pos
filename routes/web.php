@@ -38,6 +38,7 @@ use App\Http\Controllers\Backend\Superadmin\DemoAccountController;
 use App\Http\Controllers\Backend\Superadmin\DepositSettingController;
 use App\Http\Controllers\Backend\Superadmin\DokuChannelController;
 use App\Http\Controllers\Backend\Superadmin\PaymentGatewayController;
+use App\Http\Controllers\Backend\Superadmin\TripayChannelController;
 use App\Http\Controllers\Backend\Superadmin\PartnerLogoController;
 use App\Http\Controllers\Backend\Superadmin\SiteContentController;
 use App\Http\Controllers\Backend\Superadmin\MaintenanceController;
@@ -175,6 +176,13 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
         // Payment Gateway aktif (pilih SATU: midtrans / doku / tripay) — platform-wide, Superadmin
         Route::get('/admin/payment-gateway', [PaymentGatewayController::class, 'index'])->name('payment-gateway.index');
         Route::post('/admin/payment-gateway', [PaymentGatewayController::class, 'update'])->name('payment-gateway.update');
+
+        // Channel Pembayaran Tripay (dikelola manual, mirip DOKU) — platform-wide, Superadmin
+        Route::get('/admin/tripay-channels', [TripayChannelController::class, 'index'])->name('tripay-channels.index');
+        Route::post('/admin/tripay-channels', [TripayChannelController::class, 'store'])->name('tripay-channels.store');
+        Route::put('/admin/tripay-channels/{channel}', [TripayChannelController::class, 'update'])->name('tripay-channels.update');
+        Route::post('/admin/tripay-channels/{channel}/toggle', [TripayChannelController::class, 'toggle'])->name('tripay-channels.toggle');
+        Route::delete('/admin/tripay-channels/{channel}', [TripayChannelController::class, 'destroy'])->name('tripay-channels.destroy');
 
         // Logo Partner (marquee landing) — platform-wide, Superadmin
         Route::get('/admin/partner-logos', [PartnerLogoController::class, 'index'])->name('partner-logos.index');

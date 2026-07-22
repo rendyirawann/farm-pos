@@ -117,7 +117,7 @@ License: Proprietary - Mooda System
                         Aplikasi Point of Sale cerdas untuk membantu restoran Anda dalam mengelola pesanan,
                         manajemen meja, dan mempercepat pelayanan dapur.
                         <br /><br />
-                        <span class="badge badge-light-primary fs-7 fw-bold">PT. Mooda Indonesia</span>
+                        <span class="badge badge-light-primary fs-7 fw-bold">Mooda Teknologi Indonesia</span>
                     </div>
                     <!--end::Text-->
                 </div>
