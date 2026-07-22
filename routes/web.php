@@ -41,6 +41,7 @@ use App\Http\Controllers\Backend\Superadmin\PaymentGatewayController;
 use App\Http\Controllers\Backend\Superadmin\TripayChannelController;
 use App\Http\Controllers\Backend\Superadmin\PartnerLogoController;
 use App\Http\Controllers\Backend\Superadmin\SiteContentController;
+use App\Http\Controllers\Backend\Superadmin\FaqController;
 use App\Http\Controllers\Backend\Superadmin\MaintenanceController;
 
 /*
@@ -72,7 +73,10 @@ Route::middleware(['auth', 'forbid-banned-user', 'can:affiliate.refer'])->group(
 
 // Halaman Depan: Landing Page SaaS
 Route::get('/', function () {
-    return view('landing', ['partnerLogos' => \App\Models\PartnerLogo::forLanding()]);
+    return view('landing', [
+        'partnerLogos' => \App\Models\PartnerLogo::forLanding(),
+        'faqs'         => \App\Models\Faq::activeOrdered(),
+    ]);
 })->name('landing');
 
 // Halaman checkout (contoh publik) — memperlihatkan alur bayar Mooda (VA/QRIS) untuk
@@ -185,6 +189,7 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
 
         // Channel Pembayaran Tripay (dikelola manual, mirip DOKU) — platform-wide, Superadmin
         Route::get('/admin/tripay-channels', [TripayChannelController::class, 'index'])->name('tripay-channels.index');
+        Route::post('/admin/tripay-channels/sync', [TripayChannelController::class, 'sync'])->name('tripay-channels.sync');
         Route::post('/admin/tripay-channels', [TripayChannelController::class, 'store'])->name('tripay-channels.store');
         Route::put('/admin/tripay-channels/{channel}', [TripayChannelController::class, 'update'])->name('tripay-channels.update');
         Route::post('/admin/tripay-channels/{channel}/toggle', [TripayChannelController::class, 'toggle'])->name('tripay-channels.toggle');
@@ -201,6 +206,13 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
         // Kelola Situs (CMS landing per-situs: mooda.id / blog / affiliate) — Superadmin
         Route::get('/admin/kelola-situs', [SiteContentController::class, 'index'])->name('site-content.index');
         Route::post('/admin/kelola-situs/{site}', [SiteContentController::class, 'update'])->name('site-content.update');
+
+        // FAQ / Q&A landing (mooda.id) — Superadmin
+        Route::get('/admin/faqs', [FaqController::class, 'index'])->name('faqs.index');
+        Route::post('/admin/faqs', [FaqController::class, 'store'])->name('faqs.store');
+        Route::put('/admin/faqs/{faq}', [FaqController::class, 'update'])->name('faqs.update');
+        Route::post('/admin/faqs/{faq}/toggle', [FaqController::class, 'toggle'])->name('faqs.toggle');
+        Route::delete('/admin/faqs/{faq}', [FaqController::class, 'destroy'])->name('faqs.destroy');
 
         // Mode Pemeliharaan (platform-wide, Superadmin)
         Route::get('/admin/maintenance-settings', [MaintenanceController::class, 'index'])->name('maintenance-settings.index');

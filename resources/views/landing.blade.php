@@ -725,6 +725,40 @@
             </div>
             @endif
 
+            {{-- ===== FAQ / Q&A (dikelola Superadmin -> FAQ Landing) ===== --}}
+            @if (($faqs ?? collect())->isNotEmpty())
+                <div class="lp-faq">
+                    <style>
+                        .lp-faq { background:#f6f7fc; }
+                        .lp-faq-wrap { max-width:820px; margin:0 auto; padding:72px 20px; }
+                        .lp-faq-eyebrow { text-align:center; font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#4f46e5; }
+                        .lp-faq h2 { text-align:center; font-size:clamp(24px,3.4vw,36px); font-weight:800; color:#0f172a; margin:8px 0 6px; letter-spacing:-.02em; }
+                        .lp-faq .lead { text-align:center; color:#64748b; font-size:16px; margin:0 auto 34px; max-width:54ch; line-height:1.6; }
+                        .lp-faq-item { background:#fff; border:1px solid #eceef7; border-radius:14px; margin-bottom:12px; overflow:hidden; box-shadow:0 10px 30px -26px rgba(15,23,42,.5); }
+                        .lp-faq-q { width:100%; text-align:left; background:none; border:0; cursor:pointer; padding:18px 22px; font-weight:700; font-size:16px; color:#0f172a; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+                        .lp-faq-q .ic { flex:0 0 auto; width:26px; height:26px; border-radius:50%; background:#eef2ff; color:#4f46e5; display:grid; place-items:center; font-size:20px; line-height:1; transition:transform .2s; }
+                        .lp-faq-item.open .lp-faq-q .ic { transform:rotate(45deg); }
+                        .lp-faq-a { max-height:0; overflow:hidden; transition:max-height .28s ease; }
+                        .lp-faq-a-inner { padding:0 22px 20px; color:#475569; font-size:15px; line-height:1.75; }
+                    </style>
+                    <div class="lp-faq-wrap">
+                        <div class="lp-faq-eyebrow">FAQ</div>
+                        <h2>Pertanyaan yang Sering Diajukan</h2>
+                        <p class="lead">Hal-hal yang biasa ditanyakan tentang Mooda. Belum menemukan jawaban? Hubungi kami via WhatsApp.</p>
+                        @foreach ($faqs as $f)
+                            <div class="lp-faq-item">
+                                <button type="button" class="lp-faq-q"
+                                    onclick="var it=this.closest('.lp-faq-item'),a=this.nextElementSibling; a.style.maxHeight = it.classList.toggle('open') ? a.scrollHeight+'px' : '';">
+                                    <span>{{ $f->question }}</span>
+                                    <span class="ic">+</span>
+                                </button>
+                                <div class="lp-faq-a"><div class="lp-faq-a-inner">{!! nl2br(e($f->answer)) !!}</div></div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             {{-- ===== CTA + FOOTER (memanjang ke bawah + sosial media) ===== --}}
             <div class="mooda-footer-block" data-nav-dark>
                 <style>

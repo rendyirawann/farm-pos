@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend\Superadmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\TripayChannel;
+use App\Services\Tripay\Tripay;
 use App\Support\Billing;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -42,6 +43,42 @@ class TripayChannelController extends Controller
     private function guard(): void
     {
         abort_unless(Auth::check() && Auth::user()->isSuperadmin(), 403);
+    }
+
+    /**
+     * Sinkron channel dari API Tripay: aktifkan channel yang AKTIF di Tripay,
+     * nonaktifkan sisanya. Mencegah "channel not enabled" karena mismatch.
+     */
+    public function sync()
+    {
+        $this->guard();
+        $tripay = new Tripay();
+        if (! $tripay->isConfigured()) {
+            return back()->with('error', 'Tripay belum dikonfigurasi (cek kredensial di .env).');
+        }
+        $channels = $tripay->paymentChannels(true); // hanya channel AKTIF di Tripay
+        if (empty($channels)) {
+            return back()->with('error', 'Tidak ada channel aktif dari Tripay. Cek merchant/kredensial atau aktifkan channel di dashboard Tripay.');
+        }
+        $codes = [];
+        foreach ($channels as $i => $c) {
+            $code = (string) ($c['code'] ?? '');
+            if ($code === '') {
+                continue;
+            }
+            $codes[] = $code;
+            $ch = TripayChannel::firstOrNew(['code' => $code]);
+            $ch->name = $c['name'] ?: $code;
+            $ch->group = $c['group'] ?? '';
+            $ch->is_active = true;
+            if (! $ch->exists) {
+                $ch->sort_order = $i + 1; // urutan manual dipertahankan saat re-sync
+            }
+            $ch->save();
+        }
+        $off = TripayChannel::whereNotIn('code', $codes)->update(['is_active' => false]);
+
+        return back()->with('success', 'Sinkron selesai: ' . count($codes) . ' channel aktif dari Tripay disimpan, ' . $off . ' channel lain dinonaktifkan.');
     }
 
     public function index()

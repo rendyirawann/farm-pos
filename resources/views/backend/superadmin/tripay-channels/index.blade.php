@@ -11,13 +11,25 @@
         @if ($errors->any())
             <div class="alert alert-danger"><ul class="mb-0">@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
         @endif
+        @if (session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
 
         <div class="alert alert-primary d-flex flex-column">
-            <div class="fw-bold fs-5 mb-1">Channel Pembayaran Tripay</div>
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div class="fw-bold fs-5 mb-1">Channel Pembayaran Tripay</div>
+                <form method="POST" action="{{ route('tripay-channels.sync') }}" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').innerHTML='Menyinkron…';">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="ki-outline ki-arrows-circle fs-5"></i> Sinkron dari Tripay
+                    </button>
+                </form>
+            </div>
             <div class="fs-7">
                 Mode: <b>{{ $production ? 'PRODUCTION' : 'SANDBOX' }}</b> · Driver aktif: <b>{{ strtoupper($driver) }}</b>.
                 Isi <b>Kode channel</b> sesuai dashboard Tripay (<b>Channel Pembayaran</b>), mis. <code>QRIS</code>, <code>BRIVA</code>, <code>OVO</code>.
                 Customer akan memilih dari channel yang <b>Aktif</b> saat checkout langganan / top-up deposit.
+                <div class="mt-1"><b>Sinkron dari Tripay</b>: otomatis mengambil channel yang aktif di merchant Tripay Anda &amp; menyamakannya (aktifkan yang cocok, nonaktifkan sisanya) — cara termudah &amp; anti-salah.</div>
                 @if ($driver !== 'tripay')
                     <div class="text-danger mt-1">Catatan: driver aktif masih <b>{{ strtoupper($driver) }}</b> — channel ini baru dipakai pelanggan saat driver = <b>tripay</b> (atur di Payment → Payment Gateway).</div>
                 @endif
