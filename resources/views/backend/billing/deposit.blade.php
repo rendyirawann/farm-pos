@@ -314,7 +314,8 @@
             if (BILLING_DRIVER === 'doku') {
                 window.dokuPickBank().then(bank => doCheckout({ bank: bank })).catch(err => { if (err && err !== '__cancel__') Swal.fire('Info', err, 'info'); });
             } else if (BILLING_DRIVER === 'tripay') {
-                window.tripayPickChannel().then(method => doCheckout({ method: method })).catch(err => { if (err && err !== '__cancel__') Swal.fire('Info', err, 'info'); });
+                // Arahkan ke halaman checkout (ringkasan nominal + kartu metode + bayar in-app).
+                window.location.href = "{{ route('checkout.show') }}?type=deposit&amount=" + amount;
             } else {
                 doCheckout({});
             }

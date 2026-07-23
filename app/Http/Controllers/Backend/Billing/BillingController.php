@@ -470,11 +470,19 @@ class BillingController extends Controller
 
             $subscription->update(['payment_type' => 'tripay:' . $method]);
 
+            $d = $res['data'];
             return response()->json([
                 'status'       => 'success',
                 'driver'       => 'tripay',
                 'order_id'     => $subscription->midtrans_order_id,
-                'checkout_url' => $res['data']['checkout_url'],
+                'reference'    => $d['reference'] ?? null,
+                'method'       => $method,
+                'payment_name' => $d['payment_name'] ?? $method,
+                'pay_code'     => $d['pay_code'] ?? null,
+                'qr_url'       => $d['qr_url'] ?? null,
+                'amount'       => (int) ($d['amount'] ?? $amount),
+                'expired_time' => $d['expired_time'] ?? null,
+                'checkout_url' => $d['checkout_url'],
             ]);
         } catch (\Throwable $e) {
             Log::error('Tripay subscription checkout failed: ' . $e->getMessage());

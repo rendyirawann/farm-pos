@@ -32,6 +32,7 @@ use App\Http\Controllers\Backend\Finance\ExpenseController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\DownloadAppController;
 use App\Http\Controllers\Backend\Billing\BillingController;
+use App\Http\Controllers\Backend\Billing\CheckoutController;
 use App\Http\Controllers\Backend\Billing\DepositController;
 use App\Http\Controllers\Backend\Superadmin\TenantController;
 use App\Http\Controllers\Backend\Superadmin\DemoAccountController;
@@ -141,6 +142,9 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
     Route::middleware('can:view_billing')->group(function () {
         Route::get('/admin/billing', [BillingController::class, 'index'])->name('billing.index');
         Route::post('/admin/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+
+        // Halaman checkout terpadu (ringkasan plan/deposit + kartu metode + bayar in-app)
+        Route::get('/admin/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
 
         // Plan Deposit / Poin
         Route::get('/admin/deposit', [DepositController::class, 'index'])->name('deposit.index');

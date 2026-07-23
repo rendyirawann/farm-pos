@@ -309,6 +309,12 @@
                 const original = btn.innerHTML;
                 const unlock = () => { btn.disabled = false; btn.innerHTML = original; };
 
+                // Tripay: arahkan ke halaman checkout (ringkasan plan+durasi + kartu metode + bayar in-app).
+                if (BILLING_DRIVER === 'tripay') {
+                    window.location.href = "{{ route('checkout.show') }}?type=subscription&plan=" + encodeURIComponent(plan) + "&months=" + months;
+                    return;
+                }
+
                 const doCheckout = (opts) => {
                     opts = opts || {};
                     btn.disabled = true;
