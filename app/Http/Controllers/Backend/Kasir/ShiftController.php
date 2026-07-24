@@ -76,13 +76,23 @@ class ShiftController extends Controller
                 ->get();
         }
 
+        // Aturan 1-shift-per-toko: bila shift orang lain sedang berjalan, form "Buka Shift"
+        // diganti keterangan (tidak bisa membuka sampai shift itu ditutup).
+        $blockingShift = null;
+        if ($canOperate && ! $currentShift) {
+            $blockingShift = Shift::with('user')
+                ->where('status', 'open')
+                ->where('user_id', '!=', $user->id)
+                ->first();
+        }
+
         // Setup harian: minta TARGET penjualan bila hari ini belum punya target (shift pertama).
         $today = Carbon::today();
         $needTarget = ! DailySalesTarget::whereDate('date', $today)->exists();
 
         return view('backend.kasir.shift.index', compact(
             'currentShift', 'cashSales', 'qrisSales', 'shiftExpenses', 'history',
-            'canOperate', 'canReopen', 'ownOnly', 'openShiftsAll', 'needTarget'
+            'canOperate', 'canReopen', 'ownOnly', 'openShiftsAll', 'needTarget', 'blockingShift'
         ));
     }
 
@@ -106,10 +116,15 @@ class ShiftController extends Controller
         }
         $request->validate($rules);
 
-        // 2. Cegah buka shift ganda
-        $activeShift = Shift::where('user_id', Auth::id())->where('status', 'open')->first();
+        // 2. ATURAN: hanya 1 shift aktif per toko. Shift siapa pun yang masih terbuka
+        //    memblokir pembukaan shift baru (tenant-scoped otomatis via TenantScope).
+        $activeShift = Shift::with('user')->where('status', 'open')->first();
         if ($activeShift) {
-            return redirect()->back()->with('error', 'Anda masih memiliki shift yang aktif!');
+            $msg = $activeShift->user_id === Auth::id()
+                ? 'Anda masih memiliki shift yang aktif!'
+                : 'Masih ada shift yang sedang berjalan atas nama ' . (optional($activeShift->user)->name ?? 'pengguna lain')
+                    . '. Hanya 1 shift aktif per toko — shift tersebut harus ditutup dulu.';
+            return redirect()->back()->with('error', $msg);
         }
 
         // 2b. Anti-curang (khususnya plan deposit): jangan izinkan buka shift baru
@@ -231,9 +246,11 @@ class ShiftController extends Controller
             return redirect()->back()->with('error', 'Hanya kas/shift yang ditutup hari ini yang bisa dibuka kembali.');
         }
 
-        // Kasir pemilik shift tidak boleh sedang punya shift lain yang terbuka.
-        if (Shift::where('user_id', $shift->user_id)->where('status', 'open')->exists()) {
-            return redirect()->back()->with('error', 'Kasir pemilik shift ini masih punya shift lain yang terbuka. Tutup dulu shift itu.');
+        // ATURAN: hanya 1 shift aktif per toko — shift terbuka milik SIAPA PUN memblokir reopen.
+        $open = Shift::with('user')->where('status', 'open')->first();
+        if ($open) {
+            return redirect()->back()->with('error', 'Masih ada shift yang sedang berjalan atas nama '
+                . (optional($open->user)->name ?? 'pengguna lain') . '. Hanya 1 shift aktif per toko — tutup dulu shift itu.');
         }
 
         $shift->update([

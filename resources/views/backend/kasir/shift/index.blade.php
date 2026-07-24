@@ -35,6 +35,20 @@
                         @if (!$currentShift)
                             <div class="card shadow-sm border-0">
                                 <div class="card-body text-center p-10">
+                                    @if ($blockingShift ?? null)
+                                        {{-- Aturan 1 shift aktif per toko: shift orang lain sedang berjalan --}}
+                                        <i class="ki-outline ki-lock-2 fs-5x text-warning mb-5"></i>
+                                        <h2 class="fs-2x fw-bold text-gray-800 mb-2">{{ $L }} Sedang Berjalan</h2>
+                                        <p class="text-gray-500 fs-5 mb-6">
+                                            {{ $L }} sedang dibuka atas nama
+                                            <b>{{ optional($blockingShift->user)->name ?? 'pengguna lain' }}</b>
+                                            (sejak {{ \Carbon\Carbon::parse($blockingShift->start_time)->translatedFormat('d M Y, H:i') }}).
+                                        </p>
+                                        <div class="alert alert-warning fs-6 mb-0">
+                                            Hanya <b>1 {{ strtolower($L) }} aktif per toko</b> — Anda baru bisa membuka
+                                            {{ strtolower($L) }} setelah {{ strtolower($L) }} tersebut ditutup.
+                                        </div>
+                                    @else
                                     <i class="ki-outline ki-time fs-5x text-primary mb-5"></i>
                                     <h2 class="fs-2x fw-bold text-gray-800 mb-2">{{ $L }} Belum Dibuka</h2>
                                     <p class="text-gray-500 fs-5 mb-8">Anda harus membuka {{ strtolower($L) }} dan memasukkan modal
@@ -73,6 +87,7 @@
                                             <i class="ki-outline ki-unlock fs-2 me-2"></i> Buka {{ $L }} Sekarang
                                         </button>
                                     </form>
+                                    @endif
                                 </div>
                             </div>
                         @else
