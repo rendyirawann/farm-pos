@@ -19,10 +19,11 @@ class ShiftController extends Controller
         $user = Auth::user();
 
         // Hak akses:
-        // - kasir       : buka/tutup shift-nya sendiri ('shift.operate').
-        // - owner/admin : LIHAT-SAJA seluruh shift toko + boleh "Buka Kembali" (reopen)
-        //                 shift kasir yang tak sengaja ditutup ('shift.reopen'). TIDAK buka/tutup.
-        // - Superadmin  : semua (via Gate::before), melihat lintas tenant.
+        // - kasir : buka/tutup shift-nya sendiri ('shift.operate'); riwayat MILIKNYA saja.
+        // - owner : buka/tutup shift-nya sendiri ('shift.operate') + memantau SEMUA shift toko
+        //           + "Buka Kembali" shift yang tak sengaja ditutup ('shift.reopen').
+        // - admin : LIHAT-SAJA seluruh shift toko + reopen ('shift.reopen'). TIDAK buka/tutup.
+        // - Superadmin: semua (via Gate::before), melihat lintas tenant.
         $canOperate = $user->can('shift.operate');
         $canReopen  = $user->can('shift.reopen');
         $ownOnly    = $user->hasRole('kasir') && ! $user->hasRole('Superadmin');
@@ -64,10 +65,15 @@ class ShiftController extends Controller
             ->limit(15)
             ->get();
 
-        // Untuk peninjau (owner/admin): daftar shift yang SEDANG berjalan (memantau siapa yang buka).
+        // Pemantau (owner/admin/superadmin): daftar shift yang SEDANG berjalan di toko.
+        // Shift milik sendiri dikecualikan (sudah tampil di panel operasional).
         $openShiftsAll = collect();
-        if (! $canOperate) {
-            $openShiftsAll = Shift::with('user')->where('status', 'open')->orderBy('start_time')->get();
+        if (! $ownOnly) {
+            $openShiftsAll = Shift::with('user')
+                ->where('status', 'open')
+                ->where('user_id', '!=', $user->id)
+                ->orderBy('start_time')
+                ->get();
         }
 
         // Setup harian: minta TARGET penjualan bila hari ini belum punya target (shift pertama).

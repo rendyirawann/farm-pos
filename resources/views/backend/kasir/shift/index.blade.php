@@ -133,19 +133,20 @@
                                 </div>
                             </div>
                         @endif
-                    @else
-                        {{-- ================= PENINJAU (OWNER/ADMIN) — LIHAT-SAJA ================= --}}
-                        <div class="card shadow-sm border-0">
+                    @endif
+
+                    @if (! $ownOnly)
+                        {{-- ================= PANTAU SHIFT TOKO (OWNER/ADMIN/SUPERADMIN) ================= --}}
+                        <div class="card shadow-sm border-0 {{ $canOperate ? 'mt-6' : '' }}">
                             <div class="card-header bg-light-info pt-7 border-0">
                                 <h3 class="card-title fw-bold text-info fs-3">
-                                    <i class="ki-outline ki-eye fs-2 text-info me-2"></i> Mode Lihat-Saja
+                                    <i class="ki-outline ki-eye fs-2 text-info me-2"></i> Pantau {{ $L }} Toko
                                 </h3>
                             </div>
                             <div class="card-body p-8">
-                                <p class="text-gray-600 fs-6 mb-6">Buka/tutup {{ strtolower($L) }} dilakukan oleh <b>kasir</b>.
-                                    Di sini Anda memantau seluruh {{ strtolower($L) }} toko, dan dapat
-                                    <b>membuka kembali</b> {{ strtolower($L) }} yang tak sengaja ditutup lewat daftar riwayat di
-                                    samping.</p>
+                                <p class="text-gray-600 fs-6 mb-6">Semua {{ strtolower($L) }} yang sedang berjalan di toko tampil di sini.
+                                    Anda juga dapat <b>membuka kembali</b> {{ strtolower($L) }} yang tak sengaja ditutup lewat daftar
+                                    riwayat di samping.</p>
                                 <h4 class="fw-bold text-gray-800 fs-5 mb-4">{{ $L }} Sedang Berjalan</h4>
                                 @forelse($openShiftsAll as $os)
                                     <div class="d-flex flex-stack border border-dashed rounded p-4 mb-3">
@@ -167,7 +168,7 @@
                                         </div>
                                     </div>
                                 @empty
-                                    <div class="text-muted text-center py-6">Tidak ada {{ strtolower($L) }} yang sedang berjalan.</div>
+                                    <div class="text-muted text-center py-6">Tidak ada {{ strtolower($L) }} {{ $canOperate ? 'lain ' : '' }}yang sedang berjalan.</div>
                                 @endforelse
 
                                 <div class="separator separator-dashed my-6"></div>

@@ -130,8 +130,10 @@ class RolePermissionSeeder extends Seeder
             'order.void',
             // Gabung program affiliate + lihat dashboard referral dari dalam POS.
             'affiliate.refer',
-            // Owner LIHAT-SAJA shift (tak buka/tutup), tapi boleh membuka kembali shift kasir
-            // yang tak sengaja ditutup (koreksi supervisor).
+            // Owner MENGOPERASIKAN shift-nya sendiri (buka/tutup) seperti kasir, tetap
+            // memantau SEMUA shift toko, dan boleh membuka kembali shift yang tak sengaja
+            // ditutup (koreksi supervisor).
+            'shift.operate',
             'shift.reopen',
         ];
         $roleOwner->syncPermissions($ownerPermissions);

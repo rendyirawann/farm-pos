@@ -30,18 +30,25 @@ class KasirController extends Controller
     /** Halaman utama kasir (single page). */
     public function index()
     {
-        // OPERATOR (kasir): wajib membuka shift MILIKNYA sendiri sebelum masuk kasir (mode POS penuh).
-        // PENINJAU (owner/admin): boleh masuk HANYA bila ADA shift kasir yang sedang berjalan di toko,
-        // dan hanya dalam mode LIHAT + Tandai Salah/Hapus (panel POS: menu/keranjang/bayar disembunyikan).
-        // Superadmin BUKAN operator meski Gate::before memberinya semua permission — ia peninjau
-        // lintas-tenant: pakai shift yang SUDAH terbuka di toko terpilih, tak perlu buka shift sendiri.
-        $isOperator = ! Auth::user()->isSuperadmin() && Auth::user()->can('shift.operate');
-        $activeShift = $isOperator
-            ? Shift::where('user_id', Auth::id())->where('status', 'open')->first()
-            : Shift::where('status', 'open')->latest('start_time')->first();
+        // MODE HYBRID:
+        // - OPERATOR: punya 'shift.operate' (kasir & owner) DAN shift MILIKNYA sedang terbuka
+        //   -> POS penuh (menu/keranjang/bayar).
+        // - PENINJAU: punya 'shift.reopen' (owner/admin) atau Superadmin, TANPA shift sendiri
+        //   -> masuk mode LIHAT memakai shift yang sedang berjalan di toko.
+        // - Kasir murni tanpa shift sendiri: ditolak (wajib buka shift dulu).
+        $user = Auth::user();
+        $canOperate = ! $user->isSuperadmin() && $user->can('shift.operate');
+        $canReview  = $user->isSuperadmin() || $user->can('shift.reopen');
 
-        if (!$activeShift) {
-            return redirect()->route('shifts.index')->with('warning', $isOperator
+        $ownShift = $canOperate
+            ? Shift::where('user_id', $user->id)->where('status', 'open')->first()
+            : null;
+        $isOperator  = (bool) $ownShift;
+        $activeShift = $ownShift
+            ?: ($canReview ? Shift::where('status', 'open')->latest('start_time')->first() : null);
+
+        if (! $activeShift) {
+            return redirect()->route('shifts.index')->with('warning', $canOperate
                 ? '⚠️ Akses ditolak! Anda wajib membuka shift dan mengisi modal kasir terlebih dahulu.'
                 : 'ℹ️ Belum ada shift kasir yang sedang berjalan. Layar kasir bisa dibuka saat ada shift aktif.');
         }

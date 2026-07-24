@@ -229,7 +229,7 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
     // ====================================================
     Route::middleware(['can:view_kasir', 'subscribed'])->group(function () {
         // Shift — halaman bisa dilihat semua (view_kasir); AKSI dibatasi permission:
-        //  - buka/tutup  : kasir (shift.operate)
+        //  - buka/tutup  : kasir & owner (shift.operate)
         //  - buka kembali: owner/admin (shift.reopen)
         Route::get('/admin/shifts', [ShiftController::class, 'index'])->name('shifts.index');
         Route::post('/admin/shifts/open', [ShiftController::class, 'openShift'])->middleware('can:shift.operate')->name('shifts.open');
