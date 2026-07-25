@@ -18,7 +18,7 @@ return [
     'apk_latest_version_code' => (int) env('APK_LATEST_VERSION_CODE', 2),
 
     // Nomor WhatsApp support (dipakai di beberapa halaman).
-    'support_wa' => env('SUPPORT_WA', '6282362211676'),
+    'support_wa' => env('SUPPORT_WA', '6281265558044'),
 
     // URL sosial media untuk footer landing. Set di .env; default '#' (belum diarahkan).
     'social_instagram' => env('SOCIAL_INSTAGRAM', '#'),

@@ -72,7 +72,7 @@ return [
             'name'  => 'Customize',
             'price' => 0,
             'contact' => true,     // konsultasi WhatsApp, bukan checkout Midtrans
-            'wa' => '6282362211676',
+            'wa' => '6281265558044',
             'tagline' => 'Rakit paketmu sendiri — kontrak 2 tahun, fitur menyesuaikan bisnis.',
             'limits' => ['outlets' => null, 'staff' => null, 'customers' => null],
             'modules' => [
