@@ -197,9 +197,15 @@
                             </button>
                         </div>
 
-                        <!-- <div class="text-gray-500 text-center fw-semibold fs-6">Belum punya akun?
-                            <a href="{{ route('register') }}" class="link-primary">Daftar</a>
-                        </div> -->
+                        <div class="text-gray-500 text-center fw-semibold fs-6 mb-4">Belum punya akun?
+                            <a href="{{ route('register') }}" class="link-primary fw-bold">Daftar di sini</a>
+                        </div>
+
+                        <div class="d-grid">
+                            <a href="{{ route('landing') }}" class="btn btn-light btn-active-light-primary">
+                                <i class="ki-outline ki-arrow-left fs-4 me-1"></i> Kembali ke Beranda
+                            </a>
+                        </div>
                     </form>
 
                     {{-- ===== AKUN DEMO (disembunyikan sementara — ubah false→true untuk menampilkan lagi) ===== --}}

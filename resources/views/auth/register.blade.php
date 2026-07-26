@@ -128,9 +128,15 @@
                             </button>
                         </div>
 
-                        <div class="text-gray-500 text-center fw-semibold fs-6">
+                        <div class="text-gray-500 text-center fw-semibold fs-6 mb-4">
                             Sudah punya akun?
-                            <a href="{{ route('login') }}" class="link-primary">Masuk</a>
+                            <a href="{{ route('login') }}" class="link-primary fw-bold">Masuk di sini</a>
+                        </div>
+
+                        <div class="d-grid">
+                            <a href="{{ route('landing') }}" class="btn btn-light btn-active-light-primary">
+                                <i class="ki-outline ki-arrow-left fs-4 me-1"></i> Kembali ke Beranda
+                            </a>
                         </div>
                     </form>
 
