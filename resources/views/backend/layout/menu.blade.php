@@ -188,7 +188,7 @@
             </div>
 
             {{-- SITUS (dropdown): Kelola Situs + FAQ + Logo Partner + Mode Pemeliharaan — Superadmin only --}}
-            @php($situsActive = request()->routeIs('site-content.*') || request()->routeIs('faqs.*') || request()->routeIs('partner-logos.*') || request()->routeIs('maintenance-settings.*'))
+            @php($situsActive = request()->routeIs('site-content.*') || request()->routeIs('faqs.*') || request()->routeIs('social-links.*') || request()->routeIs('partner-logos.*') || request()->routeIs('maintenance-settings.*'))
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
                 class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention menu-here-bg me-0 me-lg-2 {{ $situsActive ? 'here show ' : '' }}">
                 <span class="menu-link px-4 {{ $situsActive ? 'active ' : '' }}">
@@ -206,6 +206,12 @@
                         <a class="menu-link py-3 {{ request()->routeIs('faqs.*') ? 'active ' : '' }}" href="{{ route('faqs.index') }}">
                             <span class="menu-icon"><i class="ki-outline ki-questionnaire-tablet fs-2"></i></span>
                             <span class="menu-title">FAQ Landing</span>
+                        </a>
+                    </div>
+                    <div class="menu-item {{ request()->routeIs('social-links.*') ? 'here show ' : '' }}">
+                        <a class="menu-link py-3 {{ request()->routeIs('social-links.*') ? 'active ' : '' }}" href="{{ route('social-links.index') }}">
+                            <span class="menu-icon"><i class="ki-outline ki-instagram fs-2"></i></span>
+                            <span class="menu-title">Sosial Media</span>
                         </a>
                     </div>
                     <div class="menu-item {{ request()->routeIs('partner-logos.*') ? 'here show ' : '' }}">

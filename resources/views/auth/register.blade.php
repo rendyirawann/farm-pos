@@ -122,8 +122,9 @@
                         </div>
 
                         <div class="d-grid mb-6">
-                            <button type="submit" class="btn btn-primary">
-                                Daftar &amp; Lanjut Bayar
+                            <button type="submit" class="btn btn-primary" id="regSubmitBtn">
+                                <span class="reg-idle">Daftar &amp; Lanjut Bayar</span>
+                                <span class="reg-loading d-none"><span class="spinner-border spinner-border-sm align-middle me-2"></span>Memproses…</span>
                             </button>
                         </div>
 
@@ -149,6 +150,16 @@
                     regPass.setAttribute('type', type);
                     regIcon.classList.toggle('ki-eye-slash', type === 'password');
                     regIcon.classList.toggle('ki-eye', type === 'text');
+                });
+            }
+
+            // Loader tombol daftar (anti klik 2x). Hanya jalan bila validasi HTML5 lolos.
+            var regBtn = document.getElementById('regSubmitBtn');
+            if (regBtn && regBtn.closest('form')) {
+                regBtn.closest('form').addEventListener('submit', function () {
+                    regBtn.disabled = true;
+                    regBtn.querySelector('.reg-idle').classList.add('d-none');
+                    regBtn.querySelector('.reg-loading').classList.remove('d-none');
                 });
             }
         </script>

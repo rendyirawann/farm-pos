@@ -14,8 +14,13 @@ class EmailVerificationPromptController extends Controller
      */
     public function __invoke(Request $request): RedirectResponse|View
     {
-        return $request->user()->hasVerifiedEmail()
-                    ? redirect()->intended(route('dashboard', absolute: false))
-                    : view('auth.verify-email');
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->route('login', ['active' => 1]);
+        }
+
+        // Sisa cooldown kirim-ulang (0 = boleh kirim) untuk countdown tombol.
+        return view('auth.verify-email', [
+            'cooldown' => $request->user()->verificationResendCooldown(120),
+        ]);
     }
 }

@@ -77,6 +77,16 @@ class User extends Authenticatable implements BannableContract, MustVerifyEmail
     /** Kirim email verifikasi (link aktivasi) versi branded Mooda. */
     public function sendEmailVerificationNotification(): void
     {
+        // Catat waktu kirim -> dipakai cooldown "kirim ulang" (2 menit) & countdown UI.
+        \Illuminate\Support\Facades\Cache::put('verify_sent_' . $this->getKey(), now()->timestamp, now()->addMinutes(30));
         $this->notify(new VerifyAccountNotification());
+    }
+
+    /** Sisa detik cooldown kirim-ulang link aktivasi (0 bila boleh kirim). */
+    public function verificationResendCooldown(int $seconds = 120): int
+    {
+        $last = \Illuminate\Support\Facades\Cache::get('verify_sent_' . $this->getKey());
+
+        return $last ? max(0, $seconds - (now()->timestamp - (int) $last)) : 0;
     }
 }

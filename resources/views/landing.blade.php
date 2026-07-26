@@ -821,20 +821,13 @@
                         <div>
                             <img src="{{ sc_img('landing','footer_logo','assets/media/logos/mooda-logo-white.png') }}" alt="Mooda" class="mf-brand-logo">
                             <p class="mf-tagline">{{ sc('landing','footer_tagline','POS modern untuk Cafe, Restoran, Coffee Shop, Bakery dan UMKM.') }}</p>
-                            <div class="mf-social">
-                                <a href="{{ config('mooda.social_instagram', '#') }}" target="_blank" rel="noopener" aria-label="Instagram">
-                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2c3.2 0 3.6 0 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s0 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58 0-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s0-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2Zm0 1.8c-3.15 0-3.5 0-4.74.07-.9.04-1.38.19-1.7.31-.43.17-.74.37-1.06.69-.32.32-.52.63-.69 1.06-.12.32-.27.8-.31 1.7C3.4 8.86 3.4 9.2 3.4 12s0 3.14.06 4.39c.04.9.19 1.38.31 1.7.17.43.37.74.69 1.06.32.32.63.52 1.06.69.32.12.8.27 1.7.31 1.24.06 1.59.07 4.74.07s3.5 0 4.74-.07c.9-.04 1.38-.19 1.7-.31.43-.17.74-.37 1.06-.69.32-.32.52-.63.69-1.06.12-.32.27-.8.31-1.7.06-1.25.07-1.59.07-4.39s0-3.14-.07-4.39c-.04-.9-.19-1.38-.31-1.7a2.85 2.85 0 0 0-.69-1.06 2.85 2.85 0 0 0-1.06-.69c-.32-.12-.8-.27-1.7-.31C15.5 4 15.15 4 12 4Zm0 3.07a4.93 4.93 0 1 1 0 9.86 4.93 4.93 0 0 1 0-9.86Zm0 1.8a3.13 3.13 0 1 0 0 6.26 3.13 3.13 0 0 0 0-6.26Zm5.13-.87a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3Z"/></svg>
-                                </a>
-                                <a href="{{ config('mooda.social_facebook', '#') }}" target="_blank" rel="noopener" aria-label="Facebook">
-                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12Z"/></svg>
-                                </a>
-                                <a href="{{ config('mooda.social_youtube', '#') }}" target="_blank" rel="noopener" aria-label="YouTube">
-                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.12C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.4.53A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.12c1.9.53 9.4.53 9.4.53s7.5 0 9.4-.53a3 3 0 0 0 2.1-2.12A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8ZM9.55 15.57V8.43L15.82 12l-6.27 3.57Z"/></svg>
-                                </a>
-                                <a href="{{ config('mooda.social_tiktok', '#') }}" target="_blank" rel="noopener" aria-label="TikTok">
-                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 2h-3.1v13.2a2.5 2.5 0 1 1-2.1-2.46V9.6a5.6 5.6 0 1 0 5.2 5.58V8.63a7 7 0 0 0 4 1.27V6.77a3.9 3.9 0 0 1-2.85-1.32A3.9 3.9 0 0 1 16.5 2Z"/></svg>
-                                </a>
-                            </div>
+                            @if (($socialLinks ?? collect())->isNotEmpty())
+                                <div class="mf-social">
+                                    @foreach ($socialLinks as $s)
+                                        <a href="{{ $s->url }}" target="_blank" rel="noopener" aria-label="{{ $s->label() }}">{!! $s->iconSvg() !!}</a>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
                         <div class="mf-col">
                             <div class="mf-col-title">{{ sc('landing','footer_kontak_judul','Kontak (CP)') }}</div>

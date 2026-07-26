@@ -52,5 +52,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Link aktivasi kedaluwarsa / tanda tangan tak valid -> halaman "kirim ulang".
+        $exceptions->render(function (\Illuminate\Routing\Exceptions\InvalidSignatureException $e, $request) {
+            if ($request->routeIs('verification.verify')) {
+                return redirect()->route('verification.notice')->with('link_expired', true);
+            }
+        });
     })->create();

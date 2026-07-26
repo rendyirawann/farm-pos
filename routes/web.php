@@ -43,6 +43,7 @@ use App\Http\Controllers\Backend\Superadmin\TripayChannelController;
 use App\Http\Controllers\Backend\Superadmin\PartnerLogoController;
 use App\Http\Controllers\Backend\Superadmin\SiteContentController;
 use App\Http\Controllers\Backend\Superadmin\FaqController;
+use App\Http\Controllers\Backend\Superadmin\SocialLinkController;
 use App\Http\Controllers\Backend\Superadmin\MaintenanceController;
 
 /*
@@ -77,6 +78,7 @@ Route::get('/', function () {
     return view('landing', [
         'partnerLogos' => \App\Models\PartnerLogo::forLanding(),
         'faqs'         => \App\Models\Faq::activeOrdered(),
+        'socialLinks'  => \App\Models\SocialLink::activeOrdered(),
     ]);
 })->name('landing');
 
@@ -218,6 +220,13 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
         Route::put('/admin/faqs/{faq}', [FaqController::class, 'update'])->name('faqs.update');
         Route::post('/admin/faqs/{faq}/toggle', [FaqController::class, 'toggle'])->name('faqs.toggle');
         Route::delete('/admin/faqs/{faq}', [FaqController::class, 'destroy'])->name('faqs.destroy');
+
+        // Sosial media footer landing — Superadmin (ikon auto dari URL)
+        Route::get('/admin/social-links', [SocialLinkController::class, 'index'])->name('social-links.index');
+        Route::post('/admin/social-links', [SocialLinkController::class, 'store'])->name('social-links.store');
+        Route::put('/admin/social-links/{social}', [SocialLinkController::class, 'update'])->name('social-links.update');
+        Route::post('/admin/social-links/{social}/toggle', [SocialLinkController::class, 'toggle'])->name('social-links.toggle');
+        Route::delete('/admin/social-links/{social}', [SocialLinkController::class, 'destroy'])->name('social-links.destroy');
 
         // Mode Pemeliharaan (platform-wide, Superadmin)
         Route::get('/admin/maintenance-settings', [MaintenanceController::class, 'index'])->name('maintenance-settings.index');

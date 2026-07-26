@@ -112,4 +112,15 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Email Verification Link Expiry
+    |--------------------------------------------------------------------------
+    | Masa berlaku link aktivasi (dalam MENIT). Link kedaluwarsa setelah durasi
+    | ini; user harus mengirim ulang link aktivasi. Dibaca oleh VerifyEmail.
+    */
+    'verification' => [
+        'expire' => 2,
+    ],
+
 ];
