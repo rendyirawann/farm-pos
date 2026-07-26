@@ -20,11 +20,14 @@ class TenantSeeder extends Seeder
                 'phone'                => '08123456789',
                 'email'                => 'demo@mooda.test',
                 'address'              => 'Jl. Contoh No. 1, Indonesia',
-                'plan'                 => 'basic',
+                // Tenant DEMO: buka semua fitur (paket 'customize' = semua modul + limit unlimited).
+                // Pembatasan tetap by ROLE (Spatie), bukan by paket.
+                'plan'                 => 'customize',
                 'subscription_status'  => 'active',
                 'trial_ends_at'        => now()->addDays(14),
-                'subscription_ends_at' => now()->addYear(),
+                'subscription_ends_at' => now()->addYears(50),
                 'is_active'            => true,
+                'created_via'          => 'demo',
             ]
         );
 
