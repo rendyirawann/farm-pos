@@ -202,7 +202,8 @@
                         </div> -->
                     </form>
 
-                    {{-- ===== AKUN DEMO ===== --}}
+                    {{-- ===== AKUN DEMO (disembunyikan sementara — ubah false→true untuk menampilkan lagi) ===== --}}
+                    @if (false)
                     @php
                         $demoAccounts = [
                             ['Owner', 'owner@demo.test', 'owner12345', 'Akses penuh (pemilik)', 'primary'],
@@ -241,6 +242,7 @@
                             Memakai tenant <span class="fw-semibold">"Demo Resto"</span> yang sudah aktif — semua fitur bisa dicoba.
                         </div>
                     </div>
+                    @endif
 
                 </div>
             </div>
