@@ -373,11 +373,27 @@ class KasirController extends Controller
             $order->load('details');
             $subtotal = (float) $order->details->sum('subtotal');
             $totals = $this->applyPromoAndTax($subtotal, $order->promo_id);
+
+            // FIX dapur: item baru berstatus 'pending'. Hitung ulang order_status dari status
+            // item (sama seperti KitchenController) agar pesanan yang tadinya 'served' kembali
+            // ke antrian dapur ("Sedang Dibuat") untuk item tambahan — bukan tetap "Selesai".
+            $statuses   = $order->details->pluck('status');
+            $totalItems = $statuses->count();
+            $doneItems  = $statuses->filter(fn ($s) => $s === 'done')->count();
+            if ($totalItems > 0 && $doneItems === $totalItems) {
+                $newOrderStatus = 'served';
+            } elseif ($statuses->contains('cooking') || $doneItems > 0) {
+                $newOrderStatus = 'cooking';
+            } else {
+                $newOrderStatus = 'pending';
+            }
+
             $order->update([
                 'subtotal'        => $subtotal,
                 'discount_amount' => (int) $totals['discount_amount'],
                 'tax'             => $totals['tax'],
                 'grand_total'     => $totals['grand_total'],
+                'order_status'    => $newOrderStatus,
             ]);
             // $order->update() -> OrderObserver::updated -> OrderChanged (layar Dapur & Kasir refetch).
 
