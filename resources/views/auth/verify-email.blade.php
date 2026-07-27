@@ -85,8 +85,8 @@
                         <form method="POST" action="{{ route('logout') }}" class="flex-fill" id="logoutForm">
                             @csrf
                             <button type="submit" class="btn btn-light w-100" id="logoutBtn">
-                                <span class="logout-idle"><i class="ki-outline ki-exit-right fs-4 me-2"></i>Keluar</span>
-                                <span class="logout-loading d-none"><span class="spinner-border spinner-border-sm align-middle me-2"></span>Keluar…</span>
+                                <span class="logout-idle"><i class="ki-outline ki-entrance-left fs-4 me-2"></i>Login</span>
+                                <span class="logout-loading d-none"><span class="spinner-border spinner-border-sm align-middle me-2"></span>Memproses…</span>
                             </button>
                         </form>
                     </div>

@@ -39,7 +39,7 @@
                             <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
                                 <tr>
                                     <td align="center" style="border-radius:12px; background:linear-gradient(120deg,#4f46e5,#7c3aed);">
-                                        <a href="{{ $url }}" target="_blank"
+                                        <a href="{!! $url !!}" target="_blank"
                                            style="display:inline-block; padding:14px 34px; font-size:16px; font-weight:700; color:#ffffff; text-decoration:none; border-radius:12px;">
                                             Aktifkan Akun Saya
                                         </a>
@@ -51,7 +51,7 @@
                                 Tombol tidak berfungsi? Salin &amp; tempel tautan ini ke browser:
                             </p>
                             <p style="margin:0 0 20px; font-size:12px; line-height:1.5; word-break:break-all;">
-                                <a href="{{ $url }}" target="_blank" style="color:#4f46e5;">{{ $url }}</a>
+                                <a href="{!! $url !!}" target="_blank" style="color:#4f46e5;">{{ $url }}</a>
                             </p>
 
                             <p style="margin:0; font-size:13px; line-height:1.6; color:#94a3b8;">
