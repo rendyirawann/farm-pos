@@ -29,11 +29,27 @@
                 <label class="flex items-center gap-2 text-sm text-slate-600">
                     <input type="checkbox" name="remember" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"> Ingat saya
                 </label>
-                <button type="submit" class="w-full rounded-xl bg-indigo-600 text-white font-semibold py-3 hover:bg-indigo-700 shadow-lg shadow-indigo-600/25 transition">Masuk</button>
+                <button type="submit" id="aff-login-btn" class="w-full rounded-xl bg-indigo-600 text-white font-semibold py-3 hover:bg-indigo-700 shadow-lg shadow-indigo-600/25 transition disabled:opacity-70">Masuk</button>
             </form>
         </div>
         <p class="text-center text-slate-500 text-sm mt-5">Belum punya akun?
             <a href="{{ route('affiliate.register') }}" class="text-indigo-600 font-semibold hover:underline">Daftar gratis</a>
         </p>
     </div>
+
+    <style>@keyframes affspin{to{transform:rotate(360deg)}}</style>
+    <script>
+        (function () {
+            var form = document.querySelector('form[action="{{ route('affiliate.login.post') }}"]');
+            var btn = document.getElementById('aff-login-btn');
+            if (!form || !btn) return;
+            form.addEventListener('submit', function (e) {
+                if (typeof form.checkValidity === 'function' && !form.checkValidity()) return; // biarkan validasi HTML5
+                if (btn.dataset.loading) { e.preventDefault(); return; }                       // anti klik ganda
+                btn.dataset.loading = '1';
+                btn.disabled = true;
+                btn.innerHTML = '<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:affspin .6s linear infinite;vertical-align:-3px;margin-right:8px"></span>Memproses…';
+            });
+        })();
+    </script>
 @endsection
