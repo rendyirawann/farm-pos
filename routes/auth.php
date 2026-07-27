@@ -45,14 +45,18 @@ Route::middleware('guest')->group(function () {
         ->name('password.store');
 });
 
+// --- AKTIVASI via link email ---
+// TANPA middleware 'auth': cukup 'signed' (HMAC app key + expiry) supaya link bisa
+// diklik dari device/browser mana pun (mis. daftar di desktop, buka email di HP).
+// Validasi kepemilikan dilakukan di controller (cek hash sha1(email) vs param).
+Route::get('/admin/verify-email/{id}/{hash}', VerifyEmailController::class)
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('verification.verify');
+
 Route::middleware('auth')->group(function () {
     // --- VERIFY EMAIL ---
     Route::get('/admin/verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
-
-    Route::get('/admin/verify-email/{id}/{hash}', VerifyEmailController::class)
-        ->middleware(['signed', 'throttle:6,1'])
-        ->name('verification.verify');
 
     Route::post('/admin/email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
         ->middleware('throttle:6,1')
