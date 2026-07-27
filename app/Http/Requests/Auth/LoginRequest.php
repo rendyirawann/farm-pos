@@ -56,6 +56,8 @@ class LoginRequest extends FormRequest
 
         if (filter_var($loginValue, FILTER_VALIDATE_EMAIL)) {
             $field = 'email';
+            // Email disimpan huruf kecil saat daftar → cocokkan tanpa peduli huruf besar/kecil.
+            $loginValue = strtolower($loginValue);
         } elseif (is_numeric($loginValue)) {
             $field = 'no_wa';
         } else {

@@ -36,6 +36,12 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Normalisasi email: rapikan spasi & paksa huruf kecil supaya typo huruf besar
+        // (mis. "Budi@Gmail.com") otomatis jadi "budi@gmail.com", bukan ditolak.
+        $request->merge([
+            'email' => strtolower(trim((string) $request->input('email'))),
+        ]);
+
         $request->validate([
             'business_name' => ['required', 'string', 'max:255'],
             'business_type' => ['nullable', 'string', 'max:100'],

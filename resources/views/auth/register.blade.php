@@ -89,6 +89,8 @@
                         <div class="fv-row mb-4">
                             <label class="form-label fw-semibold required">Email</label>
                             <input type="email" name="email" value="{{ old('email') }}"
+                                autocapitalize="off" autocorrect="off" autocomplete="email" spellcheck="false"
+                                oninput="this.value=this.value.toLowerCase()"
                                 class="form-control bg-transparent" placeholder="email@bisnis.com" />
                             @error('email')<div class="text-danger fs-7 mt-1">{{ $message }}</div>@enderror
                         </div>
