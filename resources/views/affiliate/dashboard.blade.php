@@ -4,7 +4,7 @@
 @php($rupiah = fn ($n) => 'Rp ' . number_format((float) $n, 0, ',', '.'))
 
 @section('content')
-    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-10">
+    <div id="top" class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-8 scroll-mt-24">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-8">
             <div>
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Halo, {{ auth()->user()->name }} 👋</h1>
@@ -26,7 +26,7 @@
         @endif
 
         {{-- Link referral --}}
-        <div class="rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 text-white p-6 sm:p-8 mb-8">
+        <div id="sec-link" class="scroll-mt-24 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 text-white p-6 sm:p-8 mb-8">
             <div class="text-sm text-indigo-100 mb-1">Kode referral kamu</div>
             <div class="text-3xl font-black tracking-wide mb-4">{{ $affiliate->code }}</div>
             <div class="text-sm text-indigo-100 mb-2">Link referral (bagikan ini):</div>
@@ -38,7 +38,7 @@
         </div>
 
         {{-- Stats --}}
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div id="sec-komisi" class="scroll-mt-24 grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             @php($cards = [
                 ['Total referral', $stats['total'] . ' tenant', 'text-slate-900'],
                 ['Berlangganan', $stats['subscribed'] . ' tenant', 'text-indigo-600'],
@@ -54,7 +54,7 @@
         </div>
 
         {{-- Referral list --}}
-        <div class="rounded-2xl border border-slate-200 overflow-hidden">
+        <div id="sec-referral" class="scroll-mt-24 rounded-2xl border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 font-bold text-slate-900">Tenant yang memakai kodemu</div>
             @if ($referrals->count())
                 <div class="overflow-x-auto">
