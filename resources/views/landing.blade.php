@@ -380,22 +380,25 @@
             {{-- SECTION FITUR (gaya mockup: judul di tengah, lebih lebar) --}}
             <div id="fitur" class="swiper-slide lp-slide relative bg-white">
                 <div class="lp-content w-full px-6 py-20" style="max-width:1440px;">
-                    {{-- Banner promosi Program Affiliate --}}
+                    {{-- Banner promosi Program Affiliate (full-bleed, edge-to-edge) --}}
                     <a href="https://affiliate.mooda.id" target="_blank" rel="noopener"
-                       class="group relative mb-10 flex flex-col items-center gap-4 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-emerald-500 px-6 py-5 text-white shadow-xl shadow-indigo-500/20 sm:flex-row sm:justify-between sm:px-8">
-                        <span class="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/10"></span>
-                        <span class="pointer-events-none absolute -bottom-12 left-1/3 h-32 w-32 rounded-full bg-white/10"></span>
-                        <div class="relative flex items-center gap-4 text-center sm:text-left">
-                            <span class="hidden h-12 w-12 flex-shrink-0 place-items-center rounded-xl bg-white/15 text-2xl sm:grid">💸</span>
-                            <div>
-                                <div class="text-base font-extrabold sm:text-lg">{{ sc('landing','affiliate_banner_judul','Punya jaringan usaha? Jadi Affiliate Mooda!') }}</div>
-                                <div class="text-sm text-indigo-100">{{ sc('landing','affiliate_banner_sub','Bagikan link referral & dapat komisi untuk setiap bisnis yang bergabung.') }}</div>
+                       class="group relative mb-12 block overflow-hidden bg-gradient-to-r from-indigo-600 via-indigo-600 to-emerald-500 text-white shadow-xl shadow-indigo-500/20"
+                       style="width:100vw; margin-left:calc(50% - 50vw);">
+                        <span class="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-white/10"></span>
+                        <span class="pointer-events-none absolute -bottom-20 left-1/3 h-48 w-48 rounded-full bg-white/10"></span>
+                        <div class="relative mx-auto flex max-w-[1440px] flex-col items-center gap-5 px-6 py-9 sm:flex-row sm:justify-between sm:py-12">
+                            <div class="flex items-center gap-4 text-center sm:text-left">
+                                <span class="hidden h-14 w-14 flex-shrink-0 place-items-center rounded-2xl bg-white/15 text-3xl sm:grid">💸</span>
+                                <div>
+                                    <div class="text-xl font-extrabold sm:text-2xl">{{ sc('landing','affiliate_banner_judul','Punya jaringan usaha? Jadi Affiliate Mooda!') }}</div>
+                                    <div class="mt-1 text-sm text-indigo-100 sm:text-base">{{ sc('landing','affiliate_banner_sub','Bagikan link referral & dapat komisi untuk setiap bisnis yang bergabung.') }}</div>
+                                </div>
                             </div>
+                            <span class="relative inline-flex flex-shrink-0 items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-indigo-700 shadow-lg transition group-hover:gap-3 group-hover:bg-indigo-50 sm:text-base">
+                                {{ sc('landing','affiliate_banner_cta','Gabung Program Affiliate') }}
+                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h9.19L9.72 6.03a.75.75 0 111.06-1.06l4.5 4.5a.75.75 0 010 1.06l-4.5 4.5a.75.75 0 11-1.06-1.06l3.22-3.22H3.75A.75.75 0 013 10z" clip-rule="evenodd"/></svg>
+                            </span>
                         </div>
-                        <span class="relative inline-flex flex-shrink-0 items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-indigo-700 shadow-lg transition group-hover:gap-3 group-hover:bg-indigo-50">
-                            {{ sc('landing','affiliate_banner_cta','Gabung Program Affiliate') }}
-                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h9.19L9.72 6.03a.75.75 0 111.06-1.06l4.5 4.5a.75.75 0 010 1.06l-4.5 4.5a.75.75 0 11-1.06-1.06l3.22-3.22H3.75A.75.75 0 013 10z" clip-rule="evenodd"/></svg>
-                        </span>
                     </a>
 
                     <div class="mx-auto max-w-2xl text-center">
