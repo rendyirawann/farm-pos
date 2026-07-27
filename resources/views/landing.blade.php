@@ -779,6 +779,50 @@
                 </div>
             @endif
 
+            {{-- ===== FORM KODE REFERRAL (gaya newsletter, DI ATAS footer) ===== --}}
+            @php($refCode = strtoupper(trim((string) request('ref'))))
+            <div id="referral-form" style="background:#f6f7fc;scroll-margin-top:80px;">
+                <div style="max-width:960px;margin:0 auto;padding:64px 20px;">
+                    <div style="position:relative;overflow:hidden;border-radius:26px;background:linear-gradient(110deg,#4f46e5 0%,#4338ca 55%,#059669 100%);color:#fff;padding:44px 34px;box-shadow:0 34px 70px -30px rgba(79,70,229,.6);text-align:center;">
+                        <div style="position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.09);"></div>
+                        <div style="position:relative;">
+                            <div style="font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#c7d2fe;">Kode Referral</div>
+                            <h2 style="font-size:clamp(22px,3vw,32px);font-weight:800;margin:8px 0 6px;letter-spacing:-.02em;">Punya Kode Referral Teman?</h2>
+                            <p style="color:#e0e7ff;font-size:15px;max-width:48ch;margin:0 auto 22px;line-height:1.6;">Masukkan kodenya di bawah — otomatis terpakai saat kamu mendaftar. Datang lewat link referral? Kodenya sudah terisi.</p>
+                            <form onsubmit="return moodaGoRegisterRef(event)" style="display:flex;gap:10px;max-width:540px;margin:0 auto;flex-wrap:wrap;">
+                                <input id="refInput" name="ref" value="{{ $refCode }}" placeholder="Ketik kode referral (mis. RENDYENKW)" autocomplete="off"
+                                    oninput="this.value=this.value.toUpperCase()"
+                                    style="flex:1;min-width:220px;border:0;border-radius:12px;padding:14px 16px;font-size:15px;font-weight:700;letter-spacing:.04em;color:#0f172a;outline:none;text-transform:uppercase;">
+                                <button type="submit" style="border:0;border-radius:12px;background:#fff;color:#4338ca;font-weight:800;font-size:15px;padding:14px 24px;cursor:pointer;white-space:nowrap;">Daftar dengan Kode →</button>
+                            </form>
+                            <div style="margin-top:14px;font-size:13px;color:#c7d2fe;">Tidak punya kode? <a href="{{ route('register') }}" style="color:#fff;text-decoration:underline;">Lewati &amp; daftar biasa</a></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script>
+                function moodaGoRegisterRef(e){
+                    e.preventDefault();
+                    var v = (document.getElementById('refInput').value || '').trim().toUpperCase();
+                    var url = @json(route('register'));
+                    if (v) {
+                        try { if (navigator.clipboard) navigator.clipboard.writeText(v); } catch (_) {}
+                        url += (url.indexOf('?') >= 0 ? '&' : '?') + 'ref=' + encodeURIComponent(v);
+                    }
+                    window.location.href = url;
+                    return false;
+                }
+                (function(){
+                    try {
+                        var p = new URLSearchParams(window.location.search);
+                        if (p.get('ref')) {
+                            var el = document.getElementById('referral-form');
+                            if (el) setTimeout(function(){ el.scrollIntoView({behavior:'smooth', block:'center'}); }, 450);
+                        }
+                    } catch (_) {}
+                })();
+            </script>
+
             {{-- ===== CTA + FOOTER (memanjang ke bawah + sosial media) ===== --}}
             <div class="mooda-footer-block" data-nav-dark>
                 <style>

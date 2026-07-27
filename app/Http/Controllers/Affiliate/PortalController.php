@@ -30,8 +30,11 @@ class PortalController extends Controller
     /** Klik link referral -> set cookie -> arahkan ke pendaftaran tenant di mooda.id. */
     public function track($code)
     {
+        $code = trim((string) $code);
         $minutes = (int) config('affiliate.cookie_days', 30) * 24 * 60;
-        $resp = redirect()->away('https://mooda.id/admin/register');
+        // Arahkan ke LANDING mooda.id (bukan langsung register). Kode dibawa via ?ref= agar
+        // form referral di landing terisi otomatis + auto-scroll. Cookie tetap diset (fallback).
+        $resp = redirect()->away('https://mooda.id/?ref=' . urlencode($code) . '#referral-form');
         // Cookie domain .mooda.id agar terbaca saat tenant mendaftar di mooda.id.
         return $resp->cookie(config('affiliate.cookie_name', 'mooda_ref'), $code, $minutes, '/', '.mooda.id');
     }
