@@ -1,4 +1,4 @@
-@extends('affiliate.layout')
+@extends('affiliate.app')
 @section('title', 'Dashboard Affiliate — Mooda')
 
 @php($rupiah = fn ($n) => 'Rp ' . number_format((float) $n, 0, ',', '.'))
