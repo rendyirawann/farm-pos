@@ -792,7 +792,9 @@
                             <form onsubmit="return moodaGoRegisterRef(event)" style="display:flex;gap:10px;max-width:540px;margin:0 auto;flex-wrap:wrap;">
                                 <input id="refInput" name="ref" value="{{ $refCode }}" placeholder="Ketik kode referral (mis. RENDYENKW)" autocomplete="off"
                                     oninput="this.value=this.value.toUpperCase()"
-                                    style="flex:1;min-width:220px;border:0;border-radius:12px;padding:14px 16px;font-size:15px;font-weight:700;letter-spacing:.04em;color:#0f172a;outline:none;text-transform:uppercase;">
+                                    style="flex:1;min-width:220px;background:#ffffff;border:1.5px solid #cbd5e1;border-radius:12px;padding:14px 16px;font-size:15px;font-weight:700;letter-spacing:.04em;color:#0f172a;outline:none;text-transform:uppercase;box-shadow:0 8px 20px -6px rgba(0,0,0,.25);"
+                                    onfocus="this.style.borderColor='#4f46e5';this.style.boxShadow='0 0 0 3px rgba(79,70,229,.25)';"
+                                    onblur="this.style.borderColor='#cbd5e1';this.style.boxShadow='0 8px 20px -6px rgba(0,0,0,.25)';">
                                 <button type="submit" style="border:0;border-radius:12px;background:#fff;color:#4338ca;font-weight:800;font-size:15px;padding:14px 24px;cursor:pointer;white-space:nowrap;">Daftar dengan Kode →</button>
                             </form>
                             <div style="margin-top:14px;font-size:13px;color:#c7d2fe;">Tidak punya kode? <a href="{{ route('register') }}" style="color:#fff;text-decoration:underline;">Lewati &amp; daftar biasa</a></div>
