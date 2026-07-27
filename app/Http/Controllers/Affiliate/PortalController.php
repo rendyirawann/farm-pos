@@ -119,7 +119,14 @@ class PortalController extends Controller
         return redirect()->route('affiliate.home');
     }
 
-    public function dashboard()
+    // Halaman-halaman dashboard afiliator (sidebar/dock). Semua berbagi data yang sama.
+    public function dashboard()     { return $this->page('affiliate.dashboard'); }
+    public function linkPage()      { return $this->page('affiliate.link'); }
+    public function referralsPage() { return $this->page('affiliate.referrals'); }
+    public function komisiPage()    { return $this->page('affiliate.komisi'); }
+
+    /** Guard + muat data afiliator lalu render view yang diminta. */
+    private function page(string $view)
     {
         if (! Auth::check()) {
             return redirect()->route('affiliate.login');
@@ -147,7 +154,7 @@ class PortalController extends Controller
             'pending'    => (float) $referrals->where('commission_status', '!=', 'paid')->sum('commission_amount'),
         ];
 
-        return view('affiliate.dashboard', compact('affiliate', 'referrals', 'stats'));
+        return view($view, compact('affiliate', 'referrals', 'stats'));
     }
 
     private function uniqueUsername(string $email): string

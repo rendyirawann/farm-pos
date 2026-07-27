@@ -27,3 +27,6 @@ Route::post('/keluar', [PortalController::class, 'logout'])->name('affiliate.log
 
 // Dashboard afiliator (guard auth + role 'affiliate' di controller).
 Route::get('/dashboard', [PortalController::class, 'dashboard'])->name('affiliate.dashboard');
+Route::get('/dashboard/link', [PortalController::class, 'linkPage'])->name('affiliate.link');
+Route::get('/dashboard/referral', [PortalController::class, 'referralsPage'])->name('affiliate.referrals');
+Route::get('/dashboard/komisi', [PortalController::class, 'komisiPage'])->name('affiliate.komisi');
