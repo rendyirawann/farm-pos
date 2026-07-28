@@ -82,6 +82,12 @@ class User extends Authenticatable implements BannableContract, MustVerifyEmail
         $this->notify(new VerifyAccountNotification());
     }
 
+    /** Kirim email reset kata sandi versi branded Mooda (bukan template default). */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\ResetPasswordNotification($token));
+    }
+
     /** Sisa detik cooldown kirim-ulang link aktivasi (0 bila boleh kirim). */
     public function verificationResendCooldown(int $seconds = 120): int
     {

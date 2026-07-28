@@ -25,6 +25,12 @@ Route::get('/masuk', [PortalController::class, 'showLogin'])->name('affiliate.lo
 Route::post('/masuk', [PortalController::class, 'login'])->name('affiliate.login.post');
 Route::post('/keluar', [PortalController::class, 'logout'])->name('affiliate.logout');
 
+// Lupa / reset kata sandi affiliate.
+Route::get('/lupa-password', [PortalController::class, 'showForgotPassword'])->name('affiliate.password.request');
+Route::post('/lupa-password', [PortalController::class, 'sendResetLink'])->name('affiliate.password.email');
+Route::get('/reset-password/{token}', [PortalController::class, 'showResetPassword'])->name('affiliate.password.reset');
+Route::post('/reset-password', [PortalController::class, 'resetPassword'])->name('affiliate.password.update');
+
 // Dashboard afiliator (guard auth + role 'affiliate' di controller).
 Route::get('/dashboard', [PortalController::class, 'dashboard'])->name('affiliate.dashboard');
 Route::get('/dashboard/link', [PortalController::class, 'linkPage'])->name('affiliate.link');

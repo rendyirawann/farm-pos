@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 
@@ -193,6 +194,59 @@ class PortalController extends Controller
         });
 
         return redirect()->route('affiliate.withdraw')->with('wd_created', $withdrawal->code);
+    }
+
+    /* ===================== LUPA / RESET KATA SANDI ===================== */
+
+    public function showForgotPassword()
+    {
+        return view('affiliate.forgot-password');
+    }
+
+    public function sendResetLink(Request $request)
+    {
+        $request->validate(['email' => ['required', 'email']]);
+        $email = strtolower(trim((string) $request->email));
+        $user  = User::where('email', $email)->first();
+
+        // Kirim tautan hanya untuk user yang benar-benar affiliate. Pesan dibuat netral
+        // (tak membocorkan apakah email terdaftar).
+        if ($user && $user->hasRole('affiliate')) {
+            $token = Password::broker()->createToken($user);
+            $user->notify(new \App\Notifications\AffiliateResetPasswordNotification($token, $email));
+        }
+
+        return back()->with('status', 'Jika email terdaftar sebagai affiliate, tautan reset kata sandi sudah dikirim. Cek juga folder Spam/Promosi ya.');
+    }
+
+    public function showResetPassword(Request $request, string $token)
+    {
+        return view('affiliate.reset-password', [
+            'token' => $token,
+            'email' => (string) $request->query('email', ''),
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token'    => ['required'],
+            'email'    => ['required', 'email'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        $status = Password::broker()->reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password) {
+                $user->forceFill(['password' => Hash::make($password)])->save();
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return redirect()->route('affiliate.login')->with('status', 'Kata sandi berhasil diperbarui. Silakan masuk dengan kata sandi baru.');
+        }
+
+        return back()->withInput($request->only('email'))->withErrors(['email' => __($status)]);
     }
 
     /** Ambil/buat profil afiliator utk user aktif. */
