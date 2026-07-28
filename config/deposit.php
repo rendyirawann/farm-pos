@@ -42,7 +42,7 @@ return [
 
     // Info top-up manual (bila pembayaran otomatis bermasalah): transfer bank + chat WA,
     // lalu Superadmin kreditkan saldo. Bisa diubah Superadmin.
-    'manual_wa'   => env('DEPOSIT_MANUAL_WA', '6281265558044'),
+    'manual_wa'   => env('DEPOSIT_MANUAL_WA', '6285760366666'),
     'manual_bank' => env('DEPOSIT_MANUAL_BANK', ''),
 
     // Paket top-up default: nominal (Rupiah dibayar) => saldo diterima (sudah termasuk bonus).

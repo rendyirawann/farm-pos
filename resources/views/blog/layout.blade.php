@@ -124,7 +124,7 @@
                 <div>
                     <h4 class="text-white font-bold mb-4 text-sm uppercase tracking-wide">{{ sc('blog','footer_kol_kontak','Kontak') }}</h4>
                     <ul class="space-y-2.5 text-sm">
-                        <li class="flex items-center gap-2"><span>📞</span><a href="https://wa.me/{{ config('mooda.support_wa', '6281265558044') }}" class="hover:text-indigo-400 transition">{{ sc('blog','footer_telepon','0812-6555-8044') }}</a></li>
+                        <li class="flex items-center gap-2"><span>📞</span><a href="https://wa.me/{{ config('mooda.support_wa', '6285760366666') }}" class="hover:text-indigo-400 transition">{{ sc('blog','footer_telepon','0857-6036-6666') }}</a></li>
                         <li class="flex items-center gap-2"><span>✉️</span><a href="mailto:hello@mooda.id" class="hover:text-indigo-400 transition">{{ sc('blog','footer_email','hello@mooda.id') }}</a></li>
                         <li class="flex items-center gap-2"><span>🌐</span><a href="https://blog.mooda.id" class="hover:text-indigo-400 transition">{{ sc('blog','footer_website','blog.mooda.id') }}</a></li>
                     </ul>

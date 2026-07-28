@@ -31,12 +31,20 @@ class PortalController extends Controller
     public function track($code)
     {
         $code = trim((string) $code);
+
+        // Link referral hanya BERLAKU bila affiliate sudah DISETUJUI Superadmin (status 'active').
+        // Kalau belum aktif / kode tak dikenal -> link inert: arahkan ke landing tanpa ?ref & tanpa cookie.
+        $affiliate = Affiliate::whereRaw('UPPER(code) = ?', [strtoupper($code)])->first();
+        if (! $affiliate || $affiliate->status !== 'active') {
+            return redirect()->away('https://mooda.id/');
+        }
+
         $minutes = (int) config('affiliate.cookie_days', 30) * 24 * 60;
         // Arahkan ke LANDING mooda.id (bukan langsung register). Kode dibawa via ?ref= agar
         // form referral di landing terisi otomatis + auto-scroll. Cookie tetap diset (fallback).
-        $resp = redirect()->away('https://mooda.id/?ref=' . urlencode($code) . '#referral-form');
+        $resp = redirect()->away('https://mooda.id/?ref=' . urlencode($affiliate->code) . '#referral-form');
         // Cookie domain .mooda.id agar terbaca saat tenant mendaftar di mooda.id.
-        return $resp->cookie(config('affiliate.cookie_name', 'mooda_ref'), $code, $minutes, '/', '.mooda.id');
+        return $resp->cookie(config('affiliate.cookie_name', 'mooda_ref'), $affiliate->code, $minutes, '/', '.mooda.id');
     }
 
     public function showRegister()

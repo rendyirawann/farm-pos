@@ -22,8 +22,10 @@ class RegisteredUserController extends Controller
      */
     public function create(Request $request): View
     {
-        // Pra-isi kode referral dari ?ref= atau cookie (bila datang lewat link referral).
-        $ref = $request->query('ref') ?: $request->cookie(config('affiliate.cookie_name', 'mooda_ref'));
+        // Field kode referral hanya terisi bila user datang EKSPLISIT lewat ?ref= (link referral).
+        // Cookie mooda_ref tetap dipakai diam-diam untuk atribusi di attachReferral(); tapi
+        // field dibiarkan KOSONG bila tak bawa kode -> tidak "muncul terus" untuk pendaftar biasa.
+        $ref = trim((string) $request->query('ref', ''));
         return view('auth.register', ['ref' => $ref]);
     }
 
@@ -121,7 +123,9 @@ class RegisteredUserController extends Controller
                 return;
             }
             $affiliate = \App\Models\Affiliate::whereRaw('UPPER(code) = ?', [strtoupper($code)])->first();
-            if (! $affiliate) {
+            // Affiliate harus SUDAH DISETUJUI Superadmin (status 'active'); kalau belum,
+            // link referral belum berlaku -> tidak dicatat.
+            if (! $affiliate || $affiliate->status !== 'active') {
                 return;
             }
             \App\Models\Referral::firstOrCreate(

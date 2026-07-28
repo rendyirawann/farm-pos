@@ -57,7 +57,7 @@
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">WhatsApp Admin (top-up manual)</label>
                                 <input type="text" name="manual_wa" class="form-control"
-                                    value="{{ old('manual_wa', $settings->manual_wa) }}" placeholder="mis. 6281265558044">
+                                    value="{{ old('manual_wa', $settings->manual_wa) }}" placeholder="mis. 6285760366666">
                                 <div class="form-text">Format 62xxx. Untuk tombol chat di halaman tenant.</div>
                             </div>
                             <div class="col-md-6">

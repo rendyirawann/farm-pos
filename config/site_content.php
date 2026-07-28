@@ -504,7 +504,7 @@ return array (
               'key' => 'footer_kontak_nomor',
               'label' => 'Nomor kontak (teks tampil)',
               'type' => 'text',
-              'default' => '0812-6555-8044',
+              'default' => '0857-6036-6666',
             ),
             4 => 
             array (
@@ -943,7 +943,7 @@ return array (
               'key' => 'footer_telepon',
               'label' => 'Nomor telepon (teks tampil)',
               'type' => 'text',
-              'default' => '0812-6555-8044',
+              'default' => '0857-6036-6666',
             ),
             9 => 
             array (
@@ -1483,7 +1483,7 @@ return array (
               'key' => 'footer_kontak_telepon',
               'label' => 'Kontak - Nomor Telepon (teks)',
               'type' => 'text',
-              'default' => '0812-6555-8044',
+              'default' => '0857-6036-6666',
             ),
             13 => 
             array (

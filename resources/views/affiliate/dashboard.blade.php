@@ -10,32 +10,41 @@
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Halo, {{ auth()->user()->name }} 👋</h1>
                 <p class="text-slate-500">Pantau referral & komisimu di sini.</p>
             </div>
-            @if ($affiliate->status === 'active')
-                <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-1.5 text-sm font-semibold">● Aktif</span>
+            @php($isActive = $affiliate->status === 'active')
+            @if ($isActive)
+                <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-1.5 text-sm font-semibold">✓ Akun affiliate aktif</span>
             @elseif ($affiliate->status === 'pending')
-                <span class="inline-flex items-center gap-2 rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-4 py-1.5 text-sm font-semibold">● Menunggu persetujuan</span>
+                <span class="inline-flex items-center gap-2 rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-4 py-1.5 text-sm font-semibold">● Menunggu persetujuan Superadmin</span>
             @else
                 <span class="inline-flex items-center gap-2 rounded-full bg-red-50 text-red-700 border border-red-200 px-4 py-1.5 text-sm font-semibold">● Ditangguhkan</span>
             @endif
         </div>
 
-        @if ($affiliate->status === 'pending')
+        @unless ($isActive)
             <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-5 py-4 mb-8 text-sm">
-                Akun afiliatormu <b>sedang ditinjau admin</b>. Kamu sudah bisa membagikan link di bawah — referral akan tetap tercatat, dan komisi diproses setelah akun disetujui.
+                Akun afiliatormu <b>sedang ditinjau Superadmin</b>. <b>Link referral belum bisa digunakan</b> sampai akunmu disetujui — link yang dibagikan sekarang tidak akan tercatat. Mohon tunggu persetujuan ya.
             </div>
-        @endif
+        @endunless
 
         {{-- Link referral --}}
-        <div id="sec-link" class="scroll-mt-24 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 text-white p-6 sm:p-8 mb-8">
-            <div class="text-sm text-indigo-100 mb-1">Kode referral kamu</div>
-            <div class="text-3xl font-black tracking-wide mb-4">{{ $affiliate->code }}</div>
-            <div class="text-sm text-indigo-100 mb-2">Link referral (bagikan ini):</div>
-            <div class="flex flex-col sm:flex-row gap-2">
-                <input id="ref-link" readonly value="{{ $affiliate->referralUrl() }}"
-                    class="flex-1 rounded-xl bg-white/15 border border-white/25 px-4 py-2.5 text-white placeholder-white/60 outline-none text-sm">
-                <button id="copy-link" class="rounded-xl bg-white text-indigo-700 font-semibold px-5 py-2.5 hover:bg-indigo-50 transition text-sm">Salin Link</button>
+        @if ($isActive)
+            <div id="sec-link" class="scroll-mt-24 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 text-white p-6 sm:p-8 mb-8">
+                <div class="text-sm text-indigo-100 mb-1">Kode referral kamu</div>
+                <div class="text-3xl font-black tracking-wide mb-4">{{ $affiliate->code }}</div>
+                <div class="text-sm text-indigo-100 mb-2">Link referral (bagikan ini):</div>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input id="ref-link" readonly value="{{ $affiliate->referralUrl() }}"
+                        class="flex-1 rounded-xl bg-white/15 border border-white/25 px-4 py-2.5 text-white placeholder-white/60 outline-none text-sm">
+                    <button id="copy-link" class="rounded-xl bg-white text-indigo-700 font-semibold px-5 py-2.5 hover:bg-indigo-50 transition text-sm">Salin Link</button>
+                </div>
             </div>
-        </div>
+        @else
+            <div id="sec-link" class="scroll-mt-24 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 sm:p-8 mb-8 text-center">
+                <div class="text-4xl mb-2">🔒</div>
+                <div class="font-bold text-slate-700">Link referral terkunci</div>
+                <p class="text-sm text-slate-500 mt-1">Kode <b>{{ $affiliate->code }}</b> akan aktif & bisa dibagikan setelah akunmu disetujui Superadmin.</p>
+            </div>
+        @endif
 
         {{-- Stats --}}
         <div id="sec-komisi" class="scroll-mt-24 grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

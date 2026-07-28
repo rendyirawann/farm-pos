@@ -12,6 +12,16 @@
             <p class="text-slate-500">Bagikan link ini — komisi masuk untuk setiap bisnis yang bergabung.</p>
         </div>
 
+        @php($isActive = $affiliate->status === 'active')
+
+        @if (! $isActive)
+            {{-- Terkunci sampai disetujui Superadmin --}}
+            <div class="rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50 p-8 mb-6 text-center">
+                <div class="text-4xl mb-2">🔒</div>
+                <div class="font-bold text-amber-800">Link referral belum aktif</div>
+                <p class="text-sm text-amber-700 mt-1 max-w-md mx-auto">Akunmu <b>sedang ditinjau Superadmin</b>. Kode <b>{{ $affiliate->code }}</b> baru bisa dibagikan setelah akunmu disetujui. Link yang dibagikan sekarang tidak akan tercatat.</p>
+            </div>
+        @else
         {{-- Kartu link --}}
         <div class="rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 text-white p-6 sm:p-8 mb-6">
             <div class="text-sm text-indigo-100 mb-1">Kode referral kamu</div>
@@ -34,6 +44,7 @@
                class="flex items-center justify-center gap-2 rounded-xl bg-blue-600 text-white font-semibold py-3 hover:bg-blue-700 transition text-sm">Facebook</a>
             <button id="copy-link-2" class="flex items-center justify-center gap-2 rounded-xl bg-slate-800 text-white font-semibold py-3 hover:bg-slate-900 transition text-sm">Salin Link</button>
         </div>
+        @endif
 
         {{-- Tips --}}
         <div class="rounded-2xl border border-slate-200 bg-white p-6">
