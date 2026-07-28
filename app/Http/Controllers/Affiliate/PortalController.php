@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Affiliate;
 use App\Http\Controllers\Controller;
 use App\Models\Affiliate;
 use App\Models\User;
+use App\Models\Withdrawal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -135,6 +136,77 @@ class PortalController extends Controller
     public function linkPage()      { return $this->page('affiliate.link'); }
     public function referralsPage() { return $this->page('affiliate.referrals'); }
     public function komisiPage()    { return $this->page('affiliate.komisi'); }
+
+    /** Halaman pencairan (withdraw) komisi. */
+    public function withdrawPage()
+    {
+        if (! Auth::check()) {
+            return redirect()->route('affiliate.login');
+        }
+        if (! Auth::user()->hasRole('affiliate')) {
+            return redirect()->route('affiliate.home');
+        }
+        $affiliate   = $this->resolveAffiliate(Auth::user());
+        $available   = $affiliate->availableCommission();
+        $pending     = $affiliate->pendingWithdrawal();
+        $withdrawals = $affiliate->withdrawals()->latest()->get();
+
+        return view('affiliate.withdraw', compact('affiliate', 'available', 'pending', 'withdrawals'));
+    }
+
+    /** Ajukan pencairan: tarik SELURUH saldo tersedia. Tak bisa bila masih ada yang pending. */
+    public function withdrawSubmit(Request $request)
+    {
+        if (! Auth::check()) {
+            return redirect()->route('affiliate.login');
+        }
+        if (! Auth::user()->hasRole('affiliate')) {
+            return redirect()->route('affiliate.home');
+        }
+        $affiliate = $this->resolveAffiliate(Auth::user());
+
+        if ($affiliate->status !== 'active') {
+            return back()->with('wd_error', 'Akun affiliate kamu belum disetujui Superadmin.');
+        }
+        if ($affiliate->pendingWithdrawal()) {
+            return back()->with('wd_error', 'Masih ada pengajuan pencairan yang menunggu diproses. Tunggu sampai selesai dulu ya.');
+        }
+        $available = $affiliate->availableCommission();
+        if ($available <= 0) {
+            return back()->with('wd_error', 'Belum ada komisi yang bisa dicairkan.');
+        }
+
+        $withdrawal = DB::transaction(function () use ($affiliate, $available) {
+            $wd = Withdrawal::create([
+                'code'         => Withdrawal::generateCode(),
+                'affiliate_id' => $affiliate->id,
+                'amount'       => $available,
+                'status'       => 'pending',
+                'requested_at' => now(),
+            ]);
+            // Kunci komisi yang tercakup: 'pending' -> 'requested' + tautkan ke pencairan ini.
+            $affiliate->referrals()
+                ->where('commission_status', 'pending')
+                ->where('commission_amount', '>', 0)
+                ->update(['commission_status' => 'requested', 'withdrawal_id' => $wd->id]);
+            return $wd;
+        });
+
+        return redirect()->route('affiliate.withdraw')->with('wd_created', $withdrawal->code);
+    }
+
+    /** Ambil/buat profil afiliator utk user aktif. */
+    private function resolveAffiliate(User $user): Affiliate
+    {
+        $affiliate = Affiliate::where('user_id', $user->id)->first();
+        if (! $affiliate) {
+            $affiliate = Affiliate::create([
+                'code' => Affiliate::generateCode($user->name), 'name' => $user->name,
+                'email' => $user->email, 'type' => 'external', 'user_id' => $user->id, 'status' => 'pending',
+            ]);
+        }
+        return $affiliate;
+    }
 
     /** Guard + muat data afiliator lalu render view yang diminta. */
     private function page(string $view)

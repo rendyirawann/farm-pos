@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Backend\Affiliate;
 
 use App\Http\Controllers\Controller;
 use App\Models\Affiliate;
+use App\Models\AffiliateSetting;
 use App\Models\Referral;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Models\Withdrawal;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -190,5 +192,60 @@ class AdminController extends Controller
             return $sub ? round((float) $sub->amount * $value / 100, 2) : 0;
         }
         return $value; // flat
+    }
+
+    /* ===================== SETELAN PROGRAM (komisi & cashback) ===================== */
+
+    public function settings()
+    {
+        $setting = AffiliateSetting::current();
+        return view('backend.affiliate.settings', compact('setting'));
+    }
+
+    public function saveSettings(Request $request)
+    {
+        $data = $request->validate([
+            'commission_type'  => ['required', 'in:flat,percent'],
+            'commission_value' => ['required', 'numeric', 'min:0'],
+            'cashback_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+        ]);
+        AffiliateSetting::current()->update($data);
+        return back()->with('success', 'Setelan program affiliate berhasil disimpan.');
+    }
+
+    /* ===================== PENCAIRAN (withdraw) ===================== */
+
+    public function withdrawals()
+    {
+        $withdrawals = Withdrawal::with('affiliate')->latest()->paginate(30);
+        return view('backend.affiliate.withdrawals', compact('withdrawals'));
+    }
+
+    /** Tandai pencairan selesai (dicairkan): komisi terkait -> 'paid'. */
+    public function withdrawalDone($id)
+    {
+        $wd = Withdrawal::findOrFail($id);
+        if ($wd->status !== 'pending') {
+            return back()->with('error', 'Pengajuan sudah diproses sebelumnya.');
+        }
+        DB::transaction(function () use ($wd) {
+            $wd->referrals()->update(['commission_status' => 'paid', 'paid_at' => now()]);
+            $wd->update(['status' => 'done', 'done_at' => now()]);
+        });
+        return back()->with('success', 'Pencairan ' . $wd->code . ' ditandai SELESAI (dicairkan).');
+    }
+
+    /** Tolak pencairan: komisi dikembalikan ke 'pending' (bisa diajukan lagi). */
+    public function withdrawalReject($id)
+    {
+        $wd = Withdrawal::findOrFail($id);
+        if ($wd->status !== 'pending') {
+            return back()->with('error', 'Pengajuan sudah diproses sebelumnya.');
+        }
+        DB::transaction(function () use ($wd) {
+            $wd->referrals()->update(['commission_status' => 'pending', 'withdrawal_id' => null]);
+            $wd->update(['status' => 'rejected', 'done_at' => now()]);
+        });
+        return back()->with('success', 'Pencairan ' . $wd->code . ' ditolak; komisi dikembalikan ke saldo affiliate.');
     }
 }

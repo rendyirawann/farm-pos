@@ -100,26 +100,34 @@ class BillingController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Durasi langganan tidak valid.'], 422);
         }
 
+        // Cashback (potongan) untuk user yang daftar via referral affiliate — hanya Basic/Enterprise.
+        // Persen diatur Superadmin (default 0 = tanpa potongan). Nominal dipotong dari yang dibayar.
+        $cashbackPercent = \App\Services\AffiliateService::cashbackPercentFor($tenant->id, $planKey);
+        $cashbackAmount  = \App\Services\AffiliateService::cashbackAmount($tenant->id, $planKey, (int) $amount);
+        $amount = max(0, (int) $amount - $cashbackAmount);
+
         $driver = Billing::driver();
 
         // Driver DOKU (Virtual Account SNAP).
         if ($driver === 'doku') {
-            return $this->checkoutDoku($tenant, $planKey, (int) $amount, $months, $request->input('bank'));
+            return $this->checkoutDoku($tenant, $planKey, (int) $amount, $months, $request->input('bank'), $cashbackPercent, $cashbackAmount);
         }
 
         // Driver Tripay (Closed Payment, customer pilih channel).
         if ($driver === 'tripay') {
-            return $this->checkoutTripay($tenant, $planKey, (int) $amount, $months, (string) $request->input('method', ''));
+            return $this->checkoutTripay($tenant, $planKey, (int) $amount, $months, (string) $request->input('method', ''), $cashbackPercent, $cashbackAmount);
         }
 
         try {
-            $subscription = DB::transaction(function () use ($tenant, $planKey, $amount, $months) {
+            $subscription = DB::transaction(function () use ($tenant, $planKey, $amount, $months, $cashbackPercent, $cashbackAmount) {
                 $orderId = 'DSP-SUB-' . strtoupper(Str::random(6)) . '-' . $tenant->id . '-' . substr((string) Str::uuid(), 0, 8);
 
                 return Subscription::create([
                     'tenant_id'         => $tenant->id,
                     'plan'              => $planKey,
                     'amount'            => $amount,
+                    'cashback_percent'  => $cashbackPercent ?: null,
+                    'cashback_amount'   => $cashbackAmount ?: null,
                     'billing_period'    => (string) $months, // jumlah bulan (dipakai saat aktivasi)
                     'status'            => 'pending',
                     'midtrans_order_id' => $orderId,
@@ -358,7 +366,7 @@ class BillingController extends Controller
      * Checkout langganan via DOKU SNAP Virtual Account (Close Amount).
      * Membuat Subscription pending + VA, mengembalikan detail VA ke front-end.
      */
-    private function checkoutDoku($tenant, string $planKey, int $amount, int $months, ?string $bank = null)
+    private function checkoutDoku($tenant, string $planKey, int $amount, int $months, ?string $bank = null, float $cashbackPercent = 0, int $cashbackAmount = 0)
     {
         try {
             // Pilih channel bank DOKU (dari DokuVaChannel yang dikelola Superadmin).
@@ -367,12 +375,14 @@ class BillingController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Metode pembayaran (bank) tidak valid atau belum aktif.'], 422);
             }
 
-            $subscription = DB::transaction(function () use ($tenant, $planKey, $amount, $months) {
+            $subscription = DB::transaction(function () use ($tenant, $planKey, $amount, $months, $cashbackPercent, $cashbackAmount) {
                 $orderId = 'DSP-SUB-' . strtoupper(Str::random(6)) . '-' . $tenant->id . '-' . substr((string) Str::uuid(), 0, 8);
                 return Subscription::create([
                     'tenant_id'         => $tenant->id,
                     'plan'              => $planKey,
                     'amount'            => $amount,
+                    'cashback_percent'  => $cashbackPercent ?: null,
+                    'cashback_amount'   => $cashbackAmount ?: null,
                     'billing_period'    => (string) $months,
                     'status'            => 'pending',
                     'midtrans_order_id' => $orderId,   // dipakai sebagai trxId DOKU
@@ -422,7 +432,7 @@ class BillingController extends Controller
      * Checkout langganan via Tripay (Closed Payment). Membuat Subscription pending,
      * meminta transaksi ke Tripay dgn channel pilihan customer, kembalikan checkout_url.
      */
-    private function checkoutTripay($tenant, string $planKey, int $amount, int $months, string $method)
+    private function checkoutTripay($tenant, string $planKey, int $amount, int $months, string $method, float $cashbackPercent = 0, int $cashbackAmount = 0)
     {
         try {
             $tripay = new Tripay();
@@ -433,17 +443,25 @@ class BillingController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Metode pembayaran tidak valid atau belum aktif.'], 422);
             }
 
-            $subscription = DB::transaction(function () use ($tenant, $planKey, $amount, $months) {
+            $subscription = DB::transaction(function () use ($tenant, $planKey, $amount, $months, $cashbackPercent, $cashbackAmount) {
                 $orderId = 'DSP-SUB-' . strtoupper(Str::random(6)) . '-' . $tenant->id . '-' . substr((string) Str::uuid(), 0, 8);
                 return Subscription::create([
                     'tenant_id'         => $tenant->id,
                     'plan'              => $planKey,
                     'amount'            => $amount,
+                    'cashback_percent'  => $cashbackPercent ?: null,
+                    'cashback_amount'   => $cashbackAmount ?: null,
                     'billing_period'    => (string) $months,
                     'status'            => 'pending',
                     'midtrans_order_id' => $orderId,   // dipakai sebagai merchant_ref Tripay
                 ]);
             });
+
+            // Keterangan cashback pada item Tripay (bila ada).
+            $itemName = 'Langganan ' . Plan::name($planKey) . ' (' . $months . ' bulan)';
+            if ($cashbackAmount > 0) {
+                $itemName .= ' — cashback ' . rtrim(rtrim(number_format($cashbackPercent, 2, '.', ''), '0'), '.') . '% (-Rp' . number_format($cashbackAmount, 0, ',', '.') . ')';
+            }
 
             $res = $tripay->createClosedTransaction([
                 'method'         => $method,
@@ -454,7 +472,7 @@ class BillingController extends Controller
                 'customer_phone' => $tenant->phone,
                 'order_items'    => [[
                     'sku'      => 'plan-' . $planKey,
-                    'name'     => 'Langganan ' . Plan::name($planKey) . ' (' . $months . ' bulan)',
+                    'name'     => $itemName,
                     'price'    => $amount,
                     'quantity' => 1,
                 ]],
@@ -546,13 +564,13 @@ class BillingController extends Controller
 
     private function activateSubscription(Subscription $subscription, ?string $paymentType): void
     {
-        DB::transaction(function () use ($subscription, $paymentType) {
+        $activated = DB::transaction(function () use ($subscription, $paymentType) {
             // Kunci baris + re-cek status DI DALAM transaksi -> idempoten & anti-race:
             // webhook Midtrans bisa dikirim berkali-kali / (settlement+capture) hampir bersamaan,
             // sehingga tanpa lock masa aktif bisa diperpanjang DOBEL.
             $subscription = Subscription::whereKey($subscription->getKey())->lockForUpdate()->first();
             if (! $subscription || $subscription->status === 'paid') {
-                return; // sudah diproses
+                return false; // sudah diproses
             }
 
             $tenant = $subscription->tenant()->lockForUpdate()->first();
@@ -581,7 +599,15 @@ class BillingController extends Controller
                 // Beralih ke mode bulanan: poin deposit (bila ada) dibekukan, tetap tersimpan.
                 'billing_mode'         => 'monthly',
             ]);
+
+            return true;
         });
+
+        // Catat komisi affiliate SETELAH langganan benar-benar baru diaktifkan (sekali saja,
+        // karena transaksi di atas idempoten). Non-fatal: tak akan menggagalkan webhook.
+        if ($activated) {
+            \App\Services\AffiliateService::rewardOnSubscription($subscription->refresh());
+        }
     }
 
     private function configureMidtrans(): void

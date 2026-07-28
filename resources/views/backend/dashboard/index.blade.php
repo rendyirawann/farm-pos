@@ -9,6 +9,21 @@
     <div id="kt_app_content" class="app-content flex-column-fluid mt-5">
         <div id="kt_app_content_container" class="app-container container-xxl">
 
+            {{-- Penanda: bergabung lewat referral affiliate --}}
+            @php
+                $__tid = auth()->user()->tenant_id ?? null;
+                $__ref = $__tid ? \App\Models\Referral::with('affiliate')->where('tenant_id', $__tid)->first() : null;
+            @endphp
+            @if ($__ref && $__ref->affiliate)
+                <div class="d-flex align-items-center bg-light-primary border border-primary border-dashed rounded-3 mb-6 p-4">
+                    <i class="ki-outline ki-share fs-2x text-primary me-3"></i>
+                    <div>
+                        <span class="fw-bold text-gray-900 d-block">Bergabung lewat kode referral: {{ $__ref->affiliate->code }}</span>
+                        <span class="text-muted fs-7">Affiliate: {{ $__ref->affiliate->name }}{{ $__ref->affiliate->email ? ' · ' . $__ref->affiliate->email : '' }}</span>
+                    </div>
+                </div>
+            @endif
+
             {{-- Welcome header --}}
             <div class="card border-0 shadow-sm mb-6 mb-xl-8"
                 style="background: linear-gradient(120deg, #4f46e5 0%, #6366f1 55%, #818cf8 100%);">

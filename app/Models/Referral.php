@@ -11,7 +11,7 @@ class Referral extends Model
 {
     protected $fillable = [
         'affiliate_id', 'tenant_id', 'tenant_name', 'status',
-        'commission_amount', 'commission_status', 'subscribed_at', 'paid_at',
+        'commission_amount', 'commission_status', 'subscribed_at', 'paid_at', 'withdrawal_id',
     ];
 
     protected $casts = [
@@ -28,5 +28,10 @@ class Referral extends Model
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function withdrawal()
+    {
+        return $this->belongsTo(Withdrawal::class);
     }
 }

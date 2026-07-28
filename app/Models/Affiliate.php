@@ -30,6 +30,26 @@ class Affiliate extends Model
         return $this->hasMany(Referral::class);
     }
 
+    public function withdrawals()
+    {
+        return $this->hasMany(Withdrawal::class);
+    }
+
+    /** Komisi yang SUDAH bisa dicairkan (belum diajukan/ditarik). */
+    public function availableCommission(): float
+    {
+        return (float) $this->referrals()
+            ->where('commission_status', 'pending')
+            ->where('commission_amount', '>', 0)
+            ->sum('commission_amount');
+    }
+
+    /** Pengajuan pencairan yang masih menunggu (kalau ada) — pemblokir pengajuan baru. */
+    public function pendingWithdrawal(): ?Withdrawal
+    {
+        return $this->withdrawals()->where('status', 'pending')->latest()->first();
+    }
+
     public function scopeActive($q)
     {
         return $q->where('status', 'active');

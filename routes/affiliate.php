@@ -30,3 +30,5 @@ Route::get('/dashboard', [PortalController::class, 'dashboard'])->name('affiliat
 Route::get('/dashboard/link', [PortalController::class, 'linkPage'])->name('affiliate.link');
 Route::get('/dashboard/referral', [PortalController::class, 'referralsPage'])->name('affiliate.referrals');
 Route::get('/dashboard/komisi', [PortalController::class, 'komisiPage'])->name('affiliate.komisi');
+Route::get('/dashboard/withdraw', [PortalController::class, 'withdrawPage'])->name('affiliate.withdraw');
+Route::post('/dashboard/withdraw', [PortalController::class, 'withdrawSubmit'])->name('affiliate.withdraw.submit');

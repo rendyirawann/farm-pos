@@ -352,6 +352,12 @@
                         <a href="{{ route('affiliates.index') }}" class="btn btn-flex btn-light-success fw-bold justify-content-start">
                             <i class="ki-outline ki-share fs-3 me-2"></i> Affiliate
                         </a>
+                        <a href="{{ route('affiliates.withdrawals') }}" class="btn btn-flex btn-light fw-bold justify-content-start">
+                            <i class="ki-outline ki-dollar fs-3 me-2"></i> Pencairan Komisi
+                        </a>
+                        <a href="{{ route('affiliates.settings') }}" class="btn btn-flex btn-light fw-bold justify-content-start">
+                            <i class="ki-outline ki-setting-3 fs-3 me-2"></i> Setelan Affiliate
+                        </a>
                     @endcan
                     @can('view_resources')
                         <a href="{{ route('users.index') }}" class="btn btn-flex btn-light fw-bold justify-content-start">
