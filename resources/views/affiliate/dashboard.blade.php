@@ -22,7 +22,7 @@
 
         @unless ($isActive)
             <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-5 py-4 mb-8 text-sm">
-                Akun afiliatormu <b>sedang ditinjau Superadmin</b>. <b>Link referral belum bisa digunakan</b> sampai akunmu disetujui — link yang dibagikan sekarang tidak akan tercatat. Mohon tunggu persetujuan ya.
+Akun Anda akan di-review <b>maksimal dalam 1x24 jam</b>. <b>Link referral belum bisa digunakan</b> sampai akunmu disetujui — link yang dibagikan sekarang tidak akan tercatat. Mohon tunggu persetujuan ya.
             </div>
         @endunless
 
