@@ -27,6 +27,7 @@ return [
             'price' => 199000,
             'periods' => [
                 ['months' => 1,  'price_per_month' => 199000, 'label' => 'Bulanan'],
+                ['months' => 3,  'price_per_month' => 169000, 'label' => 'Promo 3 Bulan'],
                 ['months' => 6,  'price_per_month' => 149000, 'label' => 'Promo 6 Bulan'],
                 ['months' => 12, 'price_per_month' => 129000, 'label' => 'Promo 12 Bulan'],
             ],
