@@ -37,10 +37,31 @@ class Plan
         if (!$plan) {
             return [];
         }
-        if (!empty($plan['periods'])) {
-            return array_values($plan['periods']);
+
+        // Sumber utama: tabel plan_promos (dikelola Superadmin). Fallback ke config bila
+        // belum ada / DB bermasalah (jaga agar checkout tak pernah putus).
+        try {
+            $promos = \App\Models\PlanPromo::where('plan_key', $key)->orderBy('months')->get();
+        } catch (\Throwable $e) {
+            $promos = collect();
         }
-        return [['months' => 1, 'price_per_month' => (int) ($plan['price'] ?? 0), 'label' => 'Bulanan']];
+        if ($promos->isNotEmpty()) {
+            return $promos->map(fn ($pr) => [
+                'months'           => (int) $pr->months,
+                'price_per_month'  => (int) $pr->price_per_month,
+                'label'            => $pr->promo_label ?: ((int) $pr->months <= 1 ? 'Bulanan' : $pr->months . ' Bulan'),
+                'discount_percent' => (float) $pr->discount_percent,
+                'promo_active'     => (bool) $pr->is_active,
+            ])->all();
+        }
+
+        if (!empty($plan['periods'])) {
+            return array_map(fn ($p) => array_merge(
+                ['discount_percent' => 0.0, 'promo_active' => false, 'label' => $p['label'] ?? null],
+                $p
+            ), array_values($plan['periods']));
+        }
+        return [['months' => 1, 'price_per_month' => (int) ($plan['price'] ?? 0), 'label' => 'Bulanan', 'discount_percent' => 0.0, 'promo_active' => false]];
     }
 
     /**

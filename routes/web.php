@@ -177,6 +177,10 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
         Route::post('/admin/demo-accounts/generate', [DemoAccountController::class, 'generate'])->name('demo-accounts.generate');
         Route::post('/admin/demo-accounts/deposit', [DemoAccountController::class, 'deposit'])->name('demo-accounts.deposit');
 
+        // Setelan Paket langganan (harga dasar, diskon %, label promo, toggle) — Superadmin
+        Route::get('/admin/plan-settings', [\App\Http\Controllers\Backend\Superadmin\PlanController::class, 'index'])->name('plan-settings.index');
+        Route::post('/admin/plan-settings', [\App\Http\Controllers\Backend\Superadmin\PlanController::class, 'save'])->name('plan-settings.save');
+
         // Setelan Plan Deposit (platform-wide, Superadmin)
         Route::get('/admin/deposit-settings', [DepositSettingController::class, 'index'])->name('deposit-settings.index');
         Route::post('/admin/deposit-settings', [DepositSettingController::class, 'update'])->name('deposit-settings.update');

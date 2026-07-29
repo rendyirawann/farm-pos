@@ -340,6 +340,9 @@
                     <a href="{{ route('deposit-settings.index') }}" class="btn btn-flex btn-light-warning fw-bold justify-content-start">
                         <i class="ki-outline ki-wallet fs-3 me-2"></i> Setelan Deposit
                     </a>
+                    <a href="{{ route('plan-settings.index') }}" class="btn btn-flex btn-light-info fw-bold justify-content-start">
+                        <i class="ki-outline ki-price-tag fs-3 me-2"></i> Setelan Paket
+                    </a>
                     @can('blog.manage')
                         <a href="{{ route('blog.admin.posts.index') }}" class="btn btn-flex btn-light-info fw-bold justify-content-start">
                             <i class="ki-outline ki-notepad-edit fs-3 me-2"></i> Kelola Blog

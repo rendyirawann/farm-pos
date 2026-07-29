@@ -562,11 +562,7 @@
                                 [
                                     'name' => 'Enterprise', 'pop' => true,
                                     'tagline' => 'Untuk bisnis berkembang dengan manajemen yang lebih lengkap.',
-                                    'periods' => [
-                                        ['months' => 1, 'price_per_month' => 399000],
-                                        ['months' => 6, 'price_per_month' => 349000],
-                                        ['months' => 12, 'price_per_month' => 329000],
-                                    ],
+                                    'periods' => \App\Tenancy\Plan::periods('enterprise'),
                                     'features' => [
                                         'Semua fitur paket Basic',
                                         'Manajemen Pengaturan Meja',
@@ -650,9 +646,12 @@
                                                 $short = $pm == 1 ? 'Bulanan' : $pm . ' Bulan';
                                             @endphp
                                             <button type="button" class="plan-dur-btn {{ $i === $defIdx ? 'is-active' : '' }}"
-                                                data-ppm="{{ $ppm }}" data-total="{{ $total }}" data-months="{{ $pm }}" data-disc="{{ $disc }}">{{ $short }}@if ($disc > 0)<span class="disc">-{{ $disc }}%</span>@endif</button>
+                                                data-ppm="{{ $ppm }}" data-total="{{ $total }}" data-months="{{ $pm }}" data-disc="{{ $disc }}"
+                                                data-promolabel="{{ !empty($per['promo_active']) ? e($per['label'] ?? '') : '' }}">{{ $short }}@if ($disc > 0)<span class="disc">-{{ $disc }}%</span>@endif</button>
                                         @endforeach
                                     </div>
+                                    @php $defPromoLabel = !empty($def['promo_active']) ? ($def['label'] ?? '') : ''; @endphp
+                                    <div class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700" data-promo-label style="{{ $defPromoLabel !== '' ? '' : 'display:none' }}">🏷️ <span data-promo-label-text>{{ $defPromoLabel }}</span></div>
                                     @if (!empty($mp['free_printer']))
                                         <div class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700" data-free-printer style="{{ $defMonths >= 3 ? '' : 'display:none' }}">
                                             🖨️ Gratis printer thermal
@@ -1004,8 +1003,15 @@
                 var display = box.querySelector('[data-price-display]');
                 var note = box.querySelector('[data-price-note]');
                 var freePrinter = box.querySelector('[data-free-printer]'); // hanya ada di paket ber-free-printer (Basic)
+                var promoLabel = box.querySelector('[data-promo-label]');
+                var promoLabelText = box.querySelector('[data-promo-label-text]');
                 var setFreePrinter = function (months) {
                     if (freePrinter) freePrinter.style.display = months < 3 ? 'none' : 'inline-flex'; // gratis printer utk 3 bln ke atas
+                };
+                var setPromoLabel = function (label) {
+                    if (!promoLabel) return;
+                    if (label) { if (promoLabelText) promoLabelText.textContent = label; promoLabel.style.display = 'inline-flex'; }
+                    else { promoLabel.style.display = 'none'; }
                 };
                 var btns = box.querySelectorAll('.plan-dur-btn');
                 btns.forEach(function (btn) {
@@ -1017,11 +1023,12 @@
                         if (note) note.textContent = months <= 1 ? 'Tanpa komitmen'
                             : ('Bayar ' + months + ' bln di muka · total ' + rp(total) + (disc > 0 ? ' · Hemat ' + disc + '%' : ''));
                         setFreePrinter(months);
+                        setPromoLabel(btn.dataset.promolabel || '');
                     });
                 });
-                // Kondisi awal note ikut tombol yang aktif saat load.
+                // Kondisi awal ikut tombol yang aktif saat load.
                 var activeBtn = box.querySelector('.plan-dur-btn.is-active');
-                if (activeBtn) setFreePrinter(+activeBtn.dataset.months);
+                if (activeBtn) { setFreePrinter(+activeBtn.dataset.months); setPromoLabel(activeBtn.dataset.promolabel || ''); }
             });
         })();
     </script>
