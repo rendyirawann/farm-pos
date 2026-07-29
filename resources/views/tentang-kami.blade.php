@@ -234,7 +234,6 @@
                     <span>mooda</span>
                 </a>
                 <nav class="navlinks">
-                    <a href="{{ route('landing') }}">Beranda</a>
                     <a href="https://blog.mooda.id">Blog</a>
                     <a href="https://affiliate.mooda.id">Affiliate</a>
                     <a data-spy href="#identitas">Identitas</a>
