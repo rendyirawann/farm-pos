@@ -221,7 +221,7 @@
                                         @if ($key === 'basic')
                                             <div class="alert alert-success d-flex align-items-center py-2 px-3 mb-4 d-none" data-free-printer-note>
                                                 <i class="ki-outline ki-printer fs-3 me-2"></i>
-                                                <span class="fs-8 fw-semibold">Gratis printer thermal untuk langganan 3 bulan ke atas</span>
+                                                <span class="fs-8 fw-semibold">Gratis printer thermal untuk langganan 1 tahun</span>
                                             </div>
                                         @endif
 
@@ -302,8 +302,8 @@
             function refreshLabel() {
                 const r = selectedRadio();
                 if (r && labelEl) labelEl.textContent = prefix + ' — ' + rp(r.dataset.total);
-                // Gratis printer utk durasi 3 bulan ke atas (khusus paket yg punya note ini).
-                if (freePrinterNote && r) freePrinterNote.classList.toggle('d-none', parseInt(r.value, 10) < 3);
+                // Gratis printer HANYA utk langganan 1 tahun (12 bln).
+                if (freePrinterNote && r) freePrinterNote.classList.toggle('d-none', parseInt(r.value, 10) < 12);
             }
             if (group) {
                 document.querySelectorAll('input[name="' + group + '"]').forEach(function (r) {

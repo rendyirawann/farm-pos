@@ -653,7 +653,7 @@
                                     @php $defPromoLabel = !empty($def['promo_active']) ? ($def['label'] ?? '') : ''; @endphp
                                     <div class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700" data-promo-label style="{{ $defPromoLabel !== '' ? '' : 'display:none' }}">🏷️ <span data-promo-label-text>{{ $defPromoLabel }}</span></div>
                                     @if (!empty($mp['free_printer']))
-                                        <div class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700" data-free-printer style="{{ $defMonths >= 3 ? '' : 'display:none' }}">
+                                        <div class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700" data-free-printer style="{{ $defMonths >= 12 ? '' : 'display:none' }}">
                                             🖨️ Gratis printer thermal
                                         </div>
                                     @endif
@@ -1006,7 +1006,7 @@
                 var promoLabel = box.querySelector('[data-promo-label]');
                 var promoLabelText = box.querySelector('[data-promo-label-text]');
                 var setFreePrinter = function (months) {
-                    if (freePrinter) freePrinter.style.display = months < 3 ? 'none' : 'inline-flex'; // gratis printer utk 3 bln ke atas
+                    if (freePrinter) freePrinter.style.display = months < 12 ? 'none' : 'inline-flex'; // gratis printer HANYA utk 1 tahun (12 bln)
                 };
                 var setPromoLabel = function (label) {
                     if (!promoLabel) return;
