@@ -56,6 +56,7 @@
         .navlinks a{font-size:13.5px;font-weight:600;color:#c7d2fe;padding:8px 13px;border-radius:999px;transition:.15s}
         .navlinks a:hover{color:#fff;background:rgba(255,255,255,.08)}
         .navlinks a.on{color:#fff;background:rgba(255,255,255,.14)}
+        #identitas,#struktur,#profil,#visi{scroll-margin-top:90px}
         .backbtn{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#e0e7ff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);padding:9px 18px;border-radius:999px;transition:.15s;white-space:nowrap}
         .backbtn:hover{background:rgba(255,255,255,.2)}
         .backbtn i{width:6px;height:6px;border-radius:50%;background:#a5b4fc;display:inline-block}
@@ -234,11 +235,12 @@
                 </a>
                 <nav class="navlinks">
                     <a href="{{ route('landing') }}">Beranda</a>
-                    <a class="on" href="{{ route('tentang') }}">Tentang Kami</a>
-                    <a href="{{ route('landing') }}#fitur">Layanan</a>
-                    <a href="{{ route('landing') }}#partner">Portofolio</a>
                     <a href="https://blog.mooda.id">Blog</a>
-                    <a href="https://wa.me/6285760366666" target="_blank" rel="noopener">Kontak</a>
+                    <a href="https://affiliate.mooda.id">Affiliate</a>
+                    <a data-spy href="#identitas">Identitas</a>
+                    <a data-spy href="#struktur">Struktur</a>
+                    <a data-spy href="#profil">Profil</a>
+                    <a data-spy href="#visi">Visi &amp; Misi</a>
                 </nav>
                 <a class="backbtn" href="{{ route('landing') }}"><i></i> Kembali ke Beranda</a>
             </div>
@@ -304,7 +306,7 @@
             <svg viewBox="0 0 1440 96" preserveAspectRatio="none"><path fill="#f6f6fc" d="M0,96 L1440,96 L1440,54 C1200,-10 960,80 720,52 C480,24 220,-18 0,58 Z"/></svg>
         </div>
 
-        <section class="org">
+        <section class="org" id="struktur">
             <div class="wrap">
                 <div class="sec-head center"><span class="bar"></span><h2>Struktur Organisasi</h2></div>
                 <p class="org-sub">Tim inti di balik Mooda — perpaduan latar belakang F&amp;B, teknologi, dan sales.</p>
@@ -350,7 +352,7 @@
         <span class="dots" style="width:140px;height:100px;top:80px;right:3%"></span>
         <span class="dots" style="width:140px;height:100px;bottom:340px;left:3%"></span>
 
-        <section class="profsec">
+        <section class="profsec" id="profil">
             <div class="wrap">
                 <div class="sec-head"><span class="bar"></span><h2>Profil Perusahaan</h2></div>
 
@@ -380,7 +382,7 @@
             </div>
         </section>
 
-        <section class="vmsec">
+        <section class="vmsec" id="visi">
             <div class="wrap">
                 <div class="sec-head"><span class="bar"></span><h2>Visi &amp; Misi</h2></div>
                 <div class="vm">
@@ -458,5 +460,26 @@
             </div>
         </footer>
     </div>
+
+    <script>
+        // Tandai menu section yang sedang dilihat.
+        (function () {
+            var links = Array.prototype.slice.call(document.querySelectorAll('.navlinks a[data-spy]'));
+            if (!links.length || !('IntersectionObserver' in window)) return;
+            var map = {};
+            links.forEach(function (a) {
+                var el = document.querySelector(a.getAttribute('href'));
+                if (el) map[el.id] = a;
+            });
+            var obs = new IntersectionObserver(function (entries) {
+                entries.forEach(function (en) {
+                    if (!en.isIntersecting) return;
+                    links.forEach(function (a) { a.classList.remove('on'); });
+                    if (map[en.target.id]) map[en.target.id].classList.add('on');
+                });
+            }, { rootMargin: '-45% 0px -50% 0px', threshold: 0 });
+            Object.keys(map).forEach(function (id) { obs.observe(document.getElementById(id)); });
+        })();
+    </script>
 </body>
 </html>
