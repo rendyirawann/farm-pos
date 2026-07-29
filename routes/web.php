@@ -82,6 +82,13 @@ Route::get('/', function () {
     ]);
 })->name('landing');
 
+// Halaman "Tentang Kami" (profil perusahaan) — dibuka di tab baru dari navbar.
+Route::get('/tentang-kami', function () {
+    return view('tentang-kami', [
+        'founders' => \App\Models\Founder::orderBy('sort_order')->orderBy('id')->get(),
+    ]);
+})->name('tentang');
+
 // Halaman checkout (contoh publik) — memperlihatkan alur bayar Mooda (VA/QRIS) untuk
 // verifikasi merchant pembayaran. Checkout sebenarnya ada di /admin/deposit (perlu login).
 Route::get('/checkout-demo', fn () => view('checkout-demo'))->name('checkout-demo');
@@ -180,6 +187,11 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
         // Setelan Paket langganan (harga dasar, diskon %, label promo, toggle) — Superadmin
         Route::get('/admin/plan-settings', [\App\Http\Controllers\Backend\Superadmin\PlanController::class, 'index'])->name('plan-settings.index');
         Route::post('/admin/plan-settings', [\App\Http\Controllers\Backend\Superadmin\PlanController::class, 'save'])->name('plan-settings.save');
+
+        // Tentang Kami / Founder (nama, jabatan, bio, upload foto) — Superadmin
+        Route::get('/admin/founders', [\App\Http\Controllers\Backend\Superadmin\FounderController::class, 'index'])->name('founders.index');
+        Route::post('/admin/founders', [\App\Http\Controllers\Backend\Superadmin\FounderController::class, 'update'])->name('founders.update');
+        Route::post('/admin/founders/{id}/remove-photo', [\App\Http\Controllers\Backend\Superadmin\FounderController::class, 'removePhoto'])->name('founders.remove-photo');
 
         // Setelan Plan Deposit (platform-wide, Superadmin)
         Route::get('/admin/deposit-settings', [DepositSettingController::class, 'index'])->name('deposit-settings.index');

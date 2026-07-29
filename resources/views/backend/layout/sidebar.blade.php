@@ -343,6 +343,9 @@
                     <a href="{{ route('plan-settings.index') }}" class="btn btn-flex btn-light-info fw-bold justify-content-start">
                         <i class="ki-outline ki-price-tag fs-3 me-2"></i> Setelan Paket
                     </a>
+                    <a href="{{ route('founders.index') }}" class="btn btn-flex btn-light fw-bold justify-content-start">
+                        <i class="ki-outline ki-people fs-3 me-2"></i> Tentang Kami (Founder)
+                    </a>
                     @can('blog.manage')
                         <a href="{{ route('blog.admin.posts.index') }}" class="btn btn-flex btn-light-info fw-bold justify-content-start">
                             <i class="ki-outline ki-notepad-edit fs-3 me-2"></i> Kelola Blog

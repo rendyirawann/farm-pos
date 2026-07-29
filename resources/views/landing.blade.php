@@ -310,6 +310,7 @@
                 @if (($partnerLogos ?? collect())->isNotEmpty())
                 <a href="#partner" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">{{ sc('landing','nav_partner','Partner') }}</a>
                 @endif
+                <a href="{{ route('tentang') }}" target="_blank" rel="noopener" class="rounded-full px-4 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">{{ sc('landing','nav_tentang','Tentang Kami') }}</a>
             </nav>
 
             <div class="flex items-center gap-2">
@@ -332,6 +333,7 @@
                 @if (($partnerLogos ?? collect())->isNotEmpty())
                 <a href="#partner" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">{{ sc('landing','nav_partner','Partner') }}</a>
                 @endif
+                <a href="{{ route('tentang') }}" target="_blank" rel="noopener" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">{{ sc('landing','nav_tentang','Tentang Kami') }}</a>
                 <div class="my-1 h-px bg-slate-200"></div>
                 <a href="{{ route('login') }}" class="block rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">{{ sc('landing','nav_masuk','Masuk') }}</a>
                 @if (\App\Tenancy\Plan::maintenance())
