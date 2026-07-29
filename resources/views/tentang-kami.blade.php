@@ -45,9 +45,26 @@
         .wave svg{display:block;width:100%;height:96px}
         @media(max-width:640px){.wave svg{height:56px}}
 
-        /* ============ NAVBAR ============ */
-        .nav{position:relative;z-index:10}
-        .nav .wrap{height:76px;display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1160px}
+        /* ============ NAVBAR (sticky + floating saat scroll) ============ */
+        .nav{position:fixed;top:0;left:0;right:0;z-index:60;transition:padding .25s ease}
+        .nav .wrap{height:76px;display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1160px;
+            transition:background .28s ease,box-shadow .28s ease,border-radius .28s ease,border-color .28s ease,height .25s ease,padding .25s ease;
+            border:1px solid transparent}
+        /* saat di-scroll: jadi pill melayang berkaca */
+        .nav.float{padding:12px 0}
+        .nav.float .wrap{height:62px;background:rgba(10,14,45,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+            border-radius:999px;border-color:rgba(255,255,255,.14);box-shadow:0 18px 40px -18px rgba(0,0,0,.75);padding:0 22px;max-width:1120px}
+        @media(max-width:900px){.nav.float .wrap{border-radius:22px;padding:0 16px}}
+
+        /* ============ TOMBOL KE ATAS ============ */
+        .totop{position:fixed;right:22px;bottom:22px;z-index:70;width:48px;height:48px;border:0;cursor:pointer;
+            border-radius:50%;display:grid;place-items:center;color:#fff;
+            background:linear-gradient(135deg,#6366f1,#7c3aed);box-shadow:0 16px 34px -12px rgba(99,102,241,.85);
+            opacity:0;visibility:hidden;transform:translateY(14px) scale(.9);transition:opacity .25s,transform .25s,visibility .25s}
+        .totop.show{opacity:1;visibility:visible;transform:translateY(0) scale(1)}
+        .totop:hover{transform:translateY(-3px) scale(1.04)}
+        .totop svg{width:22px;height:22px}
+        @media(max-width:640px){.totop{right:16px;bottom:16px;width:44px;height:44px}}
         .brand{display:flex;align-items:center;gap:9px}
         .brand .bm{width:36px;height:36px;border-radius:11px;background:#fff;display:grid;place-items:center;box-shadow:0 8px 20px -8px rgba(0,0,0,.6)}
         .brand .bm img{height:22px;width:auto}
@@ -63,7 +80,7 @@
         @media(max-width:900px){.navlinks{display:none}}
 
         /* ============ HERO ============ */
-        .hero{text-align:center;padding:64px 24px 150px}
+        .hero{text-align:center;padding:140px 24px 150px}
         .hero .eyebrow{font-size:12px;font-weight:800;letter-spacing:.3em;color:#a5b4fc;text-transform:uppercase}
         .hero h1{font-size:clamp(34px,6vw,54px);font-weight:800;letter-spacing:-.02em;margin:12px 0 16px;color:#fff}
         .hero p{color:#c7d2fe;max-width:620px;margin:0 auto 30px;font-size:15.5px}
@@ -300,12 +317,8 @@
             <span class="dots" style="width:130px;height:96px;bottom:70px;left:3%"></span>
         </div>
 
-        {{-- wave masuk dari terang --}}
-        <div class="wave" style="transform:rotate(180deg);margin-top:-1px">
-            <svg viewBox="0 0 1440 96" preserveAspectRatio="none"><path fill="#f6f6fc" d="M0,96 L1440,96 L1440,54 C1200,-10 960,80 720,52 C480,24 220,-18 0,58 Z"/></svg>
-        </div>
-
-        <section class="org" id="struktur">
+        {{-- batas atas section ini LURUS (tanpa wave); wave bawahnya tetap ada --}}
+        <section class="org" id="struktur" style="padding-top:84px">
             <div class="wrap">
                 <div class="sec-head center"><span class="bar"></span><h2>Struktur Organisasi</h2></div>
                 <p class="org-sub">Tim inti di balik Mooda — perpaduan latar belakang F&amp;B, teknologi, dan sales.</p>
@@ -460,7 +473,28 @@
         </footer>
     </div>
 
+    {{-- Tombol kembali ke atas --}}
+    <button id="totop" class="totop" type="button" aria-label="Kembali ke atas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    </button>
+
     <script>
+        // Navbar floating + tombol ke atas muncul saat scroll.
+        (function () {
+            var nav = document.querySelector('.nav');
+            var btn = document.getElementById('totop');
+            var onScroll = function () {
+                var y = window.pageYOffset || document.documentElement.scrollTop;
+                if (nav) nav.classList.toggle('float', y > 40);
+                if (btn) btn.classList.toggle('show', y > 320);
+            };
+            window.addEventListener('scroll', onScroll, { passive: true });
+            onScroll();
+            if (btn) btn.addEventListener('click', function () {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        })();
+
         // Tandai menu section yang sedang dilihat.
         (function () {
             var links = Array.prototype.slice.call(document.querySelectorAll('.navlinks a[data-spy]'));
