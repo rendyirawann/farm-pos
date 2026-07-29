@@ -17,7 +17,7 @@
             <div class="row g-6">
                 @foreach ($data as $key => $plan)
                     <div class="col-lg-6">
-                        <div class="card h-100">
+                        <div class="card h-100" data-plan-card>
                             <div class="card-header align-items-center">
                                 <h2 class="card-title fw-bold text-gray-900">{{ $plan['name'] }}</h2>
                                 <span class="badge badge-light-primary">{{ $key }}</span>
@@ -28,7 +28,7 @@
                                     <div class="input-group w-250px">
                                         <span class="input-group-text">Rp</span>
                                         <input type="number" min="0" step="1000" name="plans[{{ $key }}][base_price]"
-                                            value="{{ (int) $plan['setting']->base_price }}" class="form-control">
+                                            value="{{ (int) $plan['setting']->base_price }}" class="form-control pp-base">
                                     </div>
                                     <div class="form-text">Harga penuh (durasi 1 bulan). Harga durasi lain = harga dasar × (1 − diskon%).</div>
                                 </div>
@@ -48,7 +48,7 @@
                                                         <input type="number" min="0" max="100" step="0.01"
                                                             name="plans[{{ $key }}][promos][{{ $pr->months }}][discount_percent]"
                                                             value="{{ rtrim(rtrim(number_format((float) $pr->discount_percent, 2, '.', ''), '0'), '.') }}"
-                                                            class="form-control form-control-sm" {{ $pr->months == 1 ? 'readonly' : '' }}>
+                                                            class="form-control form-control-sm pp-disc" {{ $pr->months == 1 ? 'readonly' : '' }}>
                                                     </td>
                                                     <td>
                                                         <input type="text" maxlength="60"
@@ -64,7 +64,15 @@
                                                                 {{ $pr->is_active ? 'checked' : '' }} {{ $pr->months == 1 ? 'disabled' : '' }}>
                                                         </div>
                                                     </td>
-                                                    <td class="text-end fw-bold text-gray-800">Rp {{ number_format((int) $pr->price_per_month, 0, ',', '.') }}</td>
+                                                    <td class="text-end">
+                                                        <div class="input-group input-group-sm" style="width:160px;margin-left:auto;">
+                                                            <span class="input-group-text">Rp</span>
+                                                            <input type="number" min="0" step="1000"
+                                                                name="plans[{{ $key }}][promos][{{ $pr->months }}][price_per_month]"
+                                                                value="{{ (int) $pr->price_per_month }}"
+                                                                class="form-control form-control-sm pp-price text-end fw-bold" {{ $pr->months == 1 ? 'readonly' : '' }}>
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             @endforeach
                                         </tbody>
@@ -79,8 +87,52 @@
 
             <div class="mt-8">
                 <button type="submit" class="btn btn-primary">Simpan Setelan Paket</button>
-                <span class="text-muted fs-8 ms-3">Harga/bln akan dihitung ulang otomatis dari harga dasar × (1 − diskon%) saat disimpan.</span>
+                <span class="text-muted fs-8 ms-3">Preview harga/diskon berubah langsung; klik <b>Simpan</b> untuk menyimpan.</span>
             </div>
         </form>
     </div>
+
+    <script>
+        // Hitung dua arah (live, tanpa simpan): diskon% <-> harga/bln, berdasar harga dasar.
+        document.querySelectorAll('[data-plan-card]').forEach(function (card) {
+            var baseInput = card.querySelector('.pp-base');
+            if (!baseInput) return;
+            var base = function () { return Math.max(0, parseInt(baseInput.value || '0', 10)); };
+            var priceFromDisc = function (discEl, priceEl) {
+                var d = Math.min(100, Math.max(0, parseFloat(discEl.value || '0')));
+                priceEl.value = Math.round(base() * (1 - d / 100));
+            };
+            var discFromPrice = function (priceEl, discEl) {
+                var b = base(), p = Math.max(0, parseInt(priceEl.value || '0', 10));
+                discEl.value = b > 0 ? Math.round((1 - p / b) * 10000) / 100 : 0; // 2 desimal
+            };
+
+            card.querySelectorAll('tbody tr').forEach(function (row) {
+                var disc = row.querySelector('.pp-disc');
+                var price = row.querySelector('.pp-price');
+                var toggle = row.querySelector('input[type=checkbox]');
+                if (!disc || !price) return;
+                disc.addEventListener('input', function () { priceFromDisc(disc, price); });
+                price.addEventListener('input', function () { discFromPrice(price, disc); });
+                if (toggle) {
+                    toggle.addEventListener('change', function () {
+                        if (!toggle.checked) { price.value = base(); disc.value = 0; }  // OFF = harga penuh
+                        else { priceFromDisc(disc, price); }
+                    });
+                }
+            });
+
+            // Ubah harga dasar -> semua harga durasi ikut menyesuaikan (dari diskon masing-masing).
+            baseInput.addEventListener('input', function () {
+                card.querySelectorAll('tbody tr').forEach(function (row) {
+                    var disc = row.querySelector('.pp-disc');
+                    var price = row.querySelector('.pp-price');
+                    var toggle = row.querySelector('input[type=checkbox]');
+                    if (!disc || !price) return;
+                    if (toggle && !toggle.checked) { price.value = base(); }
+                    else { priceFromDisc(disc, price); }
+                });
+            });
+        });
+    </script>
 @endsection

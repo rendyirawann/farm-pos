@@ -58,8 +58,15 @@ class PlanController extends Controller
                     $disc   = min(100, max(0, (float) ($row['discount_percent'] ?? 0)));
                     $active = ! empty($row['is_active']);
                     $label  = trim((string) ($row['promo_label'] ?? '')) ?: null;
-                    // Toggle ON = diskon berlaku (harga turun); OFF = harga penuh.
-                    $ppm = $active ? (int) round($base * (1 - $disc / 100)) : $base;
+                    // Harga bisa diketik langsung (biar pas, mis. 169.000). Bila kosong, hitung dari diskon.
+                    $typedPrice = isset($row['price_per_month']) && $row['price_per_month'] !== ''
+                        ? max(0, (int) $row['price_per_month'])
+                        : null;
+                    // Toggle ON = diskon berlaku (harga turun): pakai harga ketikan, atau hitung dari diskon.
+                    // OFF = harga penuh (harga dasar). Harga tak boleh melebihi harga dasar.
+                    $ppm = ! $active
+                        ? $base
+                        : min($base, $typedPrice ?? (int) round($base * (1 - $disc / 100)));
 
                     PlanPromo::updateOrCreate(
                         ['plan_key' => $key, 'months' => $months],
