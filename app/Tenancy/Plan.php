@@ -67,6 +67,21 @@ class Plan
         return self::get($key)['modules'] ?? [];
     }
 
+    /**
+     * Batas jumlah user (staff) untuk sebuah paket.
+     * - null = tanpa batas (paket Customize / staff=null).
+     * - int  = maksimal user aktif.
+     * Paket tak dikenal / null (Starter/deposit) -> default 2 (sesuai keterangan Starter).
+     */
+    public static function staffLimit(?string $key): ?int
+    {
+        $plan = self::get($key);
+        if (! $plan) {
+            return 2; // Starter / deposit
+        }
+        return array_key_exists('staff', $plan['limits'] ?? []) ? $plan['limits']['staff'] : 2;
+    }
+
     /** Paket konsultasi (WhatsApp), bukan checkout Midtrans. */
     public static function isContact(?string $key): bool
     {

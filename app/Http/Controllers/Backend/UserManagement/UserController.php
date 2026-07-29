@@ -302,6 +302,23 @@ class UserController extends Controller implements HasMiddleware
 
         $this->guardRoleAssignment($request);
 
+        // Batasi jumlah user sesuai kuota paket tenant (hitung user AKTIF).
+        // null = tanpa batas (paket Customize). Superadmin (tanpa tenant) tidak dibatasi.
+        $tenantId = auth()->user()?->tenant_id;
+        if ($tenantId) {
+            $tenant = \App\Models\Tenant::find($tenantId);
+            $limit  = \App\Tenancy\Plan::staffLimit($tenant?->plan);
+            if ($limit !== null) {
+                $activeCount = User::where('tenant_id', $tenantId)->where('is_active', true)->count();
+                if ($activeCount >= $limit) {
+                    return response()->json([
+                        'judul' => 'Kuota User Penuh',
+                        'error' => 'Paket ' . \App\Tenancy\Plan::name($tenant->plan) . ' maksimal ' . $limit . ' user aktif. Nonaktifkan user lain atau upgrade paket untuk menambah user.',
+                    ]);
+                }
+            }
+        }
+
         // Logika penyimpanan data
         try {
             \DB::beginTransaction();
