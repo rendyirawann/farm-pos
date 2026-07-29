@@ -551,7 +551,7 @@
                             ]);
                             $monthlyPlans = [
                                 [
-                                    'name' => 'Basic', 'pop' => false, 'free_printer' => true,
+                                    'name' => 'Basic', 'pop' => false,
                                     'tagline' => 'Semua yang dibutuhkan untuk mulai jualan dengan rapi & cepat.',
                                     'periods' => \App\Tenancy\Plan::periods('basic'),
                                     'features' => array_merge($core, [
@@ -652,11 +652,6 @@
                                     </div>
                                     @php $defPromoLabel = !empty($def['promo_active']) ? ($def['label'] ?? '') : ''; @endphp
                                     <div class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700" data-promo-label style="{{ $defPromoLabel !== '' ? '' : 'display:none' }}">🏷️ <span data-promo-label-text>{{ $defPromoLabel }}</span></div>
-                                    @if (!empty($mp['free_printer']))
-                                        <div class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700" data-free-printer style="{{ $defMonths >= 12 ? '' : 'display:none' }}">
-                                            🖨️ Gratis printer thermal
-                                        </div>
-                                    @endif
                                 </div>
                                 <ul class="mt-5 flex-1 space-y-2.5">
                                     @foreach ($mp['features'] as $f)
@@ -1002,12 +997,8 @@
             document.querySelectorAll('[data-plan-pricing]').forEach(function (box) {
                 var display = box.querySelector('[data-price-display]');
                 var note = box.querySelector('[data-price-note]');
-                var freePrinter = box.querySelector('[data-free-printer]'); // hanya ada di paket ber-free-printer (Basic)
                 var promoLabel = box.querySelector('[data-promo-label]');
                 var promoLabelText = box.querySelector('[data-promo-label-text]');
-                var setFreePrinter = function (months) {
-                    if (freePrinter) freePrinter.style.display = months < 12 ? 'none' : 'inline-flex'; // gratis printer HANYA utk 1 tahun (12 bln)
-                };
                 var setPromoLabel = function (label) {
                     if (!promoLabel) return;
                     if (label) { if (promoLabelText) promoLabelText.textContent = label; promoLabel.style.display = 'inline-flex'; }
@@ -1022,13 +1013,12 @@
                         if (display) display.textContent = rp(ppm);
                         if (note) note.textContent = months <= 1 ? 'Tanpa komitmen'
                             : ('Bayar ' + months + ' bln di muka · total ' + rp(total) + (disc > 0 ? ' · Hemat ' + disc + '%' : ''));
-                        setFreePrinter(months);
                         setPromoLabel(btn.dataset.promolabel || '');
                     });
                 });
                 // Kondisi awal ikut tombol yang aktif saat load.
                 var activeBtn = box.querySelector('.plan-dur-btn.is-active');
-                if (activeBtn) { setFreePrinter(+activeBtn.dataset.months); setPromoLabel(activeBtn.dataset.promolabel || ''); }
+                if (activeBtn) { setPromoLabel(activeBtn.dataset.promolabel || ''); }
             });
         })();
     </script>
