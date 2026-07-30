@@ -6,6 +6,16 @@
     data-kt-swapper-parent="{default: '#kt_app_body', lg: '#kt_app_header_wrapper'}">
     <div class="menu menu-rounded menu-active-bg menu-state-primary menu-column menu-lg-row menu-title-gray-700 menu-icon-gray-500 menu-arrow-gray-500 menu-bullet-gray-500 my-5 my-lg-0 align-items-stretch fw-semibold px-2 px-lg-0"
         id="kt_app_header_menu" data-kt-menu="true">
+        {{-- PLATFORM MENU (Superadmin) — paling depan --}}
+        @can('view_tenants')
+            <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('platform-menu.*') ? 'here show ' : '' }}">
+                <a href="{{ route('platform-menu.index') }}"
+                    class="menu-link px-4 {{ request()->routeIs('platform-menu.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Platform Menu</span>
+                </a>
+            </div>
+        @endcan
+
         <div
             class="menu-item menu-here-bg me-0 me-lg-2 menu-hover-bg menu-hover-bg-warning {{ request()->routeIs('dashboard') ? 'here show ' : '' }}">
             <a href="{{ route('dashboard') }}"
@@ -132,16 +142,6 @@
             </div>
         @endcan
 
-
-        {{-- PLATFORM MENU (semua menu Superadmin dalam kartu) --}}
-        @can('view_tenants')
-            <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('platform-menu.*') ? 'here show ' : '' }}">
-                <a href="{{ route('platform-menu.index') }}"
-                    class="menu-link px-4 {{ request()->routeIs('platform-menu.*') ? 'active ' : '' }}">
-                    <span class="menu-title">Platform Menu</span>
-                </a>
-            </div>
-        @endcan
 
         {{-- MANAJEMEN TENANT: Superadmin only --}}
         @can('view_tenants')

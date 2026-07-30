@@ -110,17 +110,21 @@ class AuthenticatedSessionController extends Controller
                 ->log('Login berhasil');
         }
 
-        // 7. Return Response (Support JSON untuk Metronic)
+        // 7. Tujuan setelah login: Superadmin -> Platform Menu (semua menu platform),
+        //    user lain -> dashboard seperti biasa.
+        $target = $user->isSuperadmin() ? route('platform-menu.index') : route('dashboard');
+
+        // Support JSON untuk Metronic
         if ($request->expectsJson()) {
             return response()->json([
                 'status' => 'success',
                 'message' => 'Login berhasil, mengalihkan...',
-                'redirect' => route('dashboard')
+                'redirect' => $target
             ], 200);
         }
 
         // Redirect biasa
-        return redirect()->intended(route('dashboard'));
+        return redirect()->intended($target);
     }
 
 
