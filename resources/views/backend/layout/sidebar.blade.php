@@ -334,6 +334,9 @@
             <div class="mb-6 mt-4">
                 <h3 class="text-gray-800 fw-bold mb-6">Platform</h3>
                 <div class="d-flex flex-column gap-2">
+                    <a href="{{ route('platform-menu.index') }}" class="btn btn-flex btn-primary fw-bold justify-content-start">
+                        <i class="ki-outline ki-element-11 fs-3 me-2"></i> Platform Menu
+                    </a>
                     <a href="{{ route('tenants.index') }}" class="btn btn-flex btn-light-primary fw-bold justify-content-start">
                         <i class="ki-outline ki-abstract-26 fs-3 me-2"></i> Manajemen Tenant
                     </a>

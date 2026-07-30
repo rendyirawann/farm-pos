@@ -133,6 +133,16 @@
         @endcan
 
 
+        {{-- PLATFORM MENU (semua menu Superadmin dalam kartu) --}}
+        @can('view_tenants')
+            <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('platform-menu.*') ? 'here show ' : '' }}">
+                <a href="{{ route('platform-menu.index') }}"
+                    class="menu-link px-4 {{ request()->routeIs('platform-menu.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Platform Menu</span>
+                </a>
+            </div>
+        @endcan
+
         {{-- MANAJEMEN TENANT: Superadmin only --}}
         @can('view_tenants')
             <div
