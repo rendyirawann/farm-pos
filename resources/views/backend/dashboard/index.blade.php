@@ -543,10 +543,38 @@
             const esc = t => $('<div>').text(t == null ? '' : t).html();
             let dt = null;
 
+            /**
+             * datatables.bundle.js (2,4MB) sengaja TIDAK dimuat di dashboard.
+             * Muat sekali saja saat kartu HPP pertama kali diklik, supaya dashboard tetap ringan.
+             */
+            let dtReady = null;
+            function ensureDataTables() {
+                if (window.jQuery && $.fn.DataTable) return Promise.resolve();
+                if (dtReady) return dtReady;
+                dtReady = new Promise(function (resolve, reject) {
+                    const css = document.createElement('link');
+                    css.rel = 'stylesheet';
+                    css.href = "{{ URL::to('assets/plugins/custom/datatables/datatables.bundle.css') }}";
+                    document.head.appendChild(css);
+                    const js = document.createElement('script');
+                    js.src = "{{ URL::to('assets/plugins/custom/datatables/datatables.bundle.js') }}";
+                    js.onload = resolve;
+                    js.onerror = () => reject(new Error('Gagal memuat DataTables'));
+                    document.body.appendChild(js);
+                });
+                return dtReady;
+            }
+
             card.addEventListener('click', function () {
                 const month = $('select[name="month"]').val() || '{{ $selectedMonth ?? '' }}';
                 new bootstrap.Modal(document.getElementById('modal-hpp')).show();
 
+                const body = document.querySelector('#tbl-hpp tbody');
+                if (!dt && body) {
+                    body.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-10">Memuat…</td></tr>';
+                }
+
+                ensureDataTables().then(function () {
                 if (dt) { dt.ajax.url("{{ route('dashboard.hpp-breakdown') }}?month=" + month).load(); return; }
 
                 dt = $('#tbl-hpp').DataTable({
@@ -591,6 +619,10 @@
                             }
                         },
                     ],
+                });
+                }).catch(function () {
+                    const b = document.querySelector('#tbl-hpp tbody');
+                    if (b) b.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-10">Gagal memuat tabel. Coba muat ulang halaman.</td></tr>';
                 });
             });
         })();

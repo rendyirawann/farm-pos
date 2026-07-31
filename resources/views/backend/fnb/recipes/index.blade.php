@@ -1,5 +1,9 @@
 @extends('backend.layout.app')
 @section('title', 'Resep Menu')
+@push('stylesheets')
+    <link rel="stylesheet" href="{{ URL::to('assets/plugins/custom/datatables/datatables.bundle.css') }}" />
+@endpush
+
 @section('content')
 <div id="kt_app_content" class="app-content flex-column-fluid mt-5">
   <div id="kt_app_content_container" class="app-container container-xxl">
@@ -58,6 +62,7 @@
 @endsection
 
 @push('scripts')
+<script src="{{ URL::to('assets/plugins/custom/datatables/datatables.bundle.js') }}"></script>
 <script>
   const INGREDIENTS = @json($ingredients->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'unit' => $i->unit]));
   const CSRF = "{{ csrf_token() }}";
