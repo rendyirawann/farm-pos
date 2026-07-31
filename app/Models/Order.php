@@ -73,9 +73,13 @@ class Order extends Model
     {
         static::creating(function ($order) {
             if (empty($order->shift_id)) {
+                // Utamakan shift milik user sendiri. Bila tidak punya (mis. owner yang ikut
+                // mengoperasikan kasir saat shift kasir berjalan), ikut shift toko yang terbuka —
+                // lebih baik daripada shift_id NULL yang membuat pesanan tak teratribusi ke kas.
                 $order->shift_id = Shift::where('user_id', \Illuminate\Support\Facades\Auth::id())
-                    ->where('status', 'open')
-                    ->value('id');
+                        ->where('status', 'open')
+                        ->value('id')
+                    ?: Shift::where('status', 'open')->latest('start_time')->value('id');
             }
         });
     }

@@ -43,9 +43,14 @@ class KasirController extends Controller
         $ownShift = $canOperate
             ? Shift::where('user_id', $user->id)->where('status', 'open')->first()
             : null;
-        $isOperator  = (bool) $ownShift;
         $activeShift = $ownShift
             ?: ($canReview ? Shift::where('status', 'open')->latest('start_time')->first() : null);
+
+        // Satu toko = satu laci kas. Owner/kasir yang punya hak operasi TIDAK perlu shift sendiri:
+        // selama ada shift berjalan di toko, ia boleh mengoperasikan kasir penuh dan penjualannya
+        // tercatat ke shift tersebut (kolom orders hanya menyimpan shift_id, bukan user).
+        // Aturan '1 shift aktif per toko' di ShiftController tetap berlaku.
+        $isOperator = (bool) $ownShift || ($canOperate && (bool) $activeShift);
 
         if (! $activeShift) {
             return redirect()->route('shifts.index')->with('warning', $canOperate
@@ -124,9 +129,11 @@ class KasirController extends Controller
         // malam / dibuka lagi), tampilkan pesanan selesai milik sesi itu yang tercatat pada hari
         // sebelumnya, supaya tidak hilang saat pergantian tanggal. Read-only (tak mengubah kas).
         $isOperator = ! Auth::user()->isSuperadmin() && Auth::user()->can('shift.operate');
-        $activeShift = $isOperator
-            ? Shift::where('user_id', Auth::id())->where('status', 'open')->first()
-            : Shift::where('status', 'open')->latest('start_time')->first();
+        // Samakan dengan index(): pakai shift sendiri bila ada, kalau tidak ikut shift toko.
+        $activeShift = ($isOperator
+                ? Shift::where('user_id', Auth::id())->where('status', 'open')->first()
+                : null)
+            ?: Shift::where('status', 'open')->latest('start_time')->first();
 
         $previousCompleted = collect();
         if ($activeShift && Carbon::parse($activeShift->start_time)->lt(Carbon::today())) {
