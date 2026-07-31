@@ -329,6 +329,51 @@
 
                 </div>{{-- END .row --}}
             </div>{{-- END .mb-6 --}}
+
+            {{-- ================= FITUR MENDATANG (terkunci) — hanya OWNER =================
+                 Daftar mengacu ke Fitur_POS_Full_Service_Mooda.xlsx: fitur yang BELUM ada
+                 ditampilkan sebagai ikon terkunci supaya owner tahu roadmap produk. --}}
+            @if (auth()->user()->hasRole('owner'))
+                @php
+                    $lockedFeatures = [
+                        ['label' => 'HPP',            'icon' => 'ki-chart-pie-simple',  'color' => 'primary', 'desc' => 'HPP per menu, margin & analisis food cost'],
+                        ['label' => 'Inventory',      'icon' => 'ki-package',           'color' => 'warning', 'desc' => 'Stok masuk/keluar, opname, minimum stok'],
+                        ['label' => 'CRM',            'icon' => 'ki-profile-circle',    'color' => 'info',    'desc' => 'Database pelanggan, membership & poin loyalitas'],
+                        ['label' => 'QR Menu',        'icon' => 'ki-scan-barcode',      'color' => 'success', 'desc' => 'QR menu, self ordering & pesan dari meja'],
+                        ['label' => 'Akuntansi',      'icon' => 'ki-bill',              'color' => 'dark',    'desc' => 'Laba rugi, arus kas & hutang piutang'],
+                        ['label' => 'Multi Cabang',   'icon' => 'ki-bank',              'color' => 'primary', 'desc' => 'Dashboard & laporan seluruh cabang'],
+                        ['label' => 'Absensi',        'icon' => 'ki-time',              'color' => 'info',    'desc' => 'Absensi, payroll sederhana & komisi sales'],
+                        ['label' => 'Marketing',      'icon' => 'ki-rocket',            'color' => 'danger',  'desc' => 'Broadcast WhatsApp, reminder & voucher otomatis'],
+                        ['label' => 'Marketplace',    'icon' => 'ki-basket',            'color' => 'warning', 'desc' => 'Integrasi GoFood, GrabFood & ShopeeFood'],
+                        ['label' => 'AI Assistant',   'icon' => 'ki-messages',          'color' => 'success', 'desc' => 'Chatbot WhatsApp & upselling otomatis'],
+                        ['label' => 'AI Prediksi',    'icon' => 'ki-chart-line-up',     'color' => 'primary', 'desc' => 'Prediksi stok, penjualan & rekomendasi promo'],
+                    ];
+                @endphp
+                <div class="mb-6">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <h3 class="text-gray-800 fw-bold mb-0 fs-5">Fitur Mendatang</h3>
+                        <span class="badge badge-light-secondary fs-9">Segera</span>
+                    </div>
+                    <div class="row row-cols-3 g-3 mb-2">
+                        @foreach ($lockedFeatures as $f)
+                            <div class="col mb-4">
+                                <span class="btn btn-icon btn-outline btn-bg-light btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200 position-relative opacity-75"
+                                    style="cursor:not-allowed"
+                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="{{ $f['label'] }} — {{ $f['desc'] }} (belum tersedia)">
+                                    <span class="mb-2"><i class="ki-outline {{ $f['icon'] }} fs-2x text-{{ $f['color'] }}"></i></span>
+                                    <span class="fs-8 fw-bold text-gray-600">{{ $f['label'] }}</span>
+                                    <span class="position-absolute translate-middle badge badge-circle badge-secondary"
+                                        style="top:8px;left:calc(100% - 10px);width:20px;height:20px">
+                                        <i class="ki-solid ki-lock-2 fs-9 text-gray-700"></i>
+                                    </span>
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="text-muted fs-8 px-1">Fitur ini sedang dikembangkan & akan tersedia bertahap.</div>
+                </div>
+            @endif
             @else
             {{-- Sidebar Superadmin (mode Analitik): pintasan platform --}}
             <div class="mb-6 mt-4">
