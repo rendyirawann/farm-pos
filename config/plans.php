@@ -75,10 +75,13 @@ $fnbPlans = [
                 'qr_selforder', 'payment_gateway',
                 // Modul HPP + Inventory (FIFO/FEFO) + Resep: KHUSUS paket Customize.
                 'inventory_hpp',
+                // Split bill & merge table (kasir lanjutan): KHUSUS paket Customize.
+                'split_merge',
             ],
             'features' => [
                 'Semua fitur Enterprise & Basic',
                 'HPP, Inventory (FIFO/FEFO) & Resep — modal bahan & food cost akurat',
+                'Split bill & merge table (gabung/pecah nota per meja)',
                 'Tanpa batasan jumlah user',
                 'Penyimpanan Database Pelanggan (Tidak Terbatas)',
                 'VPS & domain sendiri',

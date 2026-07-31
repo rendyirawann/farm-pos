@@ -125,6 +125,8 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
     Route::get('/admin/dashboard', [DashboardAdminController::class, 'index'])->name('dashboard');
     // Tampil/sembunyi panduan "Setup Awal" di dashboard (preferensi per-tenant)
     Route::post('/admin/dashboard/onboarding-toggle', [DashboardAdminController::class, 'toggleOnboarding'])->name('dashboard.onboarding-toggle');
+    // Rincian HPP per menu (modal dashboard) — mengikuti filter bulan.
+    Route::get('/admin/dashboard/hpp-breakdown', [DashboardAdminController::class, 'hppBreakdown'])->name('dashboard.hpp-breakdown');
     // Toggle mode tampilan Superadmin: analytics (platform) <-> pos (kasir)
     Route::get('/admin/view-mode/{mode}', [DashboardAdminController::class, 'switchMode'])->name('view-mode.switch');
     // Superadmin memilih toko yang dioperasikan di mode POS
@@ -325,10 +327,13 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
         // Tambah/gabung item ke pesanan yang MASIH BELUM LUNAS (view -> tambah menu -> merge).
         Route::post('/admin/kasir/order/{id}/add-items', [KasirController::class, 'addItems'])->name('kasir.add-items');
         Route::post('/admin/kasir/order/{id}/complete', [KasirController::class, 'completeOrder'])->name('kasir.complete');
-        // Split bill: pecah nota belum lunas jadi 2 (pilih item/qty yang dipindah).
-        Route::post('/admin/kasir/order/{id}/split', [KasirController::class, 'splitOrder'])->name('kasir.split');
-        // Merge table: gabungkan beberapa nota belum lunas ke satu nota tujuan.
-        Route::post('/admin/kasir/orders/merge', [KasirController::class, 'mergeOrders'])->name('kasir.merge');
+        // Split bill & Merge table — kasir lanjutan, KHUSUS paket Customize (plan:split_merge).
+        Route::middleware('plan:split_merge')->group(function () {
+            // Split bill: pecah nota belum lunas jadi 2 (pilih item/qty yang dipindah).
+            Route::post('/admin/kasir/order/{id}/split', [KasirController::class, 'splitOrder'])->name('kasir.split');
+            // Merge table: gabungkan beberapa nota belum lunas ke satu nota tujuan.
+            Route::post('/admin/kasir/orders/merge', [KasirController::class, 'mergeOrders'])->name('kasir.merge');
+        });
         Route::get('/admin/kasir/print/{id}', [KasirController::class, 'printReceipt'])->name('kasir.print');
 
         // Aksi sensitif khusus OWNER (Superadmin lolos via Gate::before) —

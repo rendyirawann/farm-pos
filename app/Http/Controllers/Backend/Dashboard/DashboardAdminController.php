@@ -306,4 +306,79 @@ class DashboardAdminController extends Controller
 
         return view('backend.dashboard.analytics', compact('stats', 'chart', 'topTenants', 'latestTenants', 'recentTopups'));
     }
+
+    /**
+     * RINCIAN HPP PER MENU (JSON untuk DataTables di modal dashboard).
+     * Menampilkan menu yang TERJUAL pada bulan terpilih beserta resep, modal (HPP) nyata,
+     * omzet, laba, dan food cost per menu. Mengikuti filter bulan dashboard.
+     */
+    public function hppBreakdown(Request $request)
+    {
+        // Gate sama seperti kartu HPP: paket dgn modul inventory_hpp, atau Superadmin.
+        $allowed = auth()->user()?->isSuperadmin()
+            || \App\Tenancy\Plan::tenantAllows(auth()->user()?->tenant, 'inventory_hpp');
+        abort_unless($allowed, 403, 'Fitur HPP tidak tersedia pada paket Anda.');
+
+        $month = (string) $request->input('month', Carbon::now()->format('Y-m'));
+        try {
+            $start = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+        } catch (\Throwable $e) {
+            $start = Carbon::now()->startOfMonth();
+        }
+        $end = $start->copy()->endOfMonth();
+
+        // Agregasi per menu dari pesanan LUNAS & tidak dibatalkan.
+        $rows = OrderDetail::query()
+            ->selectRaw('menu_id,
+                SUM(order_details.qty) AS qty_sold,
+                SUM(order_details.subtotal) AS revenue,
+                SUM(order_details.hpp) AS hpp_total')
+            ->whereHas('order', function ($q) use ($start, $end) {
+                $q->whereBetween('created_at', [$start, $end])
+                    ->where('payment_status', 'paid')
+                    ->whereNull('voided_at');
+            })
+            ->groupBy('menu_id')
+            ->orderByDesc('revenue')
+            ->get();
+
+        // Resep tiap menu (bahan + gramasi) untuk kolom "Resep".
+        $menus = Menu::whereIn('id', $rows->pluck('menu_id'))->with('menuIngredients.ingredient')->get()->keyBy('id');
+
+        $data = $rows->map(function ($r) use ($menus) {
+            $menu    = $menus->get($r->menu_id);
+            $qty     = (float) $r->qty_sold;
+            $revenue = (float) $r->revenue;
+            $hpp     = (float) $r->hpp_total;
+
+            $recipe = $menu
+                ? $menu->menuIngredients->map(fn ($l) => [
+                    'name' => $l->ingredient?->name,
+                    'qty'  => rtrim(rtrim(number_format((float) $l->quantity, 2, '.', ''), '0'), '.'),
+                    'unit' => $l->ingredient?->unit,
+                ])->all()
+                : [];
+
+            return [
+                'menu'        => $menu->name ?? 'Menu dihapus',
+                'qty_sold'    => $qty,
+                'revenue'     => $revenue,
+                'hpp_total'   => $hpp,
+                'hpp_per_pcs' => $qty > 0 ? round($hpp / $qty, 2) : 0,
+                'profit'      => $revenue - $hpp,
+                'food_cost'   => $revenue > 0 ? round($hpp / $revenue * 100, 1) : 0,
+                'recipe'      => $recipe,
+                'has_recipe'  => count($recipe) > 0,
+            ];
+        });
+
+        return response()->json([
+            'data'  => $data,
+            'month' => $start->translatedFormat('F Y'),
+            'total' => [
+                'revenue' => (float) $rows->sum('revenue'),
+                'hpp'     => (float) $rows->sum('hpp_total'),
+            ],
+        ]);
+    }
 }

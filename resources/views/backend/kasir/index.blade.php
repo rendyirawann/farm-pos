@@ -1,6 +1,13 @@
 @extends('backend.layout.app')
 @section('title', 'Kasir POS')
 
+@php
+    // Split bill & Merge table = kasir lanjutan, KHUSUS paket Customize.
+    // Superadmin tetap bisa melihat saat mode kasir (sama seperti modul HPP/Inventory).
+    $canSplitMerge = auth()->user()?->isSuperadmin()
+        || \App\Tenancy\Plan::tenantAllows(app(\App\Tenancy\TenantManager::class)->tenant(), 'split_merge');
+@endphp
+
 @push('stylesheets')
     <style>
         .pos-menu-card { cursor: pointer; transition: transform .1s ease, box-shadow .1s ease; }
@@ -160,10 +167,12 @@
                                             <span class="badge badge-warning ms-1" id="count-offline">0</span></a>
                                     </li>
                                     <li class="nav-item ms-auto d-flex align-items-center gap-1">
-                                        {{-- MERGE TABLE: gabungkan beberapa nota belum lunas --}}
-                                        <button class="btn btn-sm btn-icon btn-light-warning" id="btn-merge-open"
-                                            title="Gabung meja / nota (merge)">
-                                            <i class="ki-outline ki-arrow-mix fs-4"></i></button>
+                                        {{-- MERGE TABLE: gabungkan beberapa nota belum lunas (paket Customize) --}}
+                                        @if ($canSplitMerge)
+                                            <button class="btn btn-sm btn-icon btn-light-warning" id="btn-merge-open"
+                                                title="Gabung meja / nota (merge)">
+                                                <i class="ki-outline ki-arrow-mix fs-4"></i></button>
+                                        @endif
                                         @can('sales.target')
                                             <button class="btn btn-sm btn-icon btn-light-primary" id="btn-set-target"
                                                 title="Set / ubah target penjualan hari ini">
@@ -438,7 +447,8 @@
             </div>
         </div>
     </div>
-    {{-- ================= MODAL SPLIT BILL ================= --}}
+    {{-- ================= MODAL SPLIT BILL (paket Customize) ================= --}}
+    @if ($canSplitMerge)
     <div class="modal fade" id="modal-split" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered mw-600px">
             <div class="modal-content">
@@ -504,6 +514,7 @@
             </div>
         </div>
     </div>
+    @endif
 @endsection
 
 @php
@@ -531,6 +542,8 @@
             setTarget:  "{{ route('kasir.sales.target') }}",
             merge:      "{{ route('kasir.merge') }}",
         };
+        // Paket Customize saja: split bill & merge table. Server dijaga middleware plan:split_merge.
+        const CAN_SPLIT_MERGE = @json($canSplitMerge);
         const CSRF = "{{ csrf_token() }}";
         // Hak akses owner: tombol HAPUS pesanan (hanya tab "Sedang Diproses"). Server jaga via can:order.delete.
         const CAN_DELETE = @json(auth()->user()->can('order.delete'));
@@ -1250,7 +1263,7 @@
                     : `<button class="btn btn-sm btn-light-danger flex-fill fw-bold btn-void-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" data-voided="0"><i class="ki-outline ki-cross-circle fs-5"></i> Tandai Salah</button>`)
                 : '';
             // SPLIT BILL: hanya tab "Sedang Diproses", belum lunas, & item lebih dari 1.
-            const splitBtn = (tab === 'processing' && !paid && (o.items_count || 0) > 1)
+            const splitBtn = (CAN_SPLIT_MERGE && tab === 'processing' && !paid && (o.items_count || 0) > 1)
                 ? `<button class="btn btn-sm btn-light-warning btn-split-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" title="Pecah nota (split bill)"><i class="ki-outline ki-arrow-two-diagonals fs-5"></i></button>`
                 : '';
             const salahBadge = voided

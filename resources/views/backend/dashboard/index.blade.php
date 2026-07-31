@@ -233,11 +233,15 @@
             @if (!empty($summary['hpp_enabled']))
                 <div class="row g-5 g-xl-10 mt-2">
                     <div class="col-6 col-md-3">
-                        <div class="card bg-light-warning border-0 shadow-sm h-100">
-                            <div class="card-body p-6">
+                        {{-- Bisa diklik: buka rincian HPP per menu (resep + modal + laba) --}}
+                        <div class="card bg-light-warning border-0 shadow-sm h-100 cursor-pointer" id="card-hpp-detail"
+                             title="Klik untuk melihat rincian HPP per menu">
+                            <div class="card-body p-6 position-relative">
                                 <div class="fs-6 fw-semibold text-warning mb-2">Total HPP (modal bahan)</div>
                                 <div class="fs-2hx fw-bold text-gray-800">Rp {{ number_format($summary['total_hpp'], 0, ',', '.') }}</div>
-                                <div class="fs-8 text-muted mt-1">biaya bahan nyata (FIFO/FEFO)</div>
+                                <div class="fs-8 text-muted mt-1">
+                                    <i class="ki-outline ki-eye fs-6 me-1"></i>klik untuk rincian per menu
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -381,6 +385,71 @@
         </div>
     </div>
 
+    {{-- ============ MODAL RINCIAN HPP PER MENU (DataTables ajax) ============ --}}
+    @if (!empty($summary['hpp_enabled']))
+    <div class="modal fade" id="modal-hpp" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header py-4">
+                    <div>
+                        <h3 class="fw-bold mb-0">Rincian HPP per Menu</h3>
+                        <span class="text-muted fs-8">Menu yang terjual pada <b id="hpp-month">—</b> · modal bahan nyata (FIFO/FEFO)</span>
+                    </div>
+                    <div class="btn btn-icon btn-sm btn-active-light" data-bs-dismiss="modal"><i class="ki-outline ki-cross fs-1"></i></div>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="bg-light-primary rounded p-4">
+                                <div class="fs-8 text-muted fw-bold text-uppercase">Omzet</div>
+                                <div class="fs-4 fw-bolder text-gray-900" id="hpp-sum-revenue">Rp 0</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="bg-light-warning rounded p-4">
+                                <div class="fs-8 text-muted fw-bold text-uppercase">Total HPP</div>
+                                <div class="fs-4 fw-bolder text-gray-900" id="hpp-sum-hpp">Rp 0</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="bg-light-success rounded p-4">
+                                <div class="fs-8 text-muted fw-bold text-uppercase">Laba Kotor</div>
+                                <div class="fs-4 fw-bolder text-gray-900" id="hpp-sum-profit">Rp 0</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="bg-light-danger rounded p-4">
+                                <div class="fs-8 text-muted fw-bold text-uppercase">Food Cost</div>
+                                <div class="fs-4 fw-bolder text-gray-900" id="hpp-sum-fc">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-row-bordered align-middle gy-3" id="tbl-hpp">
+                            <thead>
+                                <tr class="fw-bold text-muted bg-light">
+                                    <th class="ps-4">Menu</th>
+                                    <th>Resep (bahan per porsi)</th>
+                                    <th class="text-end">Terjual</th>
+                                    <th class="text-end">Omzet</th>
+                                    <th class="text-end">HPP/porsi</th>
+                                    <th class="text-end">Total HPP</th>
+                                    <th class="text-end">Laba</th>
+                                    <th class="text-end pe-4">Food Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="fs-8 text-muted mt-3">
+                        Menu tanpa resep akan menampilkan HPP Rp 0 — atur resepnya di
+                        <a href="{{ route('fnb.recipes.index') }}" class="fw-bold">HPP &amp; Inventory → Resep</a>.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 @endsection
 
 @push('scripts')
@@ -466,4 +535,65 @@
             chart.render();
         });
     </script>
-@endpush
+
+        // ============ RINCIAN HPP PER MENU (modal + DataTables ajax) ============
+        (function () {
+            const card = document.getElementById('card-hpp-detail');
+            if (!card) return;
+            const rp = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
+            const esc = t => $('<div>').text(t == null ? '' : t).html();
+            let dt = null;
+
+            card.addEventListener('click', function () {
+                const month = $('select[name="month"]').val() || '{{ $selectedMonth ?? '' }}';
+                new bootstrap.Modal(document.getElementById('modal-hpp')).show();
+
+                if (dt) { dt.ajax.url("{{ route('dashboard.hpp-breakdown') }}?month=" + month).load(); return; }
+
+                dt = $('#tbl-hpp').DataTable({
+                    ajax: {
+                        url: "{{ route('dashboard.hpp-breakdown') }}?month=" + month,
+                        dataSrc: function (json) {
+                            const rev = json.total.revenue, hpp = json.total.hpp;
+                            $('#hpp-month').text(json.month || '-');
+                            $('#hpp-sum-revenue').text(rp(rev));
+                            $('#hpp-sum-hpp').text(rp(hpp));
+                            $('#hpp-sum-profit').text(rp(rev - hpp));
+                            $('#hpp-sum-fc').text((rev > 0 ? Math.round(hpp / rev * 1000) / 10 : 0) + '%');
+                            return json.data;
+                        },
+                    },
+                    order: [[3, 'desc']],
+                    pageLength: 10,
+                    lengthChange: false,
+                    language: {
+                        search: 'Cari menu:', zeroRecords: 'Belum ada menu terjual pada bulan ini.',
+                        info: 'Menampilkan _START_-_END_ dari _TOTAL_ menu', infoEmpty: 'Tidak ada data',
+                        paginate: { previous: 'Sebelumnya', next: 'Berikutnya' },
+                    },
+                    columns: [
+                        { data: 'menu', render: d => '<span class="fw-bold text-gray-800">' + esc(d) + '</span>' },
+                        {
+                            data: 'recipe', orderable: false, render: function (r) {
+                                if (!r || !r.length) return '<span class="badge badge-light-warning fs-9">Belum ada resep</span>';
+                                return r.map(x => '<span class="badge badge-light-primary fs-9 me-1 mb-1">' + esc(x.name) + ' ' + esc(x.qty) + esc(x.unit || '') + '</span>').join('');
+                            }
+                        },
+                        { data: 'qty_sold', className: 'text-end', render: d => Number(d).toLocaleString('id-ID') },
+                        { data: 'revenue', className: 'text-end', render: d => rp(d) },
+                        { data: 'hpp_per_pcs', className: 'text-end', render: d => rp(d) },
+                        { data: 'hpp_total', className: 'text-end fw-bold', render: d => rp(d) },
+                        { data: 'profit', className: 'text-end fw-bold', render: d => '<span class="text-success">' + rp(d) + '</span>' },
+                        {
+                            data: 'food_cost', className: 'text-end pe-4', render: function (d, t, row) {
+                                if (!row.has_recipe) return '<span class="text-muted">—</span>';
+                                const cls = d > 35 ? 'danger' : (d > 0 ? 'success' : 'secondary');
+                                return '<span class="badge badge-light-' + cls + '">' + d + '%</span>';
+                            }
+                        },
+                    ],
+                });
+            });
+        })();
+
+    @endpush

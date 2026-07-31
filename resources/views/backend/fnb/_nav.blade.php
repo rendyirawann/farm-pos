@@ -14,8 +14,11 @@
 <style>
     .fnb-hero{background:linear-gradient(120deg,#4f46e5 0%,#6d28d9 60%,#7c3aed 100%);border-radius:20px;color:#fff;
         padding:22px 26px;position:relative;overflow:hidden}
+    /* Lingkaran dekorasi: WAJIB pointer-events:none, kalau tidak ia menutupi tombol di kanan
+       (pseudo-element digambar paling akhir) sehingga tombol tak bisa diklik. */
     .fnb-hero::after{content:"";position:absolute;right:-40px;top:-50px;width:190px;height:190px;border-radius:50%;
-        background:rgba(255,255,255,.09)}
+        background:rgba(255,255,255,.09);pointer-events:none;z-index:0}
+    .fnb-hero > *{position:relative;z-index:1}
     .fnb-tab{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #eceef7;border-radius:16px;
         padding:14px 16px;text-decoration:none;height:100%;transition:transform .15s,box-shadow .2s,border-color .15s;
         box-shadow:0 8px 22px -20px rgba(15,23,42,.6)}
