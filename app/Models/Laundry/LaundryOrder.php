@@ -21,7 +21,7 @@ class LaundryOrder extends Model
     }
 
     protected $fillable = [
-        'tenant_id', 'uuid', 'invoice_no', 'customer_id', 'customer_name', 'customer_phone',
+        'tenant_id', 'uuid', 'invoice_no', 'client_txn_id', 'customer_id', 'customer_name', 'customer_phone',
         'customer_email', 'staff_id', 'order_type', 'delivery_address', 'delivery_fee',
         'subtotal', 'discount_amount', 'tax', 'grand_total', 'payment_method', 'payment_status',
         'dp_amount', 'cash_received', 'cash_change', 'order_status', 'special_instructions',

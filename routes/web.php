@@ -194,6 +194,8 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
             Route::get('/admin/laundry/kasir', [LaundryKasirController::class, 'index'])->name('laundry.kasir.index');
             Route::get('/admin/laundry/kasir/create', [LaundryKasirController::class, 'create'])->name('laundry.kasir.create');
             Route::post('/admin/laundry/kasir', [LaundryKasirController::class, 'store'])->name('laundry.kasir.store');
+            // Sinkron nota yang dibuat saat OFFLINE (idempoten via client_txn_id).
+            Route::post('/admin/laundry/kasir/sync-offline', [LaundryKasirController::class, 'syncOffline'])->name('laundry.kasir.sync-offline');
             Route::post('/admin/laundry/kasir/{order}/pay', [LaundryKasirController::class, 'pay'])->name('laundry.kasir.pay');
             Route::post('/admin/laundry/kasir/{order}/handover', [LaundryKasirController::class, 'handover'])->name('laundry.kasir.handover');
             Route::get('/admin/laundry/kasir/{order}/print', [LaundryKasirController::class, 'print'])->name('laundry.kasir.print');

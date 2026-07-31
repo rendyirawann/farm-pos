@@ -95,7 +95,97 @@ class LaundryKasirController extends Controller
         }
 
         try {
-            $order = DB::transaction(function () use ($data, $services, $customer) {
+            $order = $this->persistOrder($data, $services, $customer);
+        } catch (\Throwable $e) {
+            Log::error('Laundry store order gagal: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Gagal menyimpan nota: ' . $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'status'     => 'success',
+            'order_id'   => $order->id,
+            'invoice_no' => $order->invoice_no,
+            'print_url'  => route('laundry.kasir.print', $order->id),
+            // Data struk untuk engine cetak terpusat (browser / QZ Tray / Web Bluetooth / RawBT).
+            'receipt'    => $this->receiptPayload($order),
+        ]);
+    }
+
+    /**
+     * Sinkron nota OFFLINE (dibuat saat koneksi mati, disimpan di perangkat).
+     * IDEMPOTEN: nota dgn client_txn_id yang sudah ada DILEWATI -> tak ada nota ganda
+     * walau tombol Sync ditekan berulang / request sempat sampai lalu koneksi terputus.
+     */
+    public function syncOffline(Request $request)
+    {
+        $request->validate([
+            'orders'                      => ['required', 'array', 'min:1'],
+            'orders.*.client_txn_id'      => ['required', 'string', 'max:64'],
+            'orders.*.cart'               => ['required', 'array', 'min:1'],
+            'orders.*.cart.*.service_id'  => ['required', 'integer'],
+            'orders.*.cart.*.qty'         => ['required', 'numeric', 'min:0.01'],
+        ]);
+
+        // Pakai input MENTAH: validate() hanya mengembalikan key yang divalidasi, sehingga
+        // field lain (order_type, payment_method, dll.) akan hilang bila memakai hasilnya.
+        $orders  = (array) $request->input('orders', []);
+        $synced  = $skipped = $failed = 0;
+        $results = [];
+
+        foreach ($orders as $row) {
+            $txn = (string) $row['client_txn_id'];
+
+            // Dedupe: sudah pernah masuk -> lewati (dianggap sukses agar klien menghapus antrean).
+            if (LaundryOrder::where('client_txn_id', $txn)->exists()) {
+                $skipped++;
+                $results[] = ['client_txn_id' => $txn, 'status' => 'duplicate'];
+                continue;
+            }
+
+            try {
+                $ids      = collect($row['cart'])->pluck('service_id')->unique()->all();
+                $services = LaundryService::whereIn('id', $ids)->get()->keyBy('id');
+                $customer = ! empty($row['customer_id']) ? LaundryCustomer::find($row['customer_id']) : null;
+
+                if (! $customer && ! empty($row['save_customer']) && ! empty($row['customer_name'])) {
+                    $customer = LaundryCustomer::firstOrCreate(
+                        ['phone' => $row['customer_phone'] ?? null, 'name' => $row['customer_name']],
+                        ['email' => $row['customer_email'] ?? null, 'member_status' => 'reguler', 'loyalty_points' => 0]
+                    );
+                }
+
+                $order = $this->persistOrder($row, $services, $customer, $txn);
+                $synced++;
+                $results[] = ['client_txn_id' => $txn, 'status' => 'synced', 'invoice_no' => $order->invoice_no];
+            } catch (\Throwable $e) {
+                Log::warning('Laundry sync offline gagal (' . $txn . '): ' . $e->getMessage());
+                $failed++;
+                $results[] = ['client_txn_id' => $txn, 'status' => 'failed', 'message' => $e->getMessage()];
+            }
+        }
+
+        return response()->json([
+            'status'  => 'success',
+            'synced'  => $synced,
+            'skipped' => $skipped,
+            'failed'  => $failed,
+            'results' => $results,
+        ]);
+    }
+
+    /**
+     * Simpan nota (dipakai bersama oleh kasir online & sinkron offline) — harga selalu
+     * dihitung ULANG di server dari master layanan, jadi tak bisa dimanipulasi dari klien.
+     */
+    private function persistOrder(array $data, $services, ?LaundryCustomer $customer, ?string $clientTxnId = null): LaundryOrder
+    {
+        // Default aman (nota offline bisa datang tanpa sebagian field).
+        $data['order_type']     = in_array($data['order_type'] ?? null, ['self_pickup', 'delivery'], true)
+            ? $data['order_type'] : 'self_pickup';
+        $data['payment_method'] = in_array($data['payment_method'] ?? null, ['cash', 'nanti'], true)
+            ? $data['payment_method'] : 'nanti';
+
+        return DB::transaction(function () use ($data, $services, $customer, $clientTxnId) {
                 $subtotal = 0;
                 $maxHours = 0;
                 $lines    = [];
@@ -144,7 +234,8 @@ class LaundryKasirController extends Controller
                 }
 
                 $order = LaundryOrder::create([
-                    'invoice_no'             => 'LDY-' . date('YmdHis') . mt_rand(10, 99),
+                    'invoice_no'             => $data['invoice_no'] ?? ('LDY-' . date('YmdHis') . mt_rand(10, 99)),
+                    'client_txn_id'          => $clientTxnId,
                     'customer_id'            => $customer?->id,
                     'customer_name'          => $customer?->name ?: ($data['customer_name'] ?: 'Pelanggan'),
                     'customer_phone'         => $customer?->phone ?: ($data['customer_phone'] ?? null),
@@ -184,20 +275,7 @@ class LaundryKasirController extends Controller
                 }
 
                 return $order;
-            });
-        } catch (\Throwable $e) {
-            Log::error('Laundry store order gagal: ' . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'Gagal menyimpan nota: ' . $e->getMessage()], 422);
-        }
-
-        return response()->json([
-            'status'     => 'success',
-            'order_id'   => $order->id,
-            'invoice_no' => $order->invoice_no,
-            'print_url'  => route('laundry.kasir.print', $order->id),
-            // Data struk untuk engine cetak terpusat (browser / QZ Tray / Web Bluetooth / RawBT).
-            'receipt'    => $this->receiptPayload($order),
-        ]);
+        });
     }
 
     /**

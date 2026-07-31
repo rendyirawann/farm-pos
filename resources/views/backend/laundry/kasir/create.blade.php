@@ -172,8 +172,15 @@
                             </div>
                             {{-- Offline (antrean lokal) --}}
                             <div class="tab-pane fade" id="ld-tab-offline" style="max-height:260px;overflow-y:auto">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fs-8 text-muted">Nota dibuat saat koneksi mati, tersimpan di perangkat ini.</span>
+                                    <button type="button" class="btn btn-sm btn-light-warning py-1 px-3 fs-8 d-none" id="btn-sync">
+                                        <i class="ki-outline ki-arrows-circle fs-5"></i> Sync
+                                    </button>
+                                </div>
+                                <div id="ld-offline-list"></div>
                                 <div class="text-center text-muted fs-8 py-6" id="ld-offline-empty">
-                                    Tidak ada nota offline. Nota tersimpan langsung selama koneksi tersedia.
+                                    Tidak ada nota offline.
                                 </div>
                             </div>
                         </div>
@@ -436,6 +443,70 @@
         if (printUrl) window.open(printUrl, '_blank');
     }
 
+    // ===================== ANTREAN OFFLINE (per perangkat) =====================
+    const SYNC_URL = "{{ route('laundry.kasir.sync-offline') }}";
+    const QKEY = 'mooda_laundry_offline_v1';
+
+    const qLoad  = () => { try { return JSON.parse(localStorage.getItem(QKEY) || '[]'); } catch (e) { return []; } };
+    const qSave  = q => localStorage.setItem(QKEY, JSON.stringify(q));
+    const newTxn = () => 'LDY-OFF-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+
+    function renderQueue() {
+        const q = document.getElementById('ld-offline-list');
+        const items = qLoad();
+        document.getElementById('ld-count-offline').textContent = items.length;
+        document.getElementById('ld-offline-empty').classList.toggle('d-none', items.length > 0);
+        document.getElementById('btn-sync').classList.toggle('d-none', items.length === 0);
+        q.innerHTML = items.map(it => `
+            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                <div>
+                    <div class="fw-bold text-gray-900 fs-8">${it.customer_name || 'Pelanggan'}</div>
+                    <div class="fs-8 text-muted">${it.cart.length} layanan · ${new Date(it.created_at).toLocaleString('id-ID', {dateStyle:'short', timeStyle:'short'})}</div>
+                </div>
+                <span class="badge badge-light-warning fs-9">Menunggu sync</span>
+            </div>`).join('');
+    }
+
+    function queueOrder(payload) {
+        const q = qLoad();
+        q.push(Object.assign({}, payload, { client_txn_id: newTxn(), created_at: Date.now() }));
+        qSave(q);
+        renderQueue();
+    }
+
+    let syncing = false;
+    async function syncQueue(silent) {
+        const items = qLoad();
+        if (! items.length || syncing) return;
+        if (! navigator.onLine) { if (! silent) alert('Masih offline. Nota akan tersinkron otomatis saat koneksi kembali.'); return; }
+        syncing = true;
+        const btn = document.getElementById('btn-sync');
+        const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'Menyinkron...';
+        try {
+            const r = await fetch(SYNC_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+                body: JSON.stringify({ orders: items }),
+            });
+            const d = await r.json();
+            if (d.status === 'success') {
+                // Hapus dari antrean yang sukses ATAU duplikat (sudah ada di server).
+                const done = new Set((d.results || []).filter(x => x.status !== 'failed').map(x => x.client_txn_id));
+                qSave(qLoad().filter(x => ! done.has(x.client_txn_id)));
+                renderQueue();
+                if (! silent) alert(`Sinkron selesai. Tersimpan: ${d.synced}, duplikat dilewati: ${d.skipped}, gagal: ${d.failed}.`);
+            } else if (! silent) { alert('Sinkron gagal. Coba lagi nanti.'); }
+        } catch (e) {
+            if (! silent) alert('Sinkron gagal (jaringan). Nota tetap tersimpan di perangkat.');
+        } finally {
+            syncing = false; btn.disabled = false; btn.innerHTML = orig;
+        }
+    }
+    document.getElementById('btn-sync').addEventListener('click', () => syncQueue(false));
+    window.addEventListener('online', () => syncQueue(true));   // auto-sync saat koneksi kembali
+    renderQueue();
+    setTimeout(() => syncQueue(true), 1500);                    // coba sync sisa antrean saat halaman dibuka
+
     // Indikator online/offline
     function netUI() {
         const on = navigator.onLine;
@@ -462,6 +533,15 @@
             payment_method: payMethod,
             cash_received: parseFloat(document.getElementById('cash_received').value) || 0,
         };
+        // OFFLINE: langsung masuk antrean perangkat (nota tidak hilang).
+        if (! navigator.onLine) {
+            queueOrder(payload);
+            alert('Sedang offline — nota disimpan di perangkat dan akan tersinkron otomatis saat koneksi kembali.');
+            cart = []; renderCart();
+            btn.disabled = false; btn.innerHTML = original;
+            return;
+        }
+
         fetch(STORE_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
@@ -476,7 +556,13 @@
                 }
                 else { alert(d.message || 'Gagal menyimpan nota.'); btn.disabled = false; btn.innerHTML = original; }
             })
-            .catch(() => { alert('Kesalahan jaringan.'); btn.disabled = false; btn.innerHTML = original; });
+            .catch(() => {
+                // Koneksi putus di tengah jalan -> simpan ke antrean, jangan hilangkan nota.
+                queueOrder(payload);
+                alert('Koneksi terputus — nota disimpan di perangkat dan akan tersinkron otomatis.');
+                cart = []; renderCart();
+                btn.disabled = false; btn.innerHTML = original;
+            });
     });
 
     calc();
