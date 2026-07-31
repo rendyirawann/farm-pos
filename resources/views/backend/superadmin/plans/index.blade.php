@@ -12,8 +12,22 @@
         @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
         @if ($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 
+        {{-- Tab per VERTICAL (F&B / Laundry / ...) --}}
+        <ul class="nav nav-tabs nav-line-tabs fs-6 mb-6">
+            @foreach ($verticals as $vKey => $vMeta)
+                <li class="nav-item">
+                    <a class="nav-link {{ $vertical === $vKey ? 'active' : '' }}"
+                       href="{{ route('plan-settings.index', ['vertical' => $vKey]) }}">
+                        <i class="ki-outline {{ $vMeta['icon'] ?? 'ki-element-11' }} fs-5 me-2"></i>
+                        {{ $vMeta['label'] ?? $vKey }}
+                    </a>
+                </li>
+            @endforeach
+        </ul>
+
         <form method="POST" action="{{ route('plan-settings.save') }}">
             @csrf
+            <input type="hidden" name="vertical" value="{{ $vertical }}">
             <div class="row g-6">
                 @foreach ($data as $key => $plan)
                     <div class="col-lg-6">

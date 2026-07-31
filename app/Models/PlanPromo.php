@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class PlanPromo extends Model
 {
     protected $fillable = [
-        'plan_key', 'months', 'discount_percent', 'promo_label', 'is_active', 'price_per_month',
+        'plan_key', 'vertical', 'months', 'discount_percent', 'promo_label', 'is_active', 'price_per_month',
     ];
 
     protected $casts = [

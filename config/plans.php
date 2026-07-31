@@ -13,15 +13,8 @@
  * tables (manajemen meja), hpp (menu HPP), report_finance (laporan keuangan),
  * qr_selforder (QR self-order), payment_gateway (setelan payment gateway).
  */
-return [
-
-    'currency' => 'Rp',
-    'trial_days' => 14,
-
-    // Biaya tambah user di luar kuota paket.
-    'extra_user_price' => 10000,
-
-    'plans' => [
+// ===== Paket per VERTICAL. F&B tetap di key 'plans' agar kode lama tak berubah. =====
+$fnbPlans = [
         'basic' => [
             'name'  => 'Basic',
             'price' => 199000,
@@ -92,5 +85,127 @@ return [
                 'Konsultasi & support prioritas',
             ],
         ],
+];
+
+/**
+ * Paket LAUNDRY (vertical 'laundry'). Modul khas: laundry_service, laundry_produksi.
+ * Harga mengacu Mooda-Laundry-Proposal.pdf; bisa diubah Superadmin di Setelan Paket.
+ */
+$laundryPlans = [
+    'basic' => [
+        'name'  => 'Basic',
+        'price' => 149000,
+        'periods' => [
+            ['months' => 1,  'price_per_month' => 149000, 'label' => 'Bulanan'],
+            ['months' => 3,  'price_per_month' => 129000, 'label' => 'Promo 3 Bulan'],
+            ['months' => 6,  'price_per_month' => 119000, 'label' => 'Promo 6 Bulan'],
+            ['months' => 12, 'price_per_month' => 99000,  'label' => 'Promo 12 Bulan'],
+        ],
+        'tagline' => 'Untuk laundry rumahan / kiloan skala kecil.',
+        'limits' => ['outlets' => 1, 'staff' => 3, 'customers' => 5000],
+        'modules' => ['kasir', 'laundry_service', 'laundry_produksi', 'report_sales', 'data_master', 'resources', 'expense'],
+        'features' => [
+            'Kasir & nota laundry (kiloan, satuan, express)',
+            'Manajemen layanan & harga',
+            'Alur status cucian (Diterima → Diambil)',
+            'Database pelanggan + riwayat',
+            'Nota / struk thermal + kode rak',
+            'Laporan penjualan',
+            'Maks 3 User (tambah user Rp10.000/user)',
+            'Penyimpanan Database Pelanggan (5.000 Data)',
+        ],
+    ],
+
+    'pro' => [
+        'name'  => 'Pro',
+        'price' => 299000,
+        'periods' => [
+            ['months' => 1,  'price_per_month' => 299000, 'label' => 'Bulanan'],
+            ['months' => 3,  'price_per_month' => 269000, 'label' => 'Promo 3 Bulan'],
+            ['months' => 6,  'price_per_month' => 239000, 'label' => 'Promo 6 Bulan'],
+            ['months' => 12, 'price_per_month' => 199000, 'label' => 'Promo 12 Bulan'],
+        ],
+        'tagline' => 'Laundry berkembang, banyak layanan + antar-jemput.',
+        'limits' => ['outlets' => 1, 'staff' => 5, 'customers' => 25000],
+        'modules' => [
+            'kasir', 'laundry_service', 'laundry_produksi', 'report_sales', 'data_master',
+            'resources', 'expense', 'promo', 'report_items', 'report_finance',
+        ],
+        'features' => [
+            'Semua fitur Basic',
+            'Member & paket langganan pelanggan',
+            'Antar-jemput (pickup & delivery)',
+            'Laporan keuangan & laba per layanan',
+            'Multi-kasir / multi-shift',
+            'Maks 5 User (tambah user Rp10.000/user)',
+            'Penyimpanan Database Pelanggan (25.000 Data)',
+        ],
+    ],
+
+    'bisnis' => [
+        'name'  => 'Bisnis',
+        'price' => 499000,
+        'periods' => [
+            ['months' => 1,  'price_per_month' => 499000, 'label' => 'Bulanan'],
+            ['months' => 3,  'price_per_month' => 449000, 'label' => 'Promo 3 Bulan'],
+            ['months' => 6,  'price_per_month' => 399000, 'label' => 'Promo 6 Bulan'],
+            ['months' => 12, 'price_per_month' => 349000, 'label' => 'Promo 12 Bulan'],
+        ],
+        'tagline' => 'Untuk jaringan / multi-cabang laundry.',
+        'limits' => ['outlets' => null, 'staff' => 15, 'customers' => 100000],
+        'modules' => [
+            'kasir', 'laundry_service', 'laundry_produksi', 'report_sales', 'data_master',
+            'resources', 'expense', 'promo', 'report_items', 'report_finance', 'hpp', 'payment_gateway',
+        ],
+        'features' => [
+            'Semua fitur Pro',
+            'Multi-outlet (banyak cabang, satu dashboard)',
+            'Manajemen karyawan, shift & komisi',
+            'HPP & laba per layanan / cabang',
+            'Payment gateway (QRIS / Virtual Account)',
+            'QR / barcode per pesanan (tracking rak)',
+            'Maks 15 User (tambah user Rp10.000/user)',
+            'Penyimpanan Database Pelanggan (100.000 Data)',
+        ],
+    ],
+
+    'customize' => [
+        'name'  => 'Customize',
+        'price' => 0,
+        'contact' => true,
+        'wa' => '6285760366666',
+        'tagline' => 'Rakit paketmu sendiri — untuk waralaba / kebutuhan khusus.',
+        'limits' => ['outlets' => null, 'staff' => null, 'customers' => null],
+        'modules' => [
+            'kasir', 'laundry_service', 'laundry_produksi', 'report_sales', 'data_master',
+            'resources', 'expense', 'promo', 'report_items', 'report_finance', 'hpp',
+            'qr_selforder', 'payment_gateway',
+        ],
+        'features' => [
+            'Semua fitur Bisnis',
+            'Tanpa batasan jumlah user',
+            'Database pelanggan tidak terbatas',
+            'VPS & domain sendiri / white-label',
+            'API / integrasi sistem lain',
+            'Konsultasi & support prioritas',
+        ],
+    ],
+];
+
+return [
+
+    'currency' => 'Rp',
+    'trial_days' => 14,
+
+    // Biaya tambah user di luar kuota paket.
+    'extra_user_price' => 10000,
+
+    // Default (F&B) — dipakai kode lama yang belum vertical-aware.
+    'plans' => $fnbPlans,
+
+    // Paket per vertical. Plan::all($vertical) membaca dari sini.
+    'verticals' => [
+        'fnb'     => $fnbPlans,
+        'laundry' => $laundryPlans,
     ],
 ];

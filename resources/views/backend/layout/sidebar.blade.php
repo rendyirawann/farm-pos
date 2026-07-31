@@ -341,10 +341,6 @@
                         ['label' => 'CRM',            'icon' => 'ki-profile-circle',    'color' => 'info',    'desc' => 'Database pelanggan, membership & poin loyalitas'],
                         ['label' => 'QR Menu',        'icon' => 'ki-scan-barcode',      'color' => 'success', 'desc' => 'QR menu, self ordering & pesan dari meja'],
                         ['label' => 'Akuntansi',      'icon' => 'ki-bill',              'color' => 'dark',    'desc' => 'Laba rugi, arus kas & hutang piutang'],
-                        ['label' => 'Multi Cabang',   'icon' => 'ki-bank',              'color' => 'primary', 'desc' => 'Dashboard & laporan seluruh cabang'],
-                        ['label' => 'Absensi',        'icon' => 'ki-time',              'color' => 'info',    'desc' => 'Absensi, payroll sederhana & komisi sales'],
-                        ['label' => 'Marketing',      'icon' => 'ki-rocket',            'color' => 'danger',  'desc' => 'Broadcast WhatsApp, reminder & voucher otomatis'],
-                        ['label' => 'Marketplace',    'icon' => 'ki-basket',            'color' => 'warning', 'desc' => 'Integrasi GoFood, GrabFood & ShopeeFood'],
                         ['label' => 'AI Assistant',   'icon' => 'ki-messages',          'color' => 'success', 'desc' => 'Chatbot WhatsApp & upselling otomatis'],
                         ['label' => 'AI Prediksi',    'icon' => 'ki-chart-line-up',     'color' => 'primary', 'desc' => 'Prediksi stok, penjualan & rekomendasi promo'],
                     ];

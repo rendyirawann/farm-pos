@@ -3,37 +3,61 @@
 namespace App\Tenancy;
 
 use App\Models\Tenant;
+use App\Verticals\VerticalRegistry;
 
 /**
- * Helper paket langganan. Membaca config/plans.php.
+ * Helper paket langganan. Membaca config/plans.php (per VERTICAL).
+ *
+ * Semua method menerima parameter $vertical OPSIONAL. Bila tidak diisi, vertical
+ * ditentukan otomatis (tenant user yang login -> host request -> default 'fnb'),
+ * sehingga pemanggil lama tetap bekerja tanpa perubahan.
  */
 class Plan
 {
-    public static function all(): array
+    /** Vertical yang berlaku bila pemanggil tidak menyebutkan secara eksplisit. */
+    public static function resolveVertical(?string $vertical = null): string
     {
-        return config('plans.plans', []);
+        if ($vertical) {
+            return VerticalRegistry::normalize($vertical);
+        }
+
+        // 1) Vertical tenant user yang sedang login (paling akurat).
+        $tenant = auth()->check() ? auth()->user()->tenant : null;
+        if ($tenant && ! empty($tenant->vertical)) {
+            return VerticalRegistry::normalize($tenant->vertical);
+        }
+
+        // 2) Fallback: dari host request (mis. laundry.mooda.id) / default.
+        return VerticalRegistry::current();
     }
 
-    public static function get(?string $key): ?array
+    public static function all(?string $vertical = null): array
+    {
+        $v = self::resolveVertical($vertical);
+        return config("plans.verticals.$v", config('plans.plans', []));
+    }
+
+    public static function get(?string $key, ?string $vertical = null): ?array
     {
         if (!$key) {
             return null;
         }
-        return config("plans.plans.$key");
+        return self::all($vertical)[$key] ?? null;
     }
 
-    public static function price(?string $key): int
+    public static function price(?string $key, ?string $vertical = null): int
     {
-        return (int) (self::get($key)['price'] ?? 0);
+        return (int) (self::get($key, $vertical)['price'] ?? 0);
     }
 
     /**
      * Daftar pilihan durasi langganan. Jika paket tidak mendefinisikan 'periods',
      * fallback ke 1 bulan memakai harga dasar.
      */
-    public static function periods(?string $key): array
+    public static function periods(?string $key, ?string $vertical = null): array
     {
-        $plan = self::get($key);
+        $v    = self::resolveVertical($vertical);
+        $plan = self::get($key, $v);
         if (!$plan) {
             return [];
         }
@@ -41,7 +65,9 @@ class Plan
         // Sumber utama: tabel plan_promos (dikelola Superadmin). Fallback ke config bila
         // belum ada / DB bermasalah (jaga agar checkout tak pernah putus).
         try {
-            $promos = \App\Models\PlanPromo::where('plan_key', $key)->orderBy('months')->get();
+            $promos = \App\Models\PlanPromo::where('plan_key', $key)
+                ->where('vertical', $v)
+                ->orderBy('months')->get();
         } catch (\Throwable $e) {
             $promos = collect();
         }
@@ -68,9 +94,9 @@ class Plan
      * Total harga (server-side, anti-manipulasi) untuk durasi tertentu.
      * Return null bila jumlah bulan tidak ditawarkan paket ini.
      */
-    public static function periodAmount(?string $key, int $months): ?int
+    public static function periodAmount(?string $key, int $months, ?string $vertical = null): ?int
     {
-        foreach (self::periods($key) as $p) {
+        foreach (self::periods($key, $vertical) as $p) {
             if ((int) $p['months'] === $months) {
                 return (int) $p['price_per_month'] * $months;
             }
@@ -78,14 +104,14 @@ class Plan
         return null;
     }
 
-    public static function name(?string $key): string
+    public static function name(?string $key, ?string $vertical = null): string
     {
-        return self::get($key)['name'] ?? '-';
+        return self::get($key, $vertical)['name'] ?? '-';
     }
 
-    public static function modules(?string $key): array
+    public static function modules(?string $key, ?string $vertical = null): array
     {
-        return self::get($key)['modules'] ?? [];
+        return self::get($key, $vertical)['modules'] ?? [];
     }
 
     /**
@@ -94,9 +120,9 @@ class Plan
      * - int  = maksimal user aktif.
      * Paket tak dikenal / null (Starter/deposit) -> default 2 (sesuai keterangan Starter).
      */
-    public static function staffLimit(?string $key): ?int
+    public static function staffLimit(?string $key, ?string $vertical = null): ?int
     {
-        $plan = self::get($key);
+        $plan = self::get($key, $vertical);
         if (! $plan) {
             return 2; // Starter / deposit
         }
@@ -104,15 +130,15 @@ class Plan
     }
 
     /** Paket konsultasi (WhatsApp), bukan checkout Midtrans. */
-    public static function isContact(?string $key): bool
+    public static function isContact(?string $key, ?string $vertical = null): bool
     {
-        return (bool) (self::get($key)['contact'] ?? false);
+        return (bool) (self::get($key, $vertical)['contact'] ?? false);
     }
 
     /** Nomor WhatsApp untuk paket konsultasi. */
-    public static function wa(?string $key): ?string
+    public static function wa(?string $key, ?string $vertical = null): ?string
     {
-        return self::get($key)['wa'] ?? null;
+        return self::get($key, $vertical)['wa'] ?? null;
     }
 
     public static function trialDays(): int
@@ -150,6 +176,7 @@ class Plan
             return true;
         }
 
-        return in_array($module, self::modules($tenant->plan), true);
+        // Modul dibaca dari paket sesuai VERTICAL tenant (F&B vs Laundry beda modul).
+        return in_array($module, self::modules($tenant->plan, $tenant->vertical), true);
     }
 }

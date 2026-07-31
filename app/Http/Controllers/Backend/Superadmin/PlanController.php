@@ -16,39 +16,58 @@ use Illuminate\Support\Facades\DB;
  */
 class PlanController extends Controller
 {
-    /** Paket bulanan yang dikelola. */
-    private const PLANS = ['basic', 'enterprise'];
-
-    public function index()
+    /** Paket berbayar (bukan 'contact'/customize) untuk sebuah vertical. */
+    private function paidPlanKeys(string $vertical): array
     {
+        return collect(Plan::all($vertical))
+            ->reject(fn ($p) => ! empty($p['contact']))
+            ->keys()->all();
+    }
+
+    public function index(Request $request)
+    {
+        $verticals = \App\Verticals\VerticalRegistry::enabled();
+        $vertical  = \App\Verticals\VerticalRegistry::normalize($request->query('vertical'));
+        if (! array_key_exists($vertical, $verticals)) {
+            $vertical = array_key_first($verticals);
+        }
+
         $data = [];
-        foreach (self::PLANS as $key) {
+        foreach ($this->paidPlanKeys($vertical) as $key) {
             $setting = PlanSetting::firstOrCreate(
-                ['plan_key' => $key],
-                ['base_price' => (int) (config("plans.plans.$key.price") ?? 0)]
+                ['plan_key' => $key, 'vertical' => $vertical],
+                ['base_price' => (int) (Plan::get($key, $vertical)['price'] ?? 0)]
             );
             $data[$key] = [
-                'name'    => Plan::name($key),
+                'name'    => Plan::name($key, $vertical),
                 'setting' => $setting,
-                'promos'  => PlanPromo::where('plan_key', $key)->orderBy('months')->get(),
+                'promos'  => PlanPromo::where('plan_key', $key)->where('vertical', $vertical)->orderBy('months')->get(),
             ];
         }
-        return view('backend.superadmin.plans.index', compact('data'));
+
+        return view('backend.superadmin.plans.index', compact('data', 'verticals', 'vertical'));
     }
 
     public function save(Request $request)
     {
         $request->validate([
-            'plans' => ['required', 'array'],
+            'plans'    => ['required', 'array'],
+            'vertical' => ['nullable', 'string'],
         ]);
 
-        DB::transaction(function () use ($request) {
+        $vertical  = \App\Verticals\VerticalRegistry::normalize($request->input('vertical'));
+        $validKeys = $this->paidPlanKeys($vertical);
+
+        DB::transaction(function () use ($request, $vertical, $validKeys) {
             foreach ((array) $request->input('plans', []) as $key => $p) {
-                if (! in_array($key, self::PLANS, true)) {
+                if (! in_array($key, $validKeys, true)) {
                     continue;
                 }
                 $base = max(0, (int) ($p['base_price'] ?? 0));
-                PlanSetting::updateOrCreate(['plan_key' => $key], ['base_price' => $base]);
+                PlanSetting::updateOrCreate(
+                    ['plan_key' => $key, 'vertical' => $vertical],
+                    ['base_price' => $base]
+                );
 
                 foreach ((array) ($p['promos'] ?? []) as $months => $row) {
                     $months = (int) $months;
@@ -69,7 +88,7 @@ class PlanController extends Controller
                         : min($base, $typedPrice ?? (int) round($base * (1 - $disc / 100)));
 
                     PlanPromo::updateOrCreate(
-                        ['plan_key' => $key, 'months' => $months],
+                        ['plan_key' => $key, 'months' => $months, 'vertical' => $vertical],
                         [
                             'discount_percent' => $disc,
                             'promo_label'      => $label,
@@ -81,6 +100,7 @@ class PlanController extends Controller
             }
         });
 
-        return back()->with('success', 'Setelan paket berhasil disimpan.');
+        return redirect()->route('plan-settings.index', ['vertical' => $vertical])
+            ->with('success', 'Setelan paket ' . \App\Verticals\VerticalRegistry::label($vertical) . ' berhasil disimpan.');
     }
 }
