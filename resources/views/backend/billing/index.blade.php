@@ -132,11 +132,15 @@
                                         <span class="fs-3x fw-bolder text-gray-900">Custom</span>
                                         <span class="fs-6 text-muted">/sesuai fitur</span>
                                     @else
-                                        @if (count($periods) > 1)
-                                            <span class="fs-7 text-muted d-block">mulai</span>
-                                        @endif
-                                        <span class="fs-3x fw-bolder text-gray-900">Rp {{ number_format($minPpm, 0, ',', '.') }}</span>
+                                        {{-- Harga MENGIKUTI durasi yang dipilih (bukan "mulai") supaya
+                                             angka besar, pilihan durasi, dan tombol selalu konsisten. --}}
+                                        <span class="fs-3x fw-bolder text-gray-900" data-plan-price="{{ $key }}">Rp {{ number_format($basePpm, 0, ',', '.') }}</span>
                                         <span class="fs-6 text-muted">/bulan</span>
+                                        @if (count($periods) > 1)
+                                            <div class="fs-8 text-muted mt-1">
+                                                Termurah Rp {{ number_format($minPpm, 0, ',', '.') }}/bln pada durasi terpanjang
+                                            </div>
+                                        @endif
                                     @endif
                                 </div>
 
@@ -200,6 +204,7 @@
                                                         <span class="d-flex align-items-start">
                                                             <input class="form-check-input mt-1 me-3 plan-period" type="radio"
                                                                 name="period-{{ $key }}" value="{{ $pm }}" data-total="{{ $ptotal }}"
+                                                                data-ppm="{{ $ppm }}" data-plan="{{ $key }}"
                                                                 {{ $i === 0 ? 'checked' : '' }}>
                                                             <span>
                                                                 <span class="fw-bold text-gray-900">{{ $per['label'] ?? ($pm . ' Bulan') }}</span>
@@ -294,6 +299,11 @@
             function refreshLabel() {
                 const r = selectedRadio();
                 if (r && labelEl) labelEl.textContent = prefix + ' — ' + rp(r.dataset.total);
+                // Angka besar harga/bulan ikut durasi yang dipilih.
+                if (r && r.dataset.ppm) {
+                    const priceEl = document.querySelector('[data-plan-price="' + r.dataset.plan + '"]');
+                    if (priceEl) priceEl.textContent = rp(r.dataset.ppm);
+                }
             }
             if (group) {
                 document.querySelectorAll('input[name="' + group + '"]').forEach(function (r) {

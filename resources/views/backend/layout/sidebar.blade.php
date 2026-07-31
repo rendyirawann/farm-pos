@@ -236,10 +236,67 @@
                 </div>
             @endcan
 
+            @php
+                // Tenant LAUNDRY memakai kartu menu sendiri (Kasir Laundry, Produksi, Layanan,
+                // Pelanggan); kartu khas F&B (Kasir F&B, Dapur, Menu F&B) disembunyikan.
+                $sbIsLaundry = ($currentTenant ?? null) && $currentTenant->isLaundry();
+            @endphp
+
             <div class="mb-6 mt-4">
                 <h3 class="text-gray-800 fw-bold mb-8">Menu Utama</h3>
                 <div class="row row-cols-3" data-kt-buttons="true" data-kt-buttons-target="[data-kt-button]">
 
+                    @if ($sbIsLaundry)
+                        {{-- ===== KARTU MENU LAUNDRY ===== --}}
+                        @can('view_kasir')
+                            <div class="col mb-4">
+                                <a href="{{ route('laundry.kasir.index') }}"
+                                    class="btn btn-icon btn-outline btn-bg-light btn-active-light-primary btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200"
+                                    data-kt-button="true">
+                                    <span class="mb-2"><i class="ki-outline ki-handcart fs-2x text-primary"></i></span>
+                                    <span class="fs-8 fw-bold">Kasir</span>
+                                </a>
+                            </div>
+                        @endcan
+                        @can('view_kasir')
+                            <div class="col mb-4">
+                                <a href="{{ route('shifts.index') }}"
+                                    class="btn btn-icon btn-outline btn-bg-light btn-active-light-warning btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200"
+                                    data-kt-button="true">
+                                    <span class="mb-2"><i class="ki-outline ki-time fs-2x text-warning"></i></span>
+                                    <span class="fs-8 fw-bold">Shift</span>
+                                </a>
+                            </div>
+                        @endcan
+                        @can('view_kitchen')
+                            <div class="col mb-4">
+                                <a href="{{ route('laundry.produksi.index') }}"
+                                    class="btn btn-icon btn-outline btn-bg-light btn-active-light-info btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200"
+                                    data-kt-button="true">
+                                    <span class="mb-2"><i class="ki-outline ki-loading fs-2x text-info"></i></span>
+                                    <span class="fs-8 fw-bold">Produksi</span>
+                                </a>
+                            </div>
+                        @endcan
+                        @can('view_data_master')
+                            <div class="col mb-4">
+                                <a href="{{ route('laundry.services.index') }}"
+                                    class="btn btn-icon btn-outline btn-bg-light btn-active-light-success btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200"
+                                    data-kt-button="true">
+                                    <span class="mb-2"><i class="ki-outline ki-abstract-26 fs-2x text-success"></i></span>
+                                    <span class="fs-8 fw-bold">Layanan</span>
+                                </a>
+                            </div>
+                            <div class="col mb-4">
+                                <a href="{{ route('laundry.customers.index') }}"
+                                    class="btn btn-icon btn-outline btn-bg-light btn-active-light-warning btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200"
+                                    data-kt-button="true">
+                                    <span class="mb-2"><i class="ki-outline ki-profile-user fs-2x text-warning"></i></span>
+                                    <span class="fs-8 fw-bold">Pelanggan</span>
+                                </a>
+                            </div>
+                        @endcan
+                    @else
                     {{-- KASIR: Superadmin + admin + kasir --}}
                     @can('view_kasir')
                     <div class="col mb-4">
@@ -304,6 +361,7 @@
                         </a>
                     </div>
                     @endcan
+                    @endif {{-- /vertical: laundry vs F&B --}}
 
                     {{-- KARYAWAN (User Management) --}}
                     @can('view_resources')
