@@ -310,7 +310,9 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
         Route::post('/admin/shifts/reopen/{id}', [ShiftController::class, 'reopenShift'])->middleware('can:shift.reopen')->name('shifts.reopen');
         Route::post('/admin/shifts/{id}/modal', [ShiftController::class, 'updateModal'])->middleware('can:shift.reopen')->name('shifts.update-modal');
 
-        // Kasir single-page
+        // Kasir single-page — KHUSUS F&B. Tenant laundry memakai /admin/laundry/kasir,
+        // jadi kasir F&B (meja, menu, kirim ke dapur) diblokir untuk vertical lain.
+        Route::middleware('vertical:fnb')->group(function () {
         Route::get('/admin/kasir', [KasirController::class, 'index'])->name('kasir.index');
         Route::post('/admin/kasir/toggle-tables', [KasirController::class, 'toggleTables'])->name('kasir.toggle-tables');
         Route::get('/admin/kasir/orders', [KasirController::class, 'listOrders'])->name('kasir.orders');
@@ -333,6 +335,9 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
             ->middleware('can:order.void')->name('kasir.order.void');
         Route::post('/admin/kasir/sales/reset-today', [KasirController::class, 'resetToday'])
             ->middleware('can:sales.clear')->name('kasir.sales.reset-today');
+        }); // /vertical:fnb
+
+        // Target harian: DIPAKAI SEMUA VERTICAL (F&B = target penjualan, laundry = target profit).
         Route::post('/admin/kasir/sales/target', [KasirController::class, 'setTarget'])
             ->middleware('can:sales.target')->name('kasir.sales.target');
     });
@@ -340,7 +345,7 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
     // ====================================================
     // KITCHEN: view_kitchen — Superadmin, admin, kasir, kitchen
     // ====================================================
-    Route::middleware(['can:view_kitchen', 'subscribed'])->group(function () {
+    Route::middleware(['can:view_kitchen', 'subscribed', 'vertical:fnb'])->group(function () {
         Route::get('/admin/kitchen', [KitchenController::class, 'index'])->name('kitchen.index');
         Route::post('/admin/kitchen/update-status', [KitchenController::class, 'updateItemStatus'])->name('kitchen.update-status');
         Route::post('/admin/kitchen/update-order-status', [KitchenController::class, 'updateOrderStatus'])->name('kitchen.update-order-status');
@@ -349,7 +354,7 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
     // ====================================================
     // DATA MASTER: view_data_master — Superadmin, admin
     // ====================================================
-    Route::middleware(['can:view_data_master', 'subscribed'])->group(function () {
+    Route::middleware(['can:view_data_master', 'subscribed', 'vertical:fnb'])->group(function () {
         Route::resource('/admin/categories', CategoriesController::class);
         Route::get('/admin/get-datacategories', [CategoriesController::class, 'getDataCategories'])->name('get-datacategories');
         // Daftar ringkas kategori (JSON) utk refresh dropdown di form menu tanpa reload.
