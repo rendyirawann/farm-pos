@@ -32,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscribed' => \App\Http\Middleware\EnsureSubscribed::class,
             'plan' => \App\Http\Middleware\EnsurePlanFeature::class,
             'maintenance' => \App\Http\Middleware\MaintenanceMode::class,
+            // Multi-vertical (F&B / Laundry / Retail)
+            'vertical' => \App\Http\Middleware\EnsureVertical::class,
         ]);
 
         // 🔥 TAMBAHKAN BARIS INI (Agar logoutOtherDevices berfungsi)
@@ -40,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\DynamicUrlRoot::class,
             \Illuminate\Session\Middleware\AuthenticateSession::class,
             \App\Http\Middleware\IdentifyTenant::class,
+            \App\Http\Middleware\ResolveVertical::class,
             \App\Http\Middleware\SecurityHeaders::class,
         ]);
 

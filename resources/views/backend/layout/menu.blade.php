@@ -24,8 +24,40 @@
                 <span class="menu-title">Dashboards</span>
             </a>
         </div>
-        {{-- DATA MASTER (disembunyikan utk Superadmin di mode Analitik) --}}
-        @if (! ($isSuperadminView ?? false) || ($saMode ?? 'pos') === 'pos')
+
+        {{-- ===== MENU LAUNDRY (hanya tenant vertical 'laundry') ===== --}}
+        @if (($currentTenant ?? null) && $currentTenant->isLaundry())
+            @can('view_kasir')
+                <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('laundry.kasir.*') ? 'here show ' : '' }}">
+                    <a href="{{ route('laundry.kasir.index') }}" class="menu-link px-4 {{ request()->routeIs('laundry.kasir.*') ? 'active ' : '' }}">
+                        <span class="menu-title">Kasir Laundry</span></a>
+                </div>
+            @endcan
+            @can('view_kitchen')
+                <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('laundry.produksi.*') ? 'here show ' : '' }}">
+                    <a href="{{ route('laundry.produksi.index') }}" class="menu-link px-4 {{ request()->routeIs('laundry.produksi.*') ? 'active ' : '' }}">
+                        <span class="menu-title">Produksi</span></a>
+                </div>
+            @endcan
+            @can('view_data_master')
+                <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
+                    class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
+                    <span class="menu-link px-4 {{ request()->routeIs('laundry.services.*', 'laundry.customers.*') ? 'active ' : '' }}">
+                        <span class="menu-title">Data Master</span><span class="menu-arrow d-lg-none"></span></span>
+                    <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-210px">
+                        <div class="menu-item {{ request()->routeIs('laundry.services.*') ? 'here show ' : '' }}">
+                            <a class="menu-link py-3" href="{{ route('laundry.services.index') }}">
+                                <span class="menu-icon"><i class="ki-outline ki-abstract-26 fs-2"></i></span><span class="menu-title">Layanan</span></a></div>
+                        <div class="menu-item {{ request()->routeIs('laundry.customers.*') ? 'here show ' : '' }}">
+                            <a class="menu-link py-3" href="{{ route('laundry.customers.index') }}">
+                                <span class="menu-icon"><i class="ki-outline ki-people fs-2"></i></span><span class="menu-title">Pelanggan</span></a></div>
+                    </div>
+                </div>
+            @endcan
+        @endif
+
+        {{-- DATA MASTER F&B (disembunyikan utk Superadmin di mode Analitik & untuk vertical laundry) --}}
+        @if ((! ($isSuperadminView ?? false) || ($saMode ?? 'pos') === 'pos') && ! (($currentTenant ?? null) && $currentTenant->isLaundry()))
         @can('view_data_master')
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
                 class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">

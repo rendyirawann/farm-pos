@@ -18,6 +18,7 @@ class Tenant extends Model
         'slug',
         'business_type',
         'category',
+        'vertical',
         'owner_id',
         'phone',
         'email',
@@ -185,5 +186,23 @@ class Tenant extends Model
     public function isUmkm(): bool
     {
         return $this->category === 'umkm';
+    }
+
+    /* ===================== Multi-vertical ===================== */
+
+    /** Vertical (industri) tenant: fnb | laundry | retail. Default 'fnb'. */
+    public function vertical(): string
+    {
+        return \App\Verticals\VerticalRegistry::normalize($this->vertical);
+    }
+
+    public function isFnb(): bool
+    {
+        return $this->vertical() === 'fnb';
+    }
+
+    public function isLaundry(): bool
+    {
+        return $this->vertical() === 'laundry';
     }
 }
