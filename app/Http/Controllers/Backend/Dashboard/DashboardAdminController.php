@@ -146,7 +146,14 @@ class DashboardAdminController extends Controller
             && trim((string) $setting->address) !== ''
             && ! empty($setting->printer_method)
             && (trim((string) $setting->receipt_header) !== '' || trim((string) $setting->receipt_footer) !== '');
-        $onbMaster = \App\Models\Category::count() > 0 && Menu::count() > 0;
+        // Langkah 2 (data master) MENGIKUTI VERTICAL:
+        //  - F&B     : butuh kategori + menu makanan/minuman
+        //  - Laundry : butuh layanan laundry (kiloan/satuan/express) di Data Master → Layanan
+        $onbTenant   = auth()->user()?->tenant;
+        $onbIsLaundry = $onbTenant && method_exists($onbTenant, 'isLaundry') && $onbTenant->isLaundry();
+        $onbMaster = $onbIsLaundry
+            ? \App\Models\Laundry\LaundryService::count() > 0
+            : (\App\Models\Category::count() > 0 && Menu::count() > 0);
         // Setup Karyawan: selesai bila tenant sudah punya akun ber-role owner, admin, DAN kasir.
         // Nama role lowercase (spatie); TenantScope global otomatis membatasi ke tenant aktif.
         $onbEmployees = \App\Models\User::role('owner')->exists()
@@ -171,6 +178,13 @@ class DashboardAdminController extends Controller
             'done'          => $onbDone,
             'show'          => (bool) $onbShow,
             'has_tenant'    => (bool) $u->tenant_id,
+            // Label & tautan langkah 2 menyesuaikan vertical (F&B: Menu, Laundry: Layanan).
+            'is_laundry'    => (bool) $onbIsLaundry,
+            'master_title'  => $onbIsLaundry ? 'Setup Layanan Laundry' : 'Setup Menu & Kategori',
+            'master_desc'   => $onbIsLaundry
+                ? 'Tambah layanan cuci (kiloan/satuan/express) + harga & estimasi'
+                : 'Tambah kategori + menu makanan & minuman',
+            'master_url'    => $onbIsLaundry ? route('laundry.services.index') : route('menus.index'),
         ];
 
         return view('backend.dashboard.index', compact('unavailableMenus', 'topProducts', 'chartData', 'summary', 'selectedMonth', 'monthOptions', 'onboarding'));

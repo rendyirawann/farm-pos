@@ -125,14 +125,14 @@
                                     <span class="badge badge-circle badge-primary me-3 fs-6" style="width:34px;height:34px">2</span>
                                 @endif
                                 <div>
-                                    <div class="fw-bold text-gray-900">Setup Menu &amp; Kategori</div>
-                                    <div class="fs-8 text-muted">Tambah kategori + menu makanan &amp; minuman</div>
+                                    <div class="fw-bold text-gray-900">{{ $onboarding['master_title'] ?? 'Setup Menu & Kategori' }}</div>
+                                    <div class="fs-8 text-muted">{{ $onboarding['master_desc'] ?? 'Tambah kategori + menu makanan & minuman' }}</div>
                                 </div>
                             </div>
                             @if ($onboarding['master'])
                                 <span class="badge badge-light-success"><i class="ki-outline ki-check fs-6 me-1"></i>Selesai</span>
                             @elseif ($onboarding['can_store'])
-                                <a href="{{ route('menus.index') }}" class="btn btn-sm btn-primary text-nowrap">Setup Sekarang</a>
+                                <a href="{{ $onboarding['master_url'] ?? route('menus.index') }}" class="btn btn-sm btn-primary text-nowrap">Setup Sekarang</a>
                             @else
                                 <span class="badge badge-light-secondary text-nowrap"><i class="ki-outline ki-lock-2 fs-7 me-1"></i>Hanya Owner/Admin yang mengatur ini</span>
                             @endif
