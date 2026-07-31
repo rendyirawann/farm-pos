@@ -36,6 +36,10 @@ use App\Http\Controllers\Backend\Billing\CheckoutController;
 use App\Http\Controllers\Backend\Billing\DepositController;
 use App\Http\Controllers\Backend\Superadmin\TenantController;
 use App\Http\Controllers\Backend\Superadmin\DemoAccountController;
+use App\Http\Controllers\Backend\Laundry\LaundryServiceController;
+use App\Http\Controllers\Backend\Laundry\LaundryCustomerController;
+use App\Http\Controllers\Backend\Laundry\LaundryKasirController;
+use App\Http\Controllers\Backend\Laundry\LaundryProduksiController;
 use App\Http\Controllers\Backend\Superadmin\DepositSettingController;
 use App\Http\Controllers\Backend\Superadmin\DokuChannelController;
 use App\Http\Controllers\Backend\Superadmin\PaymentGatewayController;
@@ -159,6 +163,41 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
         Route::get('/admin/deposit', [DepositController::class, 'index'])->name('deposit.index');
         Route::post('/admin/deposit/checkout', [DepositController::class, 'checkout'])->name('deposit.checkout');
         Route::post('/admin/deposit/switch', [DepositController::class, 'switchToDeposit'])->name('deposit.switch');
+    });
+
+    // ====================================================
+    // MODUL LAUNDRY (vertical 'laundry') — hanya tenant laundry (superadmin bebas)
+    // ====================================================
+    Route::middleware('vertical:laundry')->group(function () {
+        // Data master: layanan & pelanggan
+        Route::middleware('can:view_data_master')->group(function () {
+            Route::get('/admin/laundry/services', [LaundryServiceController::class, 'index'])->name('laundry.services.index');
+            Route::post('/admin/laundry/services', [LaundryServiceController::class, 'store'])->name('laundry.services.store');
+            Route::put('/admin/laundry/services/{service}', [LaundryServiceController::class, 'update'])->name('laundry.services.update');
+            Route::post('/admin/laundry/services/{service}/toggle', [LaundryServiceController::class, 'toggle'])->name('laundry.services.toggle');
+            Route::delete('/admin/laundry/services/{service}', [LaundryServiceController::class, 'destroy'])->name('laundry.services.destroy');
+
+            Route::get('/admin/laundry/customers', [LaundryCustomerController::class, 'index'])->name('laundry.customers.index');
+            Route::post('/admin/laundry/customers', [LaundryCustomerController::class, 'store'])->name('laundry.customers.store');
+            Route::put('/admin/laundry/customers/{customer}', [LaundryCustomerController::class, 'update'])->name('laundry.customers.update');
+            Route::delete('/admin/laundry/customers/{customer}', [LaundryCustomerController::class, 'destroy'])->name('laundry.customers.destroy');
+        });
+
+        // Kasir laundry (POS)
+        Route::middleware('can:view_kasir')->group(function () {
+            Route::get('/admin/laundry/kasir', [LaundryKasirController::class, 'index'])->name('laundry.kasir.index');
+            Route::get('/admin/laundry/kasir/create', [LaundryKasirController::class, 'create'])->name('laundry.kasir.create');
+            Route::post('/admin/laundry/kasir', [LaundryKasirController::class, 'store'])->name('laundry.kasir.store');
+            Route::post('/admin/laundry/kasir/{order}/pay', [LaundryKasirController::class, 'pay'])->name('laundry.kasir.pay');
+            Route::post('/admin/laundry/kasir/{order}/handover', [LaundryKasirController::class, 'handover'])->name('laundry.kasir.handover');
+            Route::get('/admin/laundry/kasir/{order}/print', [LaundryKasirController::class, 'print'])->name('laundry.kasir.print');
+        });
+
+        // Produksi (workshop board)
+        Route::middleware('can:view_kitchen')->group(function () {
+            Route::get('/admin/laundry/produksi', [LaundryProduksiController::class, 'index'])->name('laundry.produksi.index');
+            Route::post('/admin/laundry/produksi/{order}/advance', [LaundryProduksiController::class, 'advance'])->name('laundry.produksi.advance');
+        });
     });
 
     // ====================================================

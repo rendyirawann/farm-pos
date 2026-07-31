@@ -74,6 +74,8 @@ class RegisteredUserController extends Controller
                 'slug'                => $this->uniqueSlug($request->business_name),
                 'business_type'       => $request->business_type ?: ($categoryLabels[$request->category] ?? null),
                 'category'            => $request->category,
+                // Vertical ditentukan dari host pendaftaran (mis. laundry.mooda.id -> 'laundry').
+                'vertical'            => \App\Verticals\VerticalRegistry::fromHost($request->getHost()),
                 'phone'               => $request->phone,
                 'email'               => $request->email,
                 // Terkunci sampai berlangganan (sesuai kebutuhan: wajib langganan dulu)
