@@ -59,6 +59,9 @@ class LaundryKasirController extends Controller
             'customer_id'          => ['nullable', 'integer'],
             'customer_name'        => ['nullable', 'string', 'max:100'],
             'customer_phone'       => ['nullable', 'string', 'max:30'],
+            'customer_email'       => ['nullable', 'email', 'max:120'],
+            // Simpan pelanggan baru ke Data Master supaya bisa dipilih di nota berikutnya.
+            'save_customer'        => ['nullable', 'boolean'],
             'order_type'           => ['required', 'in:self_pickup,delivery'],
             'delivery_fee'         => ['nullable', 'numeric', 'min:0'],
             'delivery_address'     => ['nullable', 'string', 'max:255'],
@@ -72,6 +75,18 @@ class LaundryKasirController extends Controller
         $services = LaundryService::whereIn('id', $ids)->get()->keyBy('id');
 
         $customer = ! empty($data['customer_id']) ? LaundryCustomer::find($data['customer_id']) : null;
+
+        // Pelanggan BARU dari layar kasir: simpan ke Data Master bila diminta (registrasi cepat).
+        if (! $customer && ! empty($data['save_customer']) && ! empty($data['customer_name'])) {
+            $customer = LaundryCustomer::firstOrCreate(
+                ['phone' => $data['customer_phone'] ?? null, 'name' => $data['customer_name']],
+                [
+                    'email'          => $data['customer_email'] ?? null,
+                    'member_status'  => 'reguler',
+                    'loyalty_points' => 0,
+                ]
+            );
+        }
 
         try {
             $order = DB::transaction(function () use ($data, $services, $customer) {
@@ -105,11 +120,14 @@ class LaundryKasirController extends Controller
                     throw new \RuntimeException('Keranjang kosong / layanan tidak valid.');
                 }
 
-                // Diskon: VIP +10% (v1). Pajak 0. Ongkir bila delivery.
+                // Diskon: VIP 10% otomatis. Pajak dari persen di Pengaturan, dihitung atas
+                // nilai SETELAH diskon (sesuai spesifikasi modul laundry). Ongkir bila delivery.
                 $discount = ($customer && $customer->isVip()) ? round($subtotal * 0.10, 2) : 0;
                 $net      = max(0, $subtotal - $discount);
+                $taxRate  = (float) (\App\Models\Setting::query()->value('tax_rate') ?? 0);
+                $tax      = $taxRate > 0 ? round($net * $taxRate / 100, 2) : 0;
                 $delivery = ($data['order_type'] === 'delivery') ? round((float) ($data['delivery_fee'] ?? 0), 2) : 0;
-                $grand    = $net + $delivery;
+                $grand    = $net + $tax + $delivery;
 
                 // Pembayaran
                 $method  = $data['payment_method'];
@@ -124,14 +142,14 @@ class LaundryKasirController extends Controller
                     'customer_id'            => $customer?->id,
                     'customer_name'          => $customer?->name ?: ($data['customer_name'] ?: 'Pelanggan'),
                     'customer_phone'         => $customer?->phone ?: ($data['customer_phone'] ?? null),
-                    'customer_email'         => $customer?->email,
+                    'customer_email'         => $customer?->email ?: ($data['customer_email'] ?? null),
                     'staff_id'               => Auth::id(),
                     'order_type'             => $data['order_type'],
                     'delivery_address'       => $data['order_type'] === 'delivery' ? ($data['delivery_address'] ?? $customer?->address) : null,
                     'delivery_fee'           => $delivery,
                     'subtotal'               => $subtotal,
                     'discount_amount'        => $discount,
-                    'tax'                    => 0,
+                    'tax'                    => $tax,
                     'grand_total'            => $grand,
                     'payment_method'         => $paid ? 'cash' : null,
                     'payment_status'         => $paid ? 'paid' : 'unpaid',

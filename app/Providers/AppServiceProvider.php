@@ -145,12 +145,28 @@ class AppServiceProvider extends ServiceProvider
                     $dailySpent  = (float) \App\Models\Expense::whereDate('date', $today)->sum('amount');
                 }
 
-                // Kalkulasi Persentase Penjualan vs Target
+                // ===== VERTICAL LAUNDRY =====
+                // Omzet diambil dari nota LAUNDRY (bukan Order F&B, yang selalu 0 di laundry),
+                // dan capaian target dihitung dari PROFIT = omzet - pengeluaran hari itu.
+                $tenantNow    = auth()->user()->tenant;
+                $isLaundryNow = $tenantNow && method_exists($tenantNow, 'isLaundry') && $tenantNow->isLaundry();
+
+                if ($isLaundryNow) {
+                    $ldQuery = \App\Models\Laundry\LaundryOrder::where('payment_status', 'paid');
+                    $income  = (float) ($openShift
+                        ? $ldQuery->where('created_at', '>=', $openShift->start_time)->sum('grand_total')
+                        : $ldQuery->whereDate('created_at', $today)->sum('grand_total'));
+                }
+
+                // Nilai yang dibandingkan dgn target: laundry = profit, F&B = omzet.
+                $achieved = $isLaundryNow ? max(0, $income - $dailySpent) : $income;
+
+                // Kalkulasi Persentase vs Target
                 $salesPercentage = 0;
                 $salesBarWidth = 0;
                 $salesProgressColor = 'bg-warning';
                 if ($salesTarget > 0) {
-                    $salesPercentage = round(($income / $salesTarget) * 100);
+                    $salesPercentage = round(($achieved / $salesTarget) * 100);
                     $salesBarWidth = $salesPercentage > 100 ? 100 : $salesPercentage;
                     if ($salesPercentage >= 100) {
                         $salesProgressColor = 'bg-success';
@@ -162,6 +178,8 @@ class AppServiceProvider extends ServiceProvider
                 $view->with(compact(
                     'salesTarget',
                     'income',
+                    'achieved',
+                    'isLaundryNow',
                     'salesPercentage',
                     'salesBarWidth',
                     'salesProgressColor',

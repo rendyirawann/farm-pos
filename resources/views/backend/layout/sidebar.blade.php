@@ -194,8 +194,15 @@
 
             <div class="px-1 mb-6">
                 <div class="border border-primary border-dashed bg-light-primary rounded w-100 py-3 px-4">
-                    <span class="fs-6 text-primary fw-bold">Penjualan Hari Ini</span>
-                    <div id="sb-income" class="fs-2 fw-bold text-gray-800">Rp {{ number_format($income ?? 0, 0, ',', '.') }}</div>
+                    @if (!empty($isLaundryNow))
+                        {{-- Laundry: yang dibandingkan dgn target = PROFIT (omzet - pengeluaran). --}}
+                        <span class="fs-6 text-primary fw-bold">Profit Hari Ini</span>
+                        <div id="sb-income" class="fs-2 fw-bold text-gray-800">Rp {{ number_format($achieved ?? 0, 0, ',', '.') }}</div>
+                        <div class="fs-8 text-muted mt-1">Omzet Rp {{ number_format($income ?? 0, 0, ',', '.') }} − pengeluaran</div>
+                    @else
+                        <span class="fs-6 text-primary fw-bold">Penjualan Hari Ini</span>
+                        <div id="sb-income" class="fs-2 fw-bold text-gray-800">Rp {{ number_format($income ?? 0, 0, ',', '.') }}</div>
+                    @endif
                 </div>
             </div>
 
