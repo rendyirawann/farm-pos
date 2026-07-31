@@ -44,6 +44,12 @@ class LaundryKasirController extends Controller
         return view('backend.laundry.kasir.create', [
             'services'  => LaundryService::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(),
             'customers' => LaundryCustomer::orderBy('name')->get(['id', 'name', 'phone', 'email', 'address', 'member_status']),
+            // Panel status di layar kasir (Sedang Diproses / Selesai).
+            'activeOrders' => LaundryOrder::whereIn('order_status', LaundryOrder::ACTIVE_STATUSES)
+                ->orderByDesc('created_at')->limit(50)->get(),
+            'readyOrders'  => LaundryOrder::where('order_status', 'selesai')
+                ->orderByDesc('created_at')->limit(50)->get(),
+            'setting'      => \App\Models\Setting::query()->first(),
         ]);
     }
 
@@ -189,7 +195,49 @@ class LaundryKasirController extends Controller
             'order_id'   => $order->id,
             'invoice_no' => $order->invoice_no,
             'print_url'  => route('laundry.kasir.print', $order->id),
+            // Data struk untuk engine cetak terpusat (browser / QZ Tray / Web Bluetooth / RawBT).
+            'receipt'    => $this->receiptPayload($order),
         ]);
+    }
+
+    /**
+     * Bentuk data struk (format sama dgn engine MoodaPrint di F&B) supaya struk laundry
+     * bisa dicetak lewat printer thermal Bluetooth/QZ/RawBT, bukan hanya dialog browser.
+     */
+    private function receiptPayload(LaundryOrder $order): array
+    {
+        $order->loadMissing('items');
+        $setting = \App\Models\Setting::query()->first();
+        $taxRate = (float) ($setting->tax_rate ?? 0);
+
+        return [
+            'store_name'     => $setting->store_name ?? (Auth::user()->tenant->name ?? 'Mooda'),
+            'store_address'  => ($setting && $setting->receipt_show_address) ? ($setting->address ?? '') : '',
+            'store_phone'    => ($setting && $setting->receipt_show_phone) ? ($setting->phone ?? '') : '',
+            'receipt_header' => $setting->receipt_header ?? '',
+            'receipt_footer' => $setting->receipt_footer ?? '',
+            'invoice_no'     => $order->invoice_no,
+            'customer_name'  => $order->customer_name,
+            'datetime'       => optional($order->created_at)->format('d/m/Y H.i'),
+            'items'          => $order->items->map(fn ($it) => [
+                'name'     => $it->service_name . ' (' . rtrim(rtrim(number_format((float) $it->qty, 2, '.', ''), '0'), '.') . ' ' . $it->unit . ')',
+                'qty'      => (float) $it->qty,
+                'price'    => (float) $it->price,
+                'subtotal' => (float) $it->subtotal,
+                'notes'    => trim(($it->item_condition ? $it->item_condition : '') . ($it->notes ? ' | ' . $it->notes : '')) ?: null,
+            ])->all(),
+            'subtotal'        => (float) $order->subtotal,
+            'discount_amount' => (float) $order->discount_amount,
+            'tax'             => (float) $order->tax,
+            'tax_rate'        => $taxRate,
+            'grand_total'     => (float) $order->grand_total,
+            'payment_method'  => $order->payment_method ?: 'nanti',
+            'payment_status'  => $order->payment_status,
+            'cash_received'   => (float) ($order->cash_received ?? 0),
+            'change_amount'   => (float) ($order->cash_change ?? 0),
+            // Khas laundry: estimasi selesai dicetak di struk.
+            'note_line'       => 'Estimasi selesai: ' . optional($order->estimated_completed_at)->format('d/m/Y H.i'),
+        ];
     }
 
     /** Lunasi sisa (dari status unpaid/DP). */

@@ -104,8 +104,82 @@
                 </div>
             </div>
 
-            {{-- ============ KANAN: rincian transaksi ============ --}}
+            {{-- ============ KANAN: panel status + rincian transaksi ============ --}}
             <div class="col-lg-5">
+
+                {{-- Panel pesanan: Sedang Diproses / Selesai / Offline --}}
+                <div class="card card-flush shadow-sm mb-5">
+                    <div class="card-header pt-4 pb-0 min-h-40px">
+                        <ul class="nav nav-pills nav-pills-sm gap-2 w-100">
+                            <li class="nav-item">
+                                <a class="nav-link btn btn-sm btn-color-muted btn-active-light-primary fw-bold active"
+                                    data-bs-toggle="tab" href="#ld-tab-processing">Sedang Diproses
+                                    <span class="badge badge-primary ms-1">{{ $activeOrders->count() }}</span></a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link btn btn-sm btn-color-muted btn-active-light-success fw-bold"
+                                    data-bs-toggle="tab" href="#ld-tab-ready">Selesai
+                                    <span class="badge badge-success ms-1">{{ $readyOrders->count() }}</span></a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link btn btn-sm btn-color-muted btn-active-light-warning fw-bold"
+                                    data-bs-toggle="tab" href="#ld-tab-offline">Offline
+                                    <span class="badge badge-warning ms-1" id="ld-count-offline">0</span></a>
+                            </li>
+                            <li class="nav-item ms-auto d-flex align-items-center gap-1">
+                                {{-- Tombol hubungkan printer (muncul bila metode butuh koneksi: Bluetooth/QZ/native) --}}
+                                <button class="btn btn-sm btn-light-primary d-none" id="btn-printer" type="button">
+                                    <i class="ki-outline ki-printer fs-4"></i> <span id="printer-label">Printer</span>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body pt-3 pb-4">
+                        <div class="tab-content">
+                            {{-- Sedang diproses --}}
+                            <div class="tab-pane fade show active" id="ld-tab-processing" style="max-height:260px;overflow-y:auto">
+                                @forelse ($activeOrders as $o)
+                                    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                        <div>
+                                            <div class="fw-bold text-gray-900 fs-8">{{ $o->invoice_no }}</div>
+                                            <div class="fs-8 text-muted">{{ $o->customer_name }} ·
+                                                <span class="badge badge-light-primary fs-9">{{ \App\Models\Laundry\LaundryOrder::STAGE_LABELS[$o->order_status] ?? $o->order_status }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-bold fs-8">Rp {{ number_format($o->grand_total, 0, ',', '.') }}</div>
+                                            <span class="badge badge-light-{{ $o->payment_status === 'paid' ? 'success' : 'warning' }} fs-9">
+                                                {{ $o->payment_status === 'paid' ? 'Lunas' : 'Belum bayar' }}</span>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="text-center text-muted fs-8 py-6">Belum ada cucian dalam proses.</div>
+                                @endforelse
+                            </div>
+                            {{-- Selesai / siap diambil --}}
+                            <div class="tab-pane fade" id="ld-tab-ready" style="max-height:260px;overflow-y:auto">
+                                @forelse ($readyOrders as $o)
+                                    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                        <div>
+                                            <div class="fw-bold text-gray-900 fs-8">{{ $o->invoice_no }}</div>
+                                            <div class="fs-8 text-muted">{{ $o->customer_name }} · siap diambil</div>
+                                        </div>
+                                        <a href="{{ route('laundry.kasir.index') }}" class="btn btn-sm btn-light-success py-1 px-3 fs-8">Serahkan</a>
+                                    </div>
+                                @empty
+                                    <div class="text-center text-muted fs-8 py-6">Belum ada cucian siap diambil.</div>
+                                @endforelse
+                            </div>
+                            {{-- Offline (antrean lokal) --}}
+                            <div class="tab-pane fade" id="ld-tab-offline" style="max-height:260px;overflow-y:auto">
+                                <div class="text-center text-muted fs-8 py-6" id="ld-offline-empty">
+                                    Tidak ada nota offline. Nota tersimpan langsung selama koneksi tersedia.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card card-flush" style="position:sticky;top:90px">
                     <div class="card-header pt-5"><h3 class="card-title fw-bold fs-4">Rincian Transaksi</h3></div>
                     <div class="card-body pt-2">
@@ -339,6 +413,29 @@
         calc();
     }));
 
+    // ===== Printer: tombol "Hubungkan" muncul bila metode butuh koneksi (Bluetooth/QZ/native) =====
+    function initPrinterButton() {
+        if (window.MoodaPrint && window.MoodaPrint.needsButton && window.MoodaPrint.needsButton()) {
+            const btn = document.getElementById('btn-printer');
+            btn.classList.remove('d-none');
+            document.getElementById('printer-label').textContent = window.MoodaPrint.buttonLabel
+                ? window.MoodaPrint.buttonLabel() : 'Hubungkan Printer';
+            // Pulihkan izin printer BLE yang sudah pernah diberikan (tanpa dialog).
+            if (window.MoodaPrint.restoreBle) { try { window.MoodaPrint.restoreBle(); } catch (e) {} }
+        }
+    }
+    document.getElementById('btn-printer').addEventListener('click', function () {
+        if (window.MoodaPrint && window.MoodaPrint.quickConnect) window.MoodaPrint.quickConnect();
+    });
+    // MoodaPrint dimuat di layout; beri jeda kecil agar autoSetup selesai.
+    setTimeout(initPrinterButton, 400);
+
+    // Cetak struk lewat engine terpusat (browser / QZ Tray / Web Bluetooth / RawBT).
+    function doPrintReceipt(receipt, printUrl) {
+        if (window.MoodaPrint && window.MoodaPrint.print) { window.MoodaPrint.print(receipt, printUrl); return; }
+        if (printUrl) window.open(printUrl, '_blank');
+    }
+
     // Indikator online/offline
     function netUI() {
         const on = navigator.onLine;
@@ -372,7 +469,11 @@
         })
             .then(r => r.json())
             .then(d => {
-                if (d.status === 'success') { window.open(d.print_url, '_blank'); window.location = BOARD_URL; }
+                if (d.status === 'success') {
+                    // Cetak via printer terkonfigurasi (Bluetooth/QZ/RawBT) — fallback dialog browser.
+                    doPrintReceipt(d.receipt || null, d.print_url);
+                    setTimeout(() => { window.location = BOARD_URL; }, 800);
+                }
                 else { alert(d.message || 'Gagal menyimpan nota.'); btn.disabled = false; btn.innerHTML = original; }
             })
             .catch(() => { alert('Kesalahan jaringan.'); btn.disabled = false; btn.innerHTML = original; });
