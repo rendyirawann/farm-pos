@@ -333,6 +333,8 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
             Route::post('/admin/kasir/order/{id}/split', [KasirController::class, 'splitOrder'])->name('kasir.split');
             // Merge table: gabungkan beberapa nota belum lunas ke satu nota tujuan.
             Route::post('/admin/kasir/orders/merge', [KasirController::class, 'mergeOrders'])->name('kasir.merge');
+            // Unmerge: pisahkan nota gabungan kembali ke nota-nota asalnya.
+            Route::post('/admin/kasir/order/{id}/unmerge', [KasirController::class, 'unmergeOrder'])->name('kasir.unmerge');
         });
         Route::get('/admin/kasir/print/{id}', [KasirController::class, 'printReceipt'])->name('kasir.print');
 

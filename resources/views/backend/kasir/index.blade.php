@@ -1291,6 +1291,14 @@
             const splitBtn = (CAN_SPLIT_MERGE && tab === 'processing' && !paid && (o.items_count || 0) > 1)
                 ? `<button class="btn btn-sm btn-light-warning btn-split-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" title="Pecah nota (split bill)"><i class="ki-outline ki-arrow-two-diagonals fs-5"></i></button>`
                 : '';
+            // UNMERGE: hanya untuk nota hasil gabungan yang belum lunas.
+            const mergedLabels = o.merged_labels || [];
+            const unmergeBtn = (CAN_SPLIT_MERGE && tab === 'processing' && !paid && mergedLabels.length)
+                ? `<button class="btn btn-sm btn-light-info btn-unmerge-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" data-labels="${esc(mergedLabels.join(','))}" title="Pisahkan kembali nota gabungan"><i class="ki-outline ki-arrows-loop fs-5"></i></button>`
+                : '';
+            const mergedBadge = mergedLabels.length
+                ? `<span class="badge badge-light-warning ms-1 fs-9" title="Nota ini gabungan dari No. ${esc(mergedLabels.join(', No. '))}">+ No. ${esc(mergedLabels.join(', '))}</span>`
+                : '';
             const salahBadge = voided
                 ? '<span class="badge badge-danger ms-1">SALAH</span>'
                 : '';
@@ -1301,7 +1309,7 @@
                 <div class="d-flex flex-column border rounded p-3 mb-2 ${voided ? 'border-danger bg-light-danger' : ''}">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <span class="fw-bold fs-5 text-gray-800">No. ${o.queue_number ?? '-'}</span>${salahBadge}
+                            <span class="fw-bold fs-5 text-gray-800">No. ${o.queue_number ?? '-'}</span>${mergedBadge}${salahBadge}
                             <div class="fs-8 text-muted">${o.table_no ? '<span class="badge badge-light-primary">Meja ' + esc(o.table_no) + '</span> ' : ''}${esc(o.customer_name || '')} • ${o.items_count} item • ${o.created_at ?? ''}</div>
                         </div>
                         <div class="text-end">
@@ -1313,6 +1321,7 @@
                         <button class="btn btn-sm btn-light flex-fill btn-view" data-id="${o.id}"><i class="ki-outline ki-eye fs-5"></i> View</button>
                         ${selesaiBtn}
                         ${splitBtn}
+                        ${unmergeBtn}
                         ${voidBtn}
                         ${delBtn}
                     </div>
@@ -1889,6 +1898,43 @@
             }).fail(function (x) {
                 Swal.fire('Gagal', (x.responseJSON && x.responseJSON.error) || 'Tidak bisa memecah nota.', 'error');
             }).always(() => btn.text('Pecah Nota').prop('disabled', false));
+        });
+
+        // ==================== UNMERGE (pisahkan nota gabungan) ====================
+        $(document).on('click', '.btn-unmerge-order', function () {
+            const id = $(this).data('id');
+            const q = $(this).data('q');
+            const labels = String($(this).data('labels') || '').split(',').filter(Boolean);
+
+            Swal.fire({
+                title: 'Pisahkan nota gabungan?',
+                html: `Nota <b>No. ${q}</b> akan dipisah kembali menjadi <b>${labels.length + 1} nota</b>:`
+                    + `<div class="text-start mt-3 fs-7">`
+                    + `<div class="mb-1">• <b>No. ${q}</b> — item aslinya tetap di sini</div>`
+                    + labels.map(l => `<div class="mb-1">• <b>No. ${l}</b> — item yang dulu digabung, kembali jadi nota sendiri</div>`).join('')
+                    + `</div>`
+                    + `<div class="text-start mt-3"><label class="form-label fw-semibold fs-8 mb-1">Nomor meja untuk No. ${q} setelah dipisah (opsional)</label>`
+                    + `<input id="unmerge-table" class="form-control form-control-sm form-control-solid" placeholder="mis. 6"></div>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Pisahkan',
+                cancelButtonText: 'Batal',
+                customClass: { confirmButton: 'btn btn-info', cancelButton: 'btn btn-light' },
+                buttonsStyling: false,
+                preConfirm: () => document.getElementById('unmerge-table').value || null,
+            }).then(res => {
+                if (!res.isConfirmed) return;
+                $.ajax({
+                    url: `${ROUTES.base}/${id}/unmerge`,
+                    method: 'POST',
+                    data: { _token: CSRF, table_no: res.value },
+                }).done(function (r) {
+                    Swal.fire({ icon: 'success', title: r.message || 'Nota dipisah', timer: 1900, showConfirmButton: false });
+                    loadOrders();
+                }).fail(function (x) {
+                    Swal.fire('Gagal', (x.responseJSON && x.responseJSON.error) || 'Tidak bisa memisah nota.', 'error');
+                });
+            });
         });
 
         // ==================== MERGE TABLE ====================

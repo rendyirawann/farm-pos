@@ -170,6 +170,9 @@ class KasirController extends Controller
             'items_count'    => $o->details_count,
             'created_at'     => optional($o->created_at)->format('H:i'),
             'voided'         => $o->voided_at !== null, // ditandai SALAH (tak dihitung omzet)
+            // Nota asal hasil MERGE (kosong = bukan gabungan) -> dipakai tombol "Pisahkan".
+            'merged_labels'  => $o->details()->whereNotNull('merged_from')
+                ->distinct()->orderBy('merged_from')->pluck('merged_from')->all(),
         ];
     }
 
@@ -1159,6 +1162,90 @@ class KasirController extends Controller
             'message'  => 'Nota dipecah menjadi ' . (count($result['to']) + 1) . ' struk.',
             'original' => $this->orderSummary($result['from']),
             'new'      => array_map(fn ($o) => $this->orderSummary($o), $result['to']),
+        ]);
+    }
+
+    /**
+     * UNMERGE — pisahkan kembali nota gabungan menjadi nota-nota asalnya.
+     *
+     * Memakai jejak order_details.merged_from: setiap nota asal dipulihkan jadi nota
+     * sendiri (nomor antrian aslinya dipakai kembali bila belum dipakai hari ini),
+     * sementara item tanpa penanda tetap di nota ini. Hanya untuk nota BELUM LUNAS.
+     */
+    public function unmergeOrder($id, Request $request)
+    {
+        $data = $request->validate([
+            'table_no' => ['nullable', 'string', 'max:20'],   // meja nota ini setelah dipisah
+        ]);
+
+        try {
+            $result = DB::transaction(function () use ($id, $data) {
+                /** @var Order $order */
+                $order = Order::whereKey($id)->lockForUpdate()->firstOrFail();
+
+                if ($order->payment_status === 'paid') {
+                    throw new \RuntimeException('Pesanan sudah lunas — tidak bisa dipisah.');
+                }
+                if ($order->voided_at) {
+                    throw new \RuntimeException('Pesanan bertanda salah — tidak bisa dipisah.');
+                }
+
+                $groups = $order->details()->whereNotNull('merged_from')->get()->groupBy('merged_from');
+                if ($groups->isEmpty()) {
+                    throw new \RuntimeException('Nota ini bukan hasil gabungan — tidak ada yang bisa dipisah.');
+                }
+                if ($order->details()->whereNull('merged_from')->count() < 1) {
+                    throw new \RuntimeException('Nota ini tidak punya item aslinya lagi; pisah manual lewat Split Bill.');
+                }
+
+                $restored = [];
+                foreach ($groups as $label => $details) {
+                    // Pakai kembali nomor antrian asal bila masih bebas hari ini, kalau tidak ambil nomor baru.
+                    $wanted = is_numeric($label) ? (int) $label : null;
+                    $taken  = $wanted !== null && Order::whereDate('created_at', $order->created_at->toDateString())
+                        ->where('queue_number', $wanted)->exists();
+
+                    $base = $this->newOrderBase('Pelanggan');
+                    if ($wanted !== null && ! $taken) {
+                        $base['queue_number'] = $wanted;
+                    }
+
+                    $child = Order::create(array_merge($base, [
+                        'table_no'        => is_numeric($label) ? (string) $label : null,
+                        'promo_id'        => $order->promo_id,
+                        'order_status'    => $order->order_status,
+                        'payment_status'  => 'unpaid',
+                        'subtotal'        => 0,
+                        'discount_amount' => 0,
+                        'tax'             => 0,
+                        'grand_total'     => 0,
+                        'shift_id'        => $order->shift_id,
+                    ]));
+
+                    foreach ($details as $d) {
+                        $d->update(['order_id' => $child->id, 'merged_from' => null]);
+                    }
+
+                    $this->recalcOrderTotals($child->fresh());
+                    $restored[] = $child->fresh();
+                }
+
+                if (array_key_exists('table_no', $data)) {
+                    $order->update(['table_no' => $data['table_no'] ?: null]);
+                }
+                $this->recalcOrderTotals($order->fresh());
+
+                return ['from' => $order->fresh(), 'restored' => $restored];
+            });
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success'  => true,
+            'message'  => 'Nota dipisah kembali menjadi ' . (count($result['restored']) + 1) . ' nota.',
+            'original' => $this->orderSummary($result['from']),
+            'restored' => array_map(fn ($o) => $this->orderSummary($o), $result['restored']),
         ]);
     }
 
