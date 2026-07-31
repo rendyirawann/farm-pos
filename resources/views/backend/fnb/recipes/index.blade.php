@@ -15,50 +15,13 @@
         <h3 class="card-title fw-bold fs-5">Resep per Menu</h3>
         <span class="text-muted fs-8">Gramasi untuk <b>1 porsi</b>. Dipakai memotong stok & menghitung HPP saat dapur memasak.</span>
       </div>
-      <div class="card-body p-0">
+      <div class="card-body pt-4">
         <div class="table-responsive">
-          <table class="table table-row-bordered align-middle gy-3 mb-0">
+          <table class="table table-row-bordered align-middle gy-3 mb-0" id="tbl-recipes">
             <thead><tr class="fw-bold text-muted bg-light">
               <th class="ps-6">Menu</th><th>Kategori</th><th>Bahan (resep)</th><th class="text-end">Perkiraan HPP*</th><th class="text-end pe-6">Aksi</th>
             </tr></thead>
-            <tbody>
-            @forelse ($menus as $m)
-              @php
-                // Perkiraan HPP standar = Σ(gramasi × harga lot terbaru). HPP nyata tetap dari konsumsi FEFO.
-                $est = 0;
-                foreach ($m->menuIngredients as $l) {
-                  $price = (float) (\App\Models\Fnb\IngredientBatch::where('ingredient_id', $l->ingredient_id)
-                      ->orderByDesc('id')->value('buy_price') ?? 0);
-                  $est += (float) $l->quantity * $price;
-                }
-              @endphp
-              <tr>
-                <td class="ps-6 fw-bold text-gray-800">{{ $m->name }}
-                  <div class="fs-8 text-muted">Harga jual Rp {{ number_format($m->price ?? 0, 0, ',', '.') }}</div>
-                </td>
-                <td class="text-muted fs-8">{{ $m->category?->name ?? '-' }}</td>
-                <td>
-                  @if ($m->menuIngredients->isEmpty())
-                    <span class="badge badge-light-warning fs-9">Belum ada resep</span>
-                  @else
-                    @foreach ($m->menuIngredients as $l)
-                      <span class="badge badge-light-primary fs-9 me-1 mb-1">{{ $l->ingredient?->name }}
-                        {{ rtrim(rtrim(number_format((float) $l->quantity, 2, '.', ''), '0'), '.') }}{{ $l->ingredient?->unit }}</span>
-                    @endforeach
-                  @endif
-                </td>
-                <td class="text-end fw-bold {{ $est > 0 ? 'text-gray-900' : 'text-muted' }}">
-                  {{ $est > 0 ? 'Rp ' . number_format($est, 0, ',', '.') : '—' }}
-                </td>
-                <td class="text-end pe-6">
-                  <button class="btn btn-sm btn-light-primary py-1 px-3 fs-8 btn-recipe"
-                    data-menu="{{ $m->id }}" data-name="{{ $m->name }}">Atur Resep</button>
-                </td>
-              </tr>
-            @empty
-              <tr><td colspan="5" class="text-center text-muted py-10">Belum ada menu.</td></tr>
-            @endforelse
-            </tbody>
+            <tbody></tbody>
           </table>
         </div>
       </div>
@@ -146,8 +109,58 @@
       body: JSON.stringify({ lines }),
     })
       .then(r => r.json())
-      .then(() => window.location.reload())
+      .then(() => { dtRecipes.ajax.reload(null, false); bootstrap.Modal.getInstance(document.getElementById('modal-recipe')).hide(); btn.disabled = false; btn.textContent = 'Simpan Resep'; })
       .catch(() => { alert('Gagal menyimpan resep.'); btn.disabled = false; btn.textContent = 'Simpan Resep'; });
   });
+
+  // ============ TABEL RESEP: DataTables server-side, 5 baris per halaman ============
+  const DATA_URL = "{{ route('fnb.recipes.data') }}";
+  const rupiah = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
+  const escHtml = t => $('<div>').text(t == null ? '' : t).html();
+
+  const dtRecipes = $('#tbl-recipes').DataTable({
+    processing: true,
+    serverSide: true,
+    ajax: { url: DATA_URL, type: 'GET' },
+    pageLength: 5,
+    lengthChange: false,
+    order: [[0, 'asc']],
+    language: {
+      search: 'Cari menu:',
+      processing: 'Memuat…',
+      zeroRecords: 'Menu tidak ditemukan.',
+      emptyTable: 'Belum ada menu.',
+      info: 'Menampilkan _START_-_END_ dari _TOTAL_ menu',
+      infoEmpty: 'Tidak ada data',
+      infoFiltered: '(disaring dari _MAX_ menu)',
+      paginate: { previous: 'Sebelumnya', next: 'Berikutnya' },
+    },
+    columns: [
+      {
+        data: 'menu', className: 'ps-6',
+        render: (d, t, row) => '<span class="fw-bold text-gray-800">' + escHtml(d) + '</span>'
+          + '<div class="fs-8 text-muted">Harga jual ' + rupiah(row.price) + '</div>',
+      },
+      { data: 'category', className: 'text-muted fs-8', render: d => escHtml(d) },
+      {
+        data: 'recipe', orderable: false,
+        render: function (r) {
+          if (!r || !r.length) return '<span class="badge badge-light-warning fs-9">Belum ada resep</span>';
+          return r.map(x => '<span class="badge badge-light-primary fs-9 me-1 mb-1">'
+            + escHtml(x.name) + ' ' + escHtml(x.qty) + escHtml(x.unit || '') + '</span>').join('');
+        },
+      },
+      {
+        data: 'hpp_est', orderable: false, className: 'text-end fw-bold',
+        render: d => d > 0 ? '<span class="text-gray-900">' + rupiah(d) + '</span>' : '<span class="text-muted">—</span>',
+      },
+      {
+        data: null, orderable: false, searchable: false, className: 'text-end pe-6',
+        render: row => '<button class="btn btn-sm btn-light-primary py-1 px-3 fs-8 btn-recipe" data-menu="'
+          + row.id + '" data-name="' + escHtml(row.menu) + '">Atur Resep</button>',
+      },
+    ],
+  });
+
 </script>
 @endpush

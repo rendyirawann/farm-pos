@@ -454,34 +454,63 @@
                             return false; // belum dibangun -> tetap terkunci
                         }
                         return $sbIsSa || \App\Tenancy\Plan::tenantAllows($currentTenant ?? null, $f['module']);
-                    })->values()->all();
+                    })->values();
+
+                    /**
+                     * Dua kelompok berbeda, jangan dicampur:
+                     * - planLocked  : modul SUDAH ada (mis. HPP, Inventory), hanya belum masuk paket tenant
+                     *                 -> ajakan upgrade, bukan "segera".
+                     * - soonFeatures: modul memang belum dibangun -> "segera".
+                     */
+                    $planLocked   = $lockedFeatures->filter(fn ($f) => ! empty($f['module']))->values()->all();
+                    $soonFeatures = $lockedFeatures->filter(fn ($f) => empty($f['module']))->values()->all();
+
+                    $lockedGroups = [
+                        [
+                            'items'  => $planLocked,
+                            'title'  => 'Fitur Terkunci',
+                            'badge'  => 'Upgrade Paket',
+                            'style'  => 'warning',
+                            'note'   => 'Fitur ini <b>sudah tersedia</b> di Mooda, tapi belum termasuk paket Anda. Upgrade paket untuk membukanya.',
+                            'suffix' => 'belum termasuk paket Anda',
+                        ],
+                        [
+                            'items'  => $soonFeatures,
+                            'title'  => 'Fitur Mendatang',
+                            'badge'  => 'Segera',
+                            'style'  => 'secondary',
+                            'note'   => 'Sedang dikembangkan dan akan hadir di pembaruan berikutnya.',
+                            'suffix' => 'belum tersedia',
+                        ],
+                    ];
                 @endphp
-                @if (count($lockedFeatures))
-                <div class="mb-6">
-                    <div class="d-flex align-items-center justify-content-between mb-4">
-                        <h3 class="text-gray-800 fw-bold mb-0 fs-5">Fitur Mendatang</h3>
-                        <span class="badge badge-light-secondary fs-9">Segera</span>
-                    </div>
-                    <div class="row row-cols-3 g-3 mb-2">
-                        @foreach ($lockedFeatures as $f)
-                            <div class="col mb-4">
-                                <span class="btn btn-icon btn-outline btn-bg-light btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200 position-relative opacity-75"
-                                    style="cursor:not-allowed"
-                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="{{ $f['label'] }} — {{ $f['desc'] }} (belum tersedia)">
-                                    <span class="mb-2"><i class="ki-outline {{ $f['icon'] }} fs-2x text-{{ $f['color'] }}"></i></span>
-                                    <span class="fs-8 fw-bold text-gray-600">{{ $f['label'] }}</span>
-                                    <span class="position-absolute translate-middle badge badge-circle badge-secondary"
-                                        style="top:8px;left:calc(100% - 10px);width:20px;height:20px">
-                                        <i class="ki-solid ki-lock-2 fs-9 text-gray-700"></i>
+                @foreach ($lockedGroups as $g)
+                    @continue (! count($g['items']))
+                    <div class="mb-6">
+                        <div class="d-flex align-items-center justify-content-between mb-4">
+                            <h3 class="text-gray-800 fw-bold mb-0 fs-5">{{ $g['title'] }}</h3>
+                            <span class="badge badge-light-{{ $g['style'] }} fs-9">{{ $g['badge'] }}</span>
+                        </div>
+                        <div class="row row-cols-3 g-3 mb-2">
+                            @foreach ($g['items'] as $f)
+                                <div class="col mb-4">
+                                    <span class="btn btn-icon btn-outline btn-bg-light btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200 position-relative opacity-75"
+                                        style="cursor:not-allowed"
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="{{ $f['label'] }} — {{ $f['desc'] }} ({{ $g['suffix'] }})">
+                                        <span class="mb-2"><i class="ki-outline {{ $f['icon'] }} fs-2x text-{{ $f['color'] }}"></i></span>
+                                        <span class="fs-8 fw-bold text-gray-600">{{ $f['label'] }}</span>
+                                        <span class="position-absolute translate-middle badge badge-circle badge-{{ $g['style'] }}"
+                                            style="top:8px;left:calc(100% - 10px);width:20px;height:20px">
+                                            <i class="ki-solid ki-lock-2 fs-9 text-gray-700"></i>
+                                        </span>
                                     </span>
-                                </span>
-                            </div>
-                        @endforeach
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="text-muted fs-8 px-1">{!! $g['note'] !!}</div>
                     </div>
-                    <div class="text-muted fs-8 px-1">Fitur berlabel <b>paket Customize</b> bisa dibuka dengan upgrade paket; sisanya sedang dikembangkan.</div>
-                </div>
-                @endif
+                @endforeach
             @endif
             @else
             {{-- Sidebar Superadmin (mode Analitik): pintasan platform --}}

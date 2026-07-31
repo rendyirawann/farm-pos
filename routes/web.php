@@ -384,6 +384,7 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
 
         // Resep menu
         Route::get('/admin/fnb/recipes', [\App\Http\Controllers\Backend\Fnb\RecipeController::class, 'index'])->name('fnb.recipes.index');
+        Route::get('/admin/fnb/recipes-data', [\App\Http\Controllers\Backend\Fnb\RecipeController::class, 'data'])->name('fnb.recipes.data');
         Route::get('/admin/fnb/recipes/{menu}', [\App\Http\Controllers\Backend\Fnb\RecipeController::class, 'show'])->name('fnb.recipes.show');
         Route::post('/admin/fnb/recipes/{menu}', [\App\Http\Controllers\Backend\Fnb\RecipeController::class, 'store'])->name('fnb.recipes.store');
 
