@@ -66,6 +66,20 @@ class SalesReportController extends Controller
             }
             $netRevenue = $totalRevenue - $totalExpense;
 
+            // ===== MODUL HPP (paket Customize): total modal bahan & laba =====
+            // Σ order_details.hpp untuk pesanan yang dihitung (tanpa pesanan salah).
+            // Superadmin selalu boleh melihat (termasuk saat mode kasir/POS di toko mana pun).
+            $hppEnabled = auth()->user()?->isSuperadmin()
+                || \App\Tenancy\Plan::tenantAllows(auth()->user()?->tenant, 'inventory_hpp');
+            $totalHpp = 0.0;
+            if ($hppEnabled) {
+                $orderIds = (clone $query)->toBase()->whereNull('voided_at')->select('id');
+                $totalHpp = (float) \App\Models\OrderDetail::whereIn('order_id', $orderIds)->sum('hpp');
+            }
+            $grossProfit  = $totalRevenue - $totalHpp;                  // laba kotor
+            $netProfit    = $totalRevenue - $totalHpp - $totalExpense;  // laba bersih
+            $foodCostPct  = $totalRevenue > 0 ? round($totalHpp / $totalRevenue * 100, 1) : 0;
+
             // Urutkan dari yang terbaru
             $query->orderBy('created_at', 'desc');
 
@@ -126,6 +140,12 @@ class SalesReportController extends Controller
                 ->with('netRevenue', 'Rp ' . number_format($netRevenue, 0, ',', '.'))
                 ->with('voidedCount', number_format($voidedCount, 0, ',', '.'))
                 ->with('voidedAmount', 'Rp ' . number_format($voidedAmount, 0, ',', '.'))
+                // Modul HPP: modal bahan, laba kotor/bersih, & food cost %
+                ->with('hppEnabled', $hppEnabled)
+                ->with('totalHpp', 'Rp ' . number_format($totalHpp, 0, ',', '.'))
+                ->with('grossProfit', 'Rp ' . number_format($grossProfit, 0, ',', '.'))
+                ->with('netProfit', 'Rp ' . number_format($netProfit, 0, ',', '.'))
+                ->with('foodCostPct', $foodCostPct . '%')
                 ->rawColumns(['invoice', 'customer', 'kasir', 'payment_method', 'discount', 'grand_total', 'status', 'action'])
                 ->make(true);
         }

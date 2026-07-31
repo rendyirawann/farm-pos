@@ -229,6 +229,48 @@
                 </div>
             </div>
 
+            {{-- MODUL HPP (paket Customize / Superadmin): modal bahan & profitabilitas bulan ini --}}
+            @if (!empty($summary['hpp_enabled']))
+                <div class="row g-5 g-xl-10 mt-2">
+                    <div class="col-6 col-md-3">
+                        <div class="card bg-light-warning border-0 shadow-sm h-100">
+                            <div class="card-body p-6">
+                                <div class="fs-6 fw-semibold text-warning mb-2">Total HPP (modal bahan)</div>
+                                <div class="fs-2hx fw-bold text-gray-800">Rp {{ number_format($summary['total_hpp'], 0, ',', '.') }}</div>
+                                <div class="fs-8 text-muted mt-1">biaya bahan nyata (FIFO/FEFO)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card bg-light-primary border-0 shadow-sm h-100">
+                            <div class="card-body p-6">
+                                <div class="fs-6 fw-semibold text-primary mb-2">Laba Kotor</div>
+                                <div class="fs-2hx fw-bold text-gray-800">Rp {{ number_format($summary['gross_profit'], 0, ',', '.') }}</div>
+                                <div class="fs-8 text-muted mt-1">omzet − HPP</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card bg-light-success border-0 shadow-sm h-100">
+                            <div class="card-body p-6">
+                                <div class="fs-6 fw-semibold text-success mb-2">Laba Bersih</div>
+                                <div class="fs-2hx fw-bold text-gray-800">Rp {{ number_format($summary['net_profit'], 0, ',', '.') }}</div>
+                                <div class="fs-8 text-muted mt-1">− pengeluaran Rp {{ number_format($summary['month_expense'], 0, ',', '.') }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card bg-light-danger border-0 shadow-sm h-100">
+                            <div class="card-body p-6">
+                                <div class="fs-6 fw-semibold text-danger mb-2">Food Cost</div>
+                                <div class="fs-2hx fw-bold text-gray-800">{{ $summary['food_cost_pct'] }}%</div>
+                                <div class="fs-8 text-muted mt-1">ideal ≤ 35%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="row g-5 g-xl-10 mb-xl-10 mt-5">
                 <div class="col-xl-8">
                     <div class="card shadow-sm h-100">

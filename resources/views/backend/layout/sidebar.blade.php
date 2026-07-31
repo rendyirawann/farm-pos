@@ -371,8 +371,13 @@
                     @endcan
                     @endif {{-- /vertical: laundry vs F&B --}}
 
-                    {{-- HPP & INVENTORY: F&B, hanya paket yang punya modul inventory_hpp (Customize) --}}
-                    @if (! $sbIsLaundry && \App\Tenancy\Plan::tenantAllows($currentTenant ?? null, 'inventory_hpp'))
+                    {{-- HPP & INVENTORY: F&B, paket dgn modul inventory_hpp (Customize).
+                         Superadmin selalu melihatnya, termasuk saat mode kasir/POS. --}}
+                    @php
+                        $sbHpp = auth()->user()->isSuperadmin()
+                            || \App\Tenancy\Plan::tenantAllows($currentTenant ?? null, 'inventory_hpp');
+                    @endphp
+                    @if (! $sbIsLaundry && $sbHpp)
                         @can('view_data_master')
                             <div class="col mb-4">
                                 <a href="{{ route('fnb.stock.index') }}"

@@ -66,6 +66,38 @@
                 </div>
             </div>
 
+            {{-- MODUL HPP (paket Customize): modal bahan, laba, & food cost % --}}
+            <div class="row g-4 mb-8 d-none" id="row-hpp">
+                <div class="col-6 col-md-3">
+                    <div class="bg-light-warning rounded p-6 border border-warning border-dashed h-100">
+                        <span class="fs-6 fw-semibold text-warning d-block mb-1">Total HPP (modal bahan)</span>
+                        <span class="fs-2x fw-bolder text-gray-900" id="summary-hpp">Rp 0</span>
+                        <span class="fs-8 text-muted d-block mt-1">biaya bahan nyata (FIFO/FEFO)</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="bg-light-primary rounded p-6 border border-primary border-dashed h-100">
+                        <span class="fs-6 fw-semibold text-primary d-block mb-1">Laba Kotor</span>
+                        <span class="fs-2x fw-bolder text-gray-900" id="summary-gross">Rp 0</span>
+                        <span class="fs-8 text-muted d-block mt-1">omzet − HPP</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="bg-light-success rounded p-6 border border-success border-dashed h-100">
+                        <span class="fs-6 fw-semibold text-success d-block mb-1">Laba Bersih</span>
+                        <span class="fs-2x fw-bolder text-gray-900" id="summary-netprofit">Rp 0</span>
+                        <span class="fs-8 text-muted d-block mt-1">omzet − HPP − pengeluaran</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="bg-light-danger rounded p-6 border border-danger border-dashed h-100">
+                        <span class="fs-6 fw-semibold text-danger d-block mb-1">Food Cost</span>
+                        <span class="fs-2x fw-bolder text-gray-900" id="summary-foodcost">0%</span>
+                        <span class="fs-8 text-muted d-block mt-1">HPP ÷ omzet (ideal ≤ 35%)</span>
+                    </div>
+                </div>
+            </div>
+
             {{-- Penanda pesanan SALAH (voided): TIDAK dihitung ke omzet, tetap muncul di daftar. --}}
             <div class="alert alert-dismissible bg-light-danger border border-danger border-dashed d-flex align-items-center p-5 mb-8 d-none"
                  id="voided-banner">
@@ -168,6 +200,16 @@
                             $('#summary-expense').text(json.totalExpense);
                             $('#summary-net').text(json.netRevenue);
                             $('#summary-orders').text(json.totalOrders + ' Nota');
+                            // Kartu HPP hanya untuk paket yang punya modul (atau Superadmin).
+                            if (json.hppEnabled) {
+                                $('#row-hpp').removeClass('d-none');
+                                $('#summary-hpp').text(json.totalHpp);
+                                $('#summary-gross').text(json.grossProfit);
+                                $('#summary-netprofit').text(json.netProfit);
+                                $('#summary-foodcost').text(json.foodCostPct);
+                            } else {
+                                $('#row-hpp').addClass('d-none');
+                            }
                             // Pengeluaran (kas tunai) tak relevan untuk filter QRIS -> sembunyikan kartunya.
                             if (json.showExpense === false) {
                                 $('#card-expense').hide();

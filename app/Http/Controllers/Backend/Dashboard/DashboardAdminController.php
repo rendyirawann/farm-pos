@@ -107,10 +107,36 @@ class DashboardAdminController extends Controller
                 ->whereNull('voided_at'); // pesanan salah tak dihitung
         })->sum('qty');
 
+        // ===== MODUL HPP (paket Customize; Superadmin selalu lihat) =====
+        // Modal bahan bulan ini + laba kotor/bersih + food cost %.
+        $hppEnabled = auth()->user()?->isSuperadmin()
+            || \App\Tenancy\Plan::tenantAllows(auth()->user()?->tenant, 'inventory_hpp');
+
+        $totalHpp = 0.0;
+        if ($hppEnabled) {
+            $totalHpp = (float) OrderDetail::whereHas('order', function ($q) use ($monthStart, $monthEnd) {
+                $q->whereBetween('created_at', [$monthStart, $monthEnd])
+                    ->where('payment_status', 'paid')
+                    ->whereNull('voided_at');
+            })->sum('hpp');
+        }
+
+        // Pengeluaran bulan ini (untuk laba bersih).
+        $monthExpense = (float) \App\Models\Expense::whereBetween('date', [
+            $monthStart->toDateString(), $monthEnd->toDateString(),
+        ])->sum('amount');
+
         $summary = [
             'revenue'      => $revenue,
             'orders_count' => $ordersCount,
             'items_sold'   => $itemsSold,
+            // HPP & profitabilitas
+            'hpp_enabled'   => $hppEnabled,
+            'total_hpp'     => $totalHpp,
+            'gross_profit'  => $revenue - $totalHpp,
+            'net_profit'    => $revenue - $totalHpp - $monthExpense,
+            'month_expense' => $monthExpense,
+            'food_cost_pct' => $revenue > 0 ? round($totalHpp / $revenue * 100, 1) : 0,
         ];
 
         // Misi onboarding setup awal (deteksi otomatis selesai/belum).
