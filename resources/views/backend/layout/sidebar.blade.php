@@ -371,6 +371,26 @@
                     @endcan
                     @endif {{-- /vertical: laundry vs F&B --}}
 
+                    {{-- HPP & INVENTORY: F&B, hanya paket yang punya modul inventory_hpp (Customize) --}}
+                    @if (! $sbIsLaundry && \App\Tenancy\Plan::tenantAllows($currentTenant ?? null, 'inventory_hpp'))
+                        @can('view_data_master')
+                            <div class="col mb-4">
+                                <a href="{{ route('fnb.stock.index') }}"
+                                    class="btn btn-icon btn-outline btn-bg-light btn-active-light-warning btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200">
+                                    <span class="mb-2"><i class="ki-outline ki-package fs-2x text-warning"></i></span>
+                                    <span class="fs-8 fw-bold">Stok</span>
+                                </a>
+                            </div>
+                            <div class="col mb-4">
+                                <a href="{{ route('fnb.recipes.index') }}"
+                                    class="btn btn-icon btn-outline btn-bg-light btn-active-light-primary btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200">
+                                    <span class="mb-2"><i class="ki-outline ki-chart-pie-simple fs-2x text-primary"></i></span>
+                                    <span class="fs-8 fw-bold">HPP / Resep</span>
+                                </a>
+                            </div>
+                        @endcan
+                    @endif
+
                     {{-- KARYAWAN (User Management) --}}
                     @can('view_resources')
                     <div class="col mb-4">

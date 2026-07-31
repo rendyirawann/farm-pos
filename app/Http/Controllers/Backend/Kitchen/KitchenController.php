@@ -36,6 +36,10 @@ class KitchenController extends Controller
             $detail = OrderDetail::findOrFail($request->detail_id);
             $detail->update(['status' => $request->status]);
 
+            // MODUL HPP: potong stok bahan (FEFO) + tulis HPP saat item mulai dimasak/selesai.
+            // Idempoten (is_stock_deducted) & hanya untuk tenant berpaket yang punya modul.
+            $this->deductStockIfEligible($detail, $request->input('batch_selections', []));
+
             $order = Order::findOrFail($detail->order_id);
 
             // Ambil status semua detail dalam 1 query, hitung di PHP
@@ -87,6 +91,11 @@ class KitchenController extends Controller
                 $isFinished = true;
             }
 
+            // MODUL HPP: potong stok + tulis HPP untuk seluruh item pesanan (idempoten).
+            foreach ($order->details()->get() as $d) {
+                $this->deductStockIfEligible($d);
+            }
+
             DB::commit();
             return response()->json([
                 'success'       => true,
@@ -97,6 +106,31 @@ class KitchenController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * MODUL HPP (F&B, paket Customize): potong stok bahan resep secara FEFO lalu simpan
+     * HPP baris pesanan. Aman dipanggil berulang (dijaga is_stock_deducted di StockService).
+     *
+     * Non-fatal: kegagalan modul HPP TIDAK boleh menggagalkan alur dapur — hanya dicatat log.
+     */
+    private function deductStockIfEligible(OrderDetail $detail, array $batchSelections = []): void
+    {
+        try {
+            $tenant = auth()->user()?->tenant;
+
+            // Hanya tenant F&B yang paketnya memuat modul inventory_hpp.
+            if (! $tenant || ! \App\Tenancy\Plan::tenantAllows($tenant, 'inventory_hpp')) {
+                return;
+            }
+            if (! in_array($detail->status, ['cooking', 'done'], true) || $detail->is_stock_deducted) {
+                return;
+            }
+
+            app(\App\Services\Fnb\StockService::class)->deductMenuStock($detail, $batchSelections);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('HPP: potong stok gagal (detail#' . $detail->id . '): ' . $e->getMessage());
         }
     }
 }

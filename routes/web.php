@@ -356,6 +356,39 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
     // ====================================================
     // DATA MASTER: view_data_master — Superadmin, admin
     // ====================================================
+    // ====================================================
+    // MODUL HPP · INVENTORY (FIFO/FEFO) · RESEP — F&B, KHUSUS paket Customize
+    // Gate: permission data master + langganan aktif + vertical fnb + modul inventory_hpp
+    // ====================================================
+    Route::middleware(['can:view_data_master', 'subscribed', 'vertical:fnb', 'plan:inventory_hpp'])->group(function () {
+        // Bahan baku
+        Route::get('/admin/fnb/ingredients', [\App\Http\Controllers\Backend\Fnb\IngredientController::class, 'index'])->name('fnb.ingredients.index');
+        Route::post('/admin/fnb/ingredients', [\App\Http\Controllers\Backend\Fnb\IngredientController::class, 'store'])->name('fnb.ingredients.store');
+        Route::post('/admin/fnb/ingredients/{ingredient}', [\App\Http\Controllers\Backend\Fnb\IngredientController::class, 'update'])->name('fnb.ingredients.update');
+        Route::delete('/admin/fnb/ingredients/{ingredient}', [\App\Http\Controllers\Backend\Fnb\IngredientController::class, 'destroy'])->name('fnb.ingredients.destroy');
+
+        // Supplier
+        Route::get('/admin/fnb/suppliers', [\App\Http\Controllers\Backend\Fnb\SupplierController::class, 'index'])->name('fnb.suppliers.index');
+        Route::post('/admin/fnb/suppliers', [\App\Http\Controllers\Backend\Fnb\SupplierController::class, 'store'])->name('fnb.suppliers.store');
+        Route::post('/admin/fnb/suppliers/{supplier}', [\App\Http\Controllers\Backend\Fnb\SupplierController::class, 'update'])->name('fnb.suppliers.update');
+        Route::delete('/admin/fnb/suppliers/{supplier}', [\App\Http\Controllers\Backend\Fnb\SupplierController::class, 'destroy'])->name('fnb.suppliers.destroy');
+
+        // Resep menu
+        Route::get('/admin/fnb/recipes', [\App\Http\Controllers\Backend\Fnb\RecipeController::class, 'index'])->name('fnb.recipes.index');
+        Route::get('/admin/fnb/recipes/{menu}', [\App\Http\Controllers\Backend\Fnb\RecipeController::class, 'show'])->name('fnb.recipes.show');
+        Route::post('/admin/fnb/recipes/{menu}', [\App\Http\Controllers\Backend\Fnb\RecipeController::class, 'store'])->name('fnb.recipes.store');
+
+        // Inventory: stok, pembelian, keluar manual, kartu stok
+        Route::get('/admin/fnb/stock', [\App\Http\Controllers\Backend\Fnb\StockController::class, 'index'])->name('fnb.stock.index');
+        Route::post('/admin/fnb/stock/purchase', [\App\Http\Controllers\Backend\Fnb\StockController::class, 'purchase'])->name('fnb.stock.purchase');
+        Route::post('/admin/fnb/stock/issue', [\App\Http\Controllers\Backend\Fnb\StockController::class, 'issue'])->name('fnb.stock.issue');
+        Route::get('/admin/fnb/stock/card', [\App\Http\Controllers\Backend\Fnb\StockController::class, 'card'])->name('fnb.stock.card');
+
+        // Stok opname
+        Route::get('/admin/fnb/opname', [\App\Http\Controllers\Backend\Fnb\StockOpnameController::class, 'index'])->name('fnb.opname.index');
+        Route::post('/admin/fnb/opname', [\App\Http\Controllers\Backend\Fnb\StockOpnameController::class, 'store'])->name('fnb.opname.store');
+    });
+
     Route::middleware(['can:view_data_master', 'subscribed', 'vertical:fnb'])->group(function () {
         Route::resource('/admin/categories', CategoriesController::class);
         Route::get('/admin/get-datacategories', [CategoriesController::class, 'getDataCategories'])->name('get-datacategories');
