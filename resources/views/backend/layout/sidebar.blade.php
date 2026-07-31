@@ -442,7 +442,9 @@
                     $candidateLocked = $sbIsLaundry ? $aiFeatures : array_merge([
                         ['label' => 'HPP',        'icon' => 'ki-chart-pie-simple', 'color' => 'primary', 'module' => 'inventory_hpp', 'desc' => 'HPP per menu, margin & analisis food cost — paket Customize'],
                         ['label' => 'Inventory',  'icon' => 'ki-package',          'color' => 'warning', 'module' => 'inventory_hpp', 'desc' => 'Stok berbasis lot (FIFO/FEFO), opname & kartu stok — paket Customize'],
-                        ['label' => 'QR Menu',    'icon' => 'ki-scan-barcode',     'color' => 'success', 'module' => 'qr_selforder',  'desc' => 'QR menu, self ordering & pesan dari meja — paket Customize'],
+                        // QR Menu: modulnya BELUM dibangun (tidak ada route/controller/tabel),
+                        // 'qr_selforder' baru tercatat di config/plans.php -> tetap "segera", bukan "terkunci paket".
+                        ['label' => 'QR Menu',    'icon' => 'ki-scan-barcode',     'color' => 'success', 'module' => null,            'desc' => 'QR menu, self ordering & pesan dari meja'],
                         ['label' => 'CRM',        'icon' => 'ki-profile-circle',   'color' => 'info',    'module' => null,            'desc' => 'Database pelanggan, membership & poin loyalitas'],
                         ['label' => 'Akuntansi',  'icon' => 'ki-bill',             'color' => 'dark',    'module' => null,            'desc' => 'Laba rugi, arus kas & hutang piutang'],
                     ], $aiFeatures);
