@@ -110,12 +110,25 @@ License: Proprietary - Mooda System
                     <!-- <h1 class="text-gray-800 fs-2qx fw-bold text-center mb-7">Fast, Efficient and Productive</h1> -->
                     <!--end::Title-->
                     <!--begin::Text-->
+                    @php
+                        // Copy menyesuaikan VERTICAL host (mooda.id = F&B, laundry.mooda.id = Laundry).
+                        $vAuth = \App\Verticals\VerticalRegistry::current();
+                        $vHead = [
+                            'fnb'     => 'Mooda <br> Restaurant POS System',
+                            'laundry' => 'Mooda <br> Laundry POS System',
+                            'retail'  => 'Mooda <br> Retail POS System',
+                        ][$vAuth] ?? 'Mooda <br> POS System';
+                        $vDesc = [
+                            'fnb'     => 'Aplikasi Point of Sale cerdas untuk membantu restoran Anda dalam mengelola pesanan, manajemen meja, dan mempercepat pelayanan dapur.',
+                            'laundry' => 'Aplikasi Point of Sale untuk usaha laundry — kelola layanan kiloan/satuan, pantau status cucian, dan cetak nota otomatis.',
+                            'retail'  => 'Aplikasi Point of Sale untuk usaha retail — kelola produk, stok, dan transaksi dalam satu layar.',
+                        ][$vAuth] ?? 'Aplikasi Point of Sale cerdas untuk usaha Anda.';
+                    @endphp
                     <h1 class="text-gray-800 fs-2qx fw-bold text-center mb-7">
-                        Mooda <br> Restaurant POS System
+                        {!! $vHead !!}
                     </h1>
                     <div class="text-gray-600 fs-base text-center fw-semibold">
-                        Aplikasi Point of Sale cerdas untuk membantu restoran Anda dalam mengelola pesanan,
-                        manajemen meja, dan mempercepat pelayanan dapur.
+                        {{ $vDesc }}
                         <br /><br />
                         <span class="badge badge-light-primary fs-7 fw-bold">Mooda Teknologi Indonesia</span>
                     </div>

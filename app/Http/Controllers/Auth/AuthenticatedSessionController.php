@@ -80,6 +80,43 @@ class AuthenticatedSessionController extends Controller
             throw ValidationException::withMessages(['email' => $msg]);
         }
 
+        // 4c. Isolasi VERTICAL: akun tenant hanya boleh login di subdomain vertical-nya
+        //     (mis. tenant laundry HARUS di laundry.mooda.id, tenant F&B di mooda.id).
+        //     Sesi tidak dibagi antar subdomain (SESSION_DOMAIN=null), jadi diblokir tegas
+        //     dengan pesan + alamat yang benar. Superadmin dikecualikan (lintas-vertical).
+        if (! $user->isSuperadmin()) {
+            $hostVertical = \App\Verticals\VerticalRegistry::fromHost($request->getHost());
+            $knownHosts   = array_map(
+                fn ($m) => strtolower((string) ($m['host'] ?? '')),
+                \App\Verticals\VerticalRegistry::all()
+            );
+            $tenant = $user->tenant;
+
+            if ($tenant && in_array(strtolower($request->getHost()), $knownHosts, true)) {
+                $tenantVertical = \App\Verticals\VerticalRegistry::normalize($tenant->vertical);
+                if ($tenantVertical !== $hostVertical) {
+                    $correctHost = \App\Verticals\VerticalRegistry::host($tenantVertical);
+                    $label       = \App\Verticals\VerticalRegistry::label($tenantVertical);
+
+                    Auth::guard('web')->logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+
+                    $msg = 'Akun ini terdaftar untuk ' . $label . '. Silakan masuk melalui '
+                        . $correctHost . '/admin/login';
+
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'status'   => 'error',
+                            'message'  => $msg,
+                            'redirect' => 'https://' . $correctHost . '/admin/login',
+                        ], 403);
+                    }
+                    throw ValidationException::withMessages(['email' => $msg]);
+                }
+            }
+        }
+
         // 5. Update Data User (IP & Last Login)
         $user->update([
             'last_ip' => $request->ip(),

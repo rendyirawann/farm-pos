@@ -60,6 +60,17 @@ class VerticalRegistry
         return self::meta($vertical)['host'] ?? null;
     }
 
+    /**
+     * URL beranda UTAMA Mooda (selalu host vertical default / F&B), dipakai tombol
+     * "Kembali ke Beranda" di subdomain vertical lain (mis. laundry.mooda.id) supaya
+     * mengarah ke landing mooda.id — bukan ke subdomain-nya sendiri (yang tanpa landing).
+     */
+    public static function mainHomeUrl(): string
+    {
+        $host = self::host(self::default());
+        return $host ? 'https://' . $host . '/' : url('/');
+    }
+
     /** Tentukan vertical dari host request (mis. laundry.mooda.id -> 'laundry'). */
     public static function fromHost(?string $host): string
     {

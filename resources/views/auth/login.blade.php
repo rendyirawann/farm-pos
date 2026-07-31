@@ -146,7 +146,15 @@
                         src="{{ asset('assets/media/logos/mooda-logo.png') }}" />
                     <img alt="Mooda" class="theme-dark-show h-40px h-lg-60px"
                         src="{{ asset('assets/media/logos/mooda-logo-white.png') }}" />
-                    <div class="text-muted fw-semibold fs-6 mt-4">Masuk untuk mengelola restoran Anda</div>
+                    @php
+                        $vLogin = \App\Verticals\VerticalRegistry::current();
+                        $vSub = [
+                            'fnb'     => 'Masuk untuk mengelola restoran Anda',
+                            'laundry' => 'Masuk untuk mengelola laundry Anda',
+                            'retail'  => 'Masuk untuk mengelola toko Anda',
+                        ][$vLogin] ?? 'Masuk untuk mengelola usaha Anda';
+                    @endphp
+                    <div class="text-muted fw-semibold fs-6 mt-4">{{ $vSub }}</div>
                 </div>
 
                 <div class="d-flex flex-center flex-column flex-column-fluid pb-15 pb-lg-20 my-12">
@@ -202,7 +210,7 @@
                         </div>
 
                         <div class="d-grid">
-                            <a href="{{ route('landing') }}" class="btn btn-light btn-active-light-primary">
+                            <a href="{{ \App\Verticals\VerticalRegistry::mainHomeUrl() }}" class="btn btn-light btn-active-light-primary">
                                 <i class="ki-outline ki-arrow-left fs-4 me-1"></i> Kembali ke Beranda
                             </a>
                         </div>

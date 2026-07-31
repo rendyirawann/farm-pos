@@ -17,9 +17,21 @@
                     <form class="form w-100" method="POST" action="{{ route('register') }}">
                         @csrf
 
+                        @php
+                            // Form pendaftaran menyesuaikan VERTICAL host (mooda.id = F&B, laundry.mooda.id = Laundry).
+                            $vReg   = \App\Verticals\VerticalRegistry::current();
+                            $isLdry = $vReg === 'laundry';
+                            $regTitle = $isLdry ? 'Daftar Akun Laundry' : 'Daftar Akun Bisnis';
+                            $bizLabel = $isLdry ? 'Nama Usaha Laundry' : 'Nama Bisnis / Restoran';
+                            $bizPlace = $isLdry ? 'cth: Laundry Bersih Wangi' : 'cth: Warung Sederhana';
+                            $bizTypes = $isLdry
+                                ? ['Laundry Kiloan', 'Laundry Satuan', 'Dry Clean', 'Laundry Express', 'Lainnya']
+                                : ['Restoran', 'Cafe', 'Warung', 'Bakery', 'Bar', 'Catering', 'Lainnya'];
+                        @endphp
+
                         <div class="text-center mb-6">
-                            <h1 class="text-gray-900 fw-bolder mb-2">Daftar Akun Bisnis</h1>
-                            <div class="text-gray-500 fw-semibold fs-6">Buat akun & data bisnis Anda. Aktifkan langganan untuk mulai memakai sistem.</div>
+                            <h1 class="text-gray-900 fw-bolder mb-2">{{ $regTitle }}</h1>
+                            <div class="text-gray-500 fw-semibold fs-6">Buat akun & data usaha Anda. Aktifkan langganan untuk mulai memakai sistem.</div>
                         </div>
 
                         @if ($errors->any())
@@ -38,31 +50,36 @@
 
                         {{-- Nama Bisnis --}}
                         <div class="fv-row mb-4">
-                            <label class="form-label fw-semibold required">Nama Bisnis / Restoran</label>
+                            <label class="form-label fw-semibold required">{{ $bizLabel }}</label>
                             <input type="text" name="business_name" value="{{ old('business_name') }}"
-                                class="form-control bg-transparent" placeholder="cth: Warung Sederhana" />
+                                class="form-control bg-transparent" placeholder="{{ $bizPlace }}" />
                             @error('business_name')<div class="text-danger fs-7 mt-1">{{ $message }}</div>@enderror
                         </div>
 
-                        {{-- Kategori Usaha (menentukan sistem kas: Resto/Cafe = Shift, UMKM = Kas Harian) --}}
-                        <div class="fv-row mb-4">
-                            <label class="form-label fw-semibold required">Kategori Usaha</label>
-                            <div class="d-flex gap-2">
-                                @php $curCat = old('category', 'resto'); @endphp
-                                @foreach (['resto' => 'Resto', 'cafe' => 'Cafe', 'umkm' => 'UMKM'] as $val => $label)
-                                    <input type="radio" class="btn-check" name="category" value="{{ $val }}" id="cat-{{ $val }}" @checked($curCat === $val)>
-                                    <label class="btn btn-outline btn-outline-dashed btn-active-light-primary flex-fill py-3 fw-bold" for="cat-{{ $val }}">{{ $label }}</label>
-                                @endforeach
+                        {{-- Kategori Usaha: khusus F&B (menentukan sistem kas: Resto/Cafe = Shift, UMKM = Kas Harian).
+                             Laundry tak memakai kategori ini -> dikirim sebagai 'resto' (Shift kasir) secara diam-diam. --}}
+                        @if ($isLdry)
+                            <input type="hidden" name="category" value="resto">
+                        @else
+                            <div class="fv-row mb-4">
+                                <label class="form-label fw-semibold required">Kategori Usaha</label>
+                                <div class="d-flex gap-2">
+                                    @php $curCat = old('category', 'resto'); @endphp
+                                    @foreach (['resto' => 'Resto', 'cafe' => 'Cafe', 'umkm' => 'UMKM'] as $val => $label)
+                                        <input type="radio" class="btn-check" name="category" value="{{ $val }}" id="cat-{{ $val }}" @checked($curCat === $val)>
+                                        <label class="btn btn-outline btn-outline-dashed btn-active-light-primary flex-fill py-3 fw-bold" for="cat-{{ $val }}">{{ $label }}</label>
+                                    @endforeach
+                                </div>
+                                <div class="form-text">Resto &amp; Cafe pakai Shift kasir; UMKM pakai Kas Harian (lebih simpel).</div>
+                                @error('category')<div class="text-danger fs-7 mt-1">{{ $message }}</div>@enderror
                             </div>
-                            <div class="form-text">Resto &amp; Cafe pakai Shift kasir; UMKM pakai Kas Harian (lebih simpel).</div>
-                            @error('category')<div class="text-danger fs-7 mt-1">{{ $message }}</div>@enderror
-                        </div>
+                        @endif
 
-                        {{-- Jenis Bisnis --}}
+                        {{-- Jenis Usaha (opsi mengikuti vertical) --}}
                         <div class="fv-row mb-4">
-                            <label class="form-label fw-semibold">Jenis Bisnis</label>
+                            <label class="form-label fw-semibold">{{ $isLdry ? 'Jenis Layanan' : 'Jenis Bisnis' }}</label>
                             <select name="business_type" class="form-select bg-transparent">
-                                @foreach (['Restoran', 'Cafe', 'Warung', 'Bakery', 'Bar', 'Catering', 'Lainnya'] as $type)
+                                @foreach ($bizTypes as $type)
                                     <option value="{{ $type }}" @selected(old('business_type') === $type)>{{ $type }}</option>
                                 @endforeach
                             </select>
@@ -136,7 +153,7 @@
                         </div>
 
                         <div class="d-grid">
-                            <a href="{{ route('landing') }}" class="btn btn-light btn-active-light-primary">
+                            <a href="{{ \App\Verticals\VerticalRegistry::mainHomeUrl() }}" class="btn btn-light btn-active-light-primary">
                                 <i class="ki-outline ki-arrow-left fs-4 me-1"></i> Kembali ke Beranda
                             </a>
                         </div>
