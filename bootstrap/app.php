@@ -38,8 +38,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // 🔥 TAMBAHKAN BARIS INI (Agar logoutOtherDevices berfungsi)
         // + Identifikasi tenant aktif (setelah session/auth siap) + security headers global
-        $middleware->web(append: [
+        // DynamicUrlRoot harus jalan PALING AWAL (prepend): kalau di-append, ia berjalan
+        // SETELAH VerifyCsrfToken, sehingga saat token kedaluwarsa (419) URL masih terkunci
+        // ke APP_URL (mooda.id) dan tombol di halaman error melompat keluar subdomain.
+        $middleware->web(prepend: [
             \App\Http\Middleware\DynamicUrlRoot::class,
+        ]);
+
+        $middleware->web(append: [
             \Illuminate\Session\Middleware\AuthenticateSession::class,
             \App\Http\Middleware\IdentifyTenant::class,
             \App\Http\Middleware\ResolveVertical::class,

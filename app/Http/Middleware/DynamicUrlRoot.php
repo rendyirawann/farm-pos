@@ -21,15 +21,17 @@ class DynamicUrlRoot
     public function handle(Request $request, Closure $next): Response
     {
         if (config('app.env') === 'production') {
-            // Host produksi utama (domain hidup): kunci ke APP_URL + https.
-            $primaryHosts = ['mooda.id', 'www.mooda.id', 'blog.mooda.id', 'affiliate.mooda.id'];
+            $host = strtolower($request->getHost());
 
-            if (in_array($request->getHost(), $primaryHosts, true)) {
-                URL::forceRootUrl(config('app.url'));
+            // Semua host mooda.id & subdomainnya (mooda.id, laundry.mooda.id, blog, affiliate, ...):
+            // root URL MENGIKUTI host permintaan + https. Ini penting agar redirect login,
+            // halaman error (419/403), dan link lain TIDAK melompat ke mooda.id saat user
+            // sedang berada di subdomain vertical (mis. laundry.mooda.id).
+            if ($host === 'mooda.id' || str_ends_with($host, '.mooda.id')) {
+                URL::forceRootUrl('https://' . $host);
                 URL::forceScheme('https');
             } else {
-                // Host lain (akses via IP, atau alias server lama spt lama.mooda.id):
-                // ikuti host permintaan apa adanya -> link tidak melompat ke mooda.id.
+                // Host lain (akses via IP / alias server lama): ikuti apa adanya.
                 URL::forceRootUrl($request->getSchemeAndHttpHost());
                 URL::forceScheme($request->getScheme());
             }

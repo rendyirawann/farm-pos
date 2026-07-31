@@ -75,16 +75,22 @@
                             </div>
                         @endif
 
-                        {{-- Jenis Usaha (opsi mengikuti vertical) --}}
-                        <div class="fv-row mb-4">
-                            <label class="form-label fw-semibold">{{ $isLdry ? 'Jenis Layanan' : 'Jenis Bisnis' }}</label>
-                            <select name="business_type" class="form-select bg-transparent">
-                                @foreach ($bizTypes as $type)
-                                    <option value="{{ $type }}" @selected(old('business_type') === $type)>{{ $type }}</option>
-                                @endforeach
-                            </select>
-                            @error('business_type')<div class="text-danger fs-7 mt-1">{{ $message }}</div>@enderror
-                        </div>
+                        {{-- Jenis Bisnis: khusus F&B. Untuk LAUNDRY tidak ditanyakan — jenis layanan
+                             (kiloan/satuan/express/dll) dikelola sendiri di Data Master > Layanan
+                             dan bisa ditambah sebanyak apa pun oleh tenant. --}}
+                        @if ($isLdry)
+                            <input type="hidden" name="business_type" value="Laundry">
+                        @else
+                            <div class="fv-row mb-4">
+                                <label class="form-label fw-semibold">Jenis Bisnis</label>
+                                <select name="business_type" class="form-select bg-transparent">
+                                    @foreach ($bizTypes as $type)
+                                        <option value="{{ $type }}" @selected(old('business_type') === $type)>{{ $type }}</option>
+                                    @endforeach
+                                </select>
+                                @error('business_type')<div class="text-danger fs-7 mt-1">{{ $message }}</div>@enderror
+                            </div>
+                        @endif
 
                         {{-- Nama Pemilik --}}
                         <div class="fv-row mb-4">
