@@ -77,8 +77,14 @@ Route::middleware(['auth', 'forbid-banned-user', 'can:affiliate.refer'])->group(
     Route::post('/admin/affiliate-saya/join', [\App\Http\Controllers\Backend\Affiliate\MyAffiliateController::class, 'join'])->name('affiliate.my.join');
 });
 
-// Halaman Depan: Landing Page SaaS
+// Halaman Depan: Landing Page SaaS.
+// Vertical NON-F&B (mis. laundry.mooda.id) TIDAK punya landing page -> langsung ke login.
 Route::get('/', function () {
+    $vertical = \App\Verticals\VerticalRegistry::current();
+    if ($vertical !== 'fnb') {
+        return redirect()->route('login');
+    }
+
     return view('landing', [
         'partnerLogos' => \App\Models\PartnerLogo::forLanding(),
         'faqs'         => \App\Models\Faq::activeOrdered(),
