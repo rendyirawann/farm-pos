@@ -23,7 +23,16 @@
                     <span class="text-muted fs-7">Pembuatan nota laundry terpadu</span>
                 </div>
             </div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                {{-- Sync nota offline: SELALU tampil; badge merah = jumlah antrean di perangkat. --}}
+                <button id="btn-sync" type="button" class="btn btn-sm btn-light-success">
+                    <i class="ki-outline ki-arrows-circle fs-4 me-1"></i>Sync
+                    <span id="sync-count" class="badge badge-danger ms-1 d-none">0</span>
+                </button>
+                {{-- Muat ulang: menyegarkan panel pesanan & daftar layanan. --}}
+                <button id="btn-reload-page" type="button" class="btn btn-sm btn-icon btn-light" title="Muat ulang halaman" onclick="window.location.reload()">
+                    <i class="ki-outline ki-arrows-loop fs-4"></i>
+                </button>
                 <a href="{{ route('laundry.kasir.index') }}" class="badge badge-light-primary fs-7 py-2 px-3">Sedang Diproses <span class="badge badge-circle badge-primary ms-1">{{ $countActive }}</span></a>
                 <a href="{{ route('laundry.kasir.index') }}" class="badge badge-light-success fs-7 py-2 px-3">Selesai <span class="badge badge-circle badge-success ms-1">{{ $countReady }}</span></a>
                 <span class="badge fs-7 py-2 px-3" id="net-badge"><span id="net-dot">●</span> <span id="net-text">Online</span></span>
@@ -172,11 +181,8 @@
                             </div>
                             {{-- Offline (antrean lokal) --}}
                             <div class="tab-pane fade" id="ld-tab-offline" style="max-height:260px;overflow-y:auto">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="fs-8 text-muted">Nota dibuat saat koneksi mati, tersimpan di perangkat ini.</span>
-                                    <button type="button" class="btn btn-sm btn-light-warning py-1 px-3 fs-8 d-none" id="btn-sync">
-                                        <i class="ki-outline ki-arrows-circle fs-5"></i> Sync
-                                    </button>
+                                <div class="fs-8 text-muted mb-2">
+                                    Nota dibuat saat koneksi mati, tersimpan di perangkat ini. Tekan <b>Sync</b> di atas untuk mengirim.
                                 </div>
                                 <div id="ld-offline-list"></div>
                                 <div class="text-center text-muted fs-8 py-6" id="ld-offline-empty">
@@ -456,7 +462,10 @@
         const items = qLoad();
         document.getElementById('ld-count-offline').textContent = items.length;
         document.getElementById('ld-offline-empty').classList.toggle('d-none', items.length > 0);
-        document.getElementById('btn-sync').classList.toggle('d-none', items.length === 0);
+        // Badge merah pada tombol Sync di header (tombolnya sendiri selalu tampil).
+        const sc = document.getElementById('sync-count');
+        sc.textContent = items.length;
+        sc.classList.toggle('d-none', items.length === 0);
         q.innerHTML = items.map(it => `
             <div class="d-flex justify-content-between align-items-center border-bottom py-2">
                 <div>
@@ -477,7 +486,8 @@
     let syncing = false;
     async function syncQueue(silent) {
         const items = qLoad();
-        if (! items.length || syncing) return;
+        if (! items.length) { if (! silent) alert('Tidak ada nota offline yang perlu disinkron.'); return; }
+        if (syncing) return;
         if (! navigator.onLine) { if (! silent) alert('Masih offline. Nota akan tersinkron otomatis saat koneksi kembali.'); return; }
         syncing = true;
         const btn = document.getElementById('btn-sync');
