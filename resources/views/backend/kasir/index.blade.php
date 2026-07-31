@@ -160,6 +160,10 @@
                                             <span class="badge badge-warning ms-1" id="count-offline">0</span></a>
                                     </li>
                                     <li class="nav-item ms-auto d-flex align-items-center gap-1">
+                                        {{-- MERGE TABLE: gabungkan beberapa nota belum lunas --}}
+                                        <button class="btn btn-sm btn-icon btn-light-warning" id="btn-merge-open"
+                                            title="Gabung meja / nota (merge)">
+                                            <i class="ki-outline ki-arrow-mix fs-4"></i></button>
                                         @can('sales.target')
                                             <button class="btn btn-sm btn-icon btn-light-primary" id="btn-set-target"
                                                 title="Set / ubah target penjualan hari ini">
@@ -434,6 +438,72 @@
             </div>
         </div>
     </div>
+    {{-- ================= MODAL SPLIT BILL ================= --}}
+    <div class="modal fade" id="modal-split" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered mw-600px">
+            <div class="modal-content">
+                <div class="modal-header py-4">
+                    <div>
+                        <h3 class="fw-bold mb-0">Split Bill — Pecah Nota</h3>
+                        <span class="text-muted fs-8">Pilih item & jumlah yang dipindah ke nota baru.</span>
+                    </div>
+                    <div class="btn btn-icon btn-sm btn-active-light" data-bs-dismiss="modal"><i class="ki-outline ki-cross fs-1"></i></div>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-primary d-flex align-items-center py-3 fs-8">
+                        <i class="ki-outline ki-information-5 fs-2 me-2"></i>
+                        Sisakan minimal 1 item di nota asal. Nota baru memakai meja yang sama & berstatus belum lunas.
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold fs-7">Nama / Keterangan Nota Baru</label>
+                        <input type="text" id="split-customer" class="form-control form-control-solid" placeholder="mis. Meja 5 - Budi">
+                    </div>
+                    <div id="split-items"><div class="text-center py-6"><span class="spinner-border text-primary"></span></div></div>
+                </div>
+                <div class="modal-footer py-3">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-warning fw-bold" id="btn-split-confirm">Pecah Nota</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ================= MODAL MERGE TABLE ================= --}}
+    <div class="modal fade" id="modal-merge" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered mw-600px">
+            <div class="modal-content">
+                <div class="modal-header py-4">
+                    <div>
+                        <h3 class="fw-bold mb-0">Gabung Meja / Nota</h3>
+                        <span class="text-muted fs-8">Item dari nota terpilih dipindah ke nota tujuan.</span>
+                    </div>
+                    <div class="btn btn-icon btn-sm btn-active-light" data-bs-dismiss="modal"><i class="ki-outline ki-cross fs-1"></i></div>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold fs-7 required">Nota Tujuan (menampung)</label>
+                        <select id="merge-target" class="form-select form-select-solid"></select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold fs-7 required">Nota yang Digabungkan</label>
+                        <div id="merge-sources" class="border rounded p-3" style="max-height:240px;overflow-y:auto"></div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold fs-7">Nomor Meja Setelah Gabung <span class="text-muted">(opsional)</span></label>
+                        <input type="text" id="merge-table" class="form-control form-control-solid" placeholder="mis. 1+2">
+                    </div>
+                    <div class="alert alert-warning d-flex align-items-center py-3 fs-8 mb-0">
+                        <i class="ki-outline ki-information-5 fs-2 me-2"></i>
+                        Nota sumber akan dihapus setelah digabung. Hanya nota <b>belum lunas</b> yang bisa digabung.
+                    </div>
+                </div>
+                <div class="modal-footer py-3">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-warning fw-bold" id="btn-merge-confirm">Gabungkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @php
@@ -459,6 +529,7 @@
             print:      "{{ url('admin/kasir/print') }}",   // + /{id}
             resetToday: "{{ route('kasir.sales.reset-today') }}",
             setTarget:  "{{ route('kasir.sales.target') }}",
+            merge:      "{{ route('kasir.merge') }}",
         };
         const CSRF = "{{ csrf_token() }}";
         // Hak akses owner: tombol HAPUS pesanan (hanya tab "Sedang Diproses"). Server jaga via can:order.delete.
@@ -1178,6 +1249,10 @@
                     ? `<button class="btn btn-sm btn-light-warning flex-fill fw-bold btn-void-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" data-voided="1"><i class="ki-outline ki-arrows-circle fs-5"></i> Batalkan Tanda</button>`
                     : `<button class="btn btn-sm btn-light-danger flex-fill fw-bold btn-void-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" data-voided="0"><i class="ki-outline ki-cross-circle fs-5"></i> Tandai Salah</button>`)
                 : '';
+            // SPLIT BILL: hanya tab "Sedang Diproses", belum lunas, & item lebih dari 1.
+            const splitBtn = (tab === 'processing' && !paid && (o.items_count || 0) > 1)
+                ? `<button class="btn btn-sm btn-light-warning btn-split-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" title="Pecah nota (split bill)"><i class="ki-outline ki-arrow-two-diagonals fs-5"></i></button>`
+                : '';
             const salahBadge = voided
                 ? '<span class="badge badge-danger ms-1">SALAH</span>'
                 : '';
@@ -1199,6 +1274,7 @@
                     <div class="d-flex gap-2 mt-2">
                         <button class="btn btn-sm btn-light flex-fill btn-view" data-id="${o.id}"><i class="ki-outline ki-eye fs-5"></i> View</button>
                         ${selesaiBtn}
+                        ${splitBtn}
                         ${voidBtn}
                         ${delBtn}
                     </div>
@@ -1585,5 +1661,103 @@
 
             setInterval(updateSyncBadge, 5000);
         });
+    
+        // ==================== SPLIT BILL ====================
+        let splitOrderId = null;
+
+        $(document).on('click', '.btn-split-order', function () {
+            splitOrderId = $(this).data('id');
+            $('#split-customer').val('');
+            $('#split-items').html('<div class="text-center py-6"><span class="spinner-border text-primary"></span></div>');
+            new bootstrap.Modal(document.getElementById('modal-split')).show();
+
+            $.get(`${ROUTES.base}/${splitOrderId}`).done(function (o) {
+                const rows = (o.items || []).map(it => `
+                    <div class="d-flex align-items-center justify-content-between border-bottom py-2 split-row"
+                         data-detail="${it.detail_id ?? it.id}" data-max="${it.qty}">
+                        <div class="me-2">
+                            <div class="fw-bold text-gray-800 fs-7">${esc(it.name)}</div>
+                            <div class="fs-8 text-muted">${it.qty} x ${rupiah(it.price)}${it.notes ? ' • ' + esc(it.notes) : ''}</div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fs-8 text-muted">pindah</span>
+                            <input type="number" class="form-control form-control-sm w-70px text-center split-qty js-no-format"
+                                   min="0" max="${it.qty}" value="0">
+                            <span class="fs-8 text-muted">/ ${it.qty}</span>
+                        </div>
+                    </div>`).join('');
+                $('#split-items').html(rows || '<div class="text-center text-muted py-6">Pesanan tidak punya item.</div>');
+            }).fail(() => $('#split-items').html('<div class="text-center text-danger py-6">Gagal memuat item pesanan.</div>'));
+        });
+
+        $('#btn-split-confirm').on('click', function () {
+            const items = [];
+            $('#split-items .split-row').each(function () {
+                const qty = parseInt($(this).find('.split-qty').val(), 10) || 0;
+                if (qty > 0) items.push({ detail_id: $(this).data('detail'), qty: qty });
+            });
+            if (!items.length) { Swal.fire('Pilih item', 'Tentukan jumlah item yang dipindah ke nota baru.', 'info'); return; }
+
+            const btn = $(this); btn.prop('disabled', true).text('Memproses...');
+            $.ajax({
+                url: `${ROUTES.base}/${splitOrderId}/split`,
+                method: 'POST',
+                data: { _token: CSRF, items: items, customer_name: $('#split-customer').val() || null },
+            }).done(function (res) {
+                bootstrap.Modal.getInstance(document.getElementById('modal-split')).hide();
+                Swal.fire({ icon: 'success', title: 'Nota dipecah', timer: 1600, showConfirmButton: false });
+                loadOrders();
+            }).fail(function (x) {
+                Swal.fire('Gagal', (x.responseJSON && x.responseJSON.error) || 'Tidak bisa memecah nota.', 'error');
+            }).always(() => btn.prop('disabled', false).text('Pecah Nota'));
+        });
+
+        // ==================== MERGE TABLE ====================
+        $('#btn-merge-open').on('click', function () {
+            $.get(ROUTES.orders).done(function (res) {
+                // Hanya nota BELUM LUNAS yang boleh digabung.
+                const unpaid = (res.processing || []).filter(o => o.payment_status !== 'paid');
+                if (unpaid.length < 2) {
+                    Swal.fire('Belum bisa digabung', 'Perlu minimal 2 pesanan belum lunas untuk digabung.', 'info');
+                    return;
+                }
+                const label = o => `No. ${o.queue_number ?? '-'}${o.table_no ? ' • Meja ' + esc(o.table_no) : ''} • ${esc(o.customer_name || '')} • ${rupiah(o.grand_total)}`;
+                $('#merge-target').html(unpaid.map(o => `<option value="${o.id}">${label(o)}</option>`).join(''));
+                $('#merge-table').val('');
+                renderMergeSources(unpaid);
+                new bootstrap.Modal(document.getElementById('modal-merge')).show();
+            });
+        });
+
+        function renderMergeSources(list) {
+            const target = $('#merge-target').val();
+            $('#merge-sources').html(list.filter(o => String(o.id) !== String(target)).map(o => `
+                <label class="form-check form-check-custom form-check-sm d-flex align-items-center mb-2">
+                    <input class="form-check-input merge-src" type="checkbox" value="${o.id}">
+                    <span class="form-check-label fs-8 fw-semibold ms-2">No. ${o.queue_number ?? '-'}${o.table_no ? ' • Meja ' + esc(o.table_no) : ''} • ${esc(o.customer_name || '')} • ${rupiah(o.grand_total)}</span>
+                </label>`).join('') || '<div class="text-muted fs-8">Tidak ada nota lain.</div>');
+        }
+        $(document).on('change', '#merge-target', function () {
+            $.get(ROUTES.orders).done(res => renderMergeSources((res.processing || []).filter(o => o.payment_status !== 'paid')));
+        });
+
+        $('#btn-merge-confirm').on('click', function () {
+            const sources = $('#merge-sources .merge-src:checked').map(function () { return $(this).val(); }).get();
+            if (!sources.length) { Swal.fire('Pilih nota', 'Centang nota yang mau digabungkan.', 'info'); return; }
+
+            const btn = $(this); btn.prop('disabled', true).text('Menggabungkan...');
+            $.ajax({
+                url: ROUTES.merge,
+                method: 'POST',
+                data: { _token: CSRF, target_id: $('#merge-target').val(), source_ids: sources, table_no: $('#merge-table').val() || null },
+            }).done(function () {
+                bootstrap.Modal.getInstance(document.getElementById('modal-merge')).hide();
+                Swal.fire({ icon: 'success', title: 'Nota digabung', timer: 1600, showConfirmButton: false });
+                loadOrders();
+            }).fail(function (x) {
+                Swal.fire('Gagal', (x.responseJSON && x.responseJSON.error) || 'Tidak bisa menggabungkan nota.', 'error');
+            }).always(() => btn.prop('disabled', false).text('Gabungkan'));
+        });
+
     </script>
 @endpush

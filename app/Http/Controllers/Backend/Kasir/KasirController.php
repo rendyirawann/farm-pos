@@ -188,6 +188,8 @@ class KasirController extends Controller
                 'created_at'     => optional($order->created_at)->format('d/m/Y H:i'),
             ],
             'items' => $order->details->map(fn($d) => [
+                // detail_id dipakai fitur Split Bill (memilih baris item yang dipindah).
+                'detail_id' => $d->id,
                 'name'     => $d->menu->name ?? 'Menu dihapus',
                 'qty'      => $d->qty,
                 'price'    => (float) $d->price,
@@ -952,5 +954,209 @@ class KasirController extends Controller
             'cash_received'   => $order->cash_received !== null ? (float) $order->cash_received : null,
             'change_amount'   => $order->change_amount !== null ? (float) $order->change_amount : null,
         ];
+    }
+
+    /**
+     * SPLIT BILL — pecah pesanan BELUM LUNAS menjadi 2 nota.
+     * Item (atau sebagian qty-nya) yang dipilih DIPINDAH ke nota baru; sisanya tetap di nota asal.
+     * Kedua nota dihitung ulang server-side (subtotal/diskon/pajak) supaya angka tak bisa dimanipulasi.
+     *
+     * Catatan: hanya untuk pesanan yang BELUM dibayar. Item yang stoknya sudah dipotong
+     * (is_stock_deducted) tetap membawa HPP-nya secara proporsional agar laporan tetap akurat.
+     */
+    public function splitOrder($id, Request $request)
+    {
+        $data = $request->validate([
+            'items'             => ['required', 'array', 'min:1'],
+            'items.*.detail_id' => ['required', 'integer'],
+            'items.*.qty'       => ['required', 'integer', 'min:1'],
+            'customer_name'     => ['nullable', 'string', 'max:100'],
+        ]);
+
+        try {
+            $result = DB::transaction(function () use ($id, $data) {
+                /** @var Order $order */
+                $order = Order::whereKey($id)->lockForUpdate()->firstOrFail();
+
+                if ($order->payment_status === 'paid') {
+                    throw new \RuntimeException('Pesanan sudah lunas — tidak bisa dipecah.');
+                }
+
+                $details = $order->details()->get()->keyBy('id');
+                $moved   = [];
+
+                foreach ($data['items'] as $row) {
+                    $d = $details->get((int) $row['detail_id']);
+                    if (! $d) {
+                        continue;
+                    }
+                    $takeQty = min((int) $row['qty'], (int) $d->qty);
+                    if ($takeQty < 1) {
+                        continue;
+                    }
+                    $moved[] = ['detail' => $d, 'qty' => $takeQty];
+                }
+
+                if (empty($moved)) {
+                    throw new \RuntimeException('Tidak ada item yang dipilih.');
+                }
+
+                // Jangan biarkan SELURUH item pindah (nota asal tak boleh kosong).
+                $totalQty = (int) $details->sum('qty');
+                $movedQty = array_sum(array_column($moved, 'qty'));
+                if ($movedQty >= $totalQty) {
+                    throw new \RuntimeException('Tidak bisa memindahkan semua item. Sisakan minimal 1 item di nota asal.');
+                }
+
+                // Nota baru: meja & promo mengikuti nota asal.
+                $newOrder = Order::create(array_merge($this->newOrderBase($data['customer_name'] ?? $order->customer_name), [
+                    'table_no'       => $order->table_no,
+                    'promo_id'       => $order->promo_id,
+                    'order_status'   => $order->order_status,
+                    'payment_status' => 'unpaid',
+                    'subtotal'       => 0,
+                    'discount_amount' => 0,
+                    'tax'            => 0,
+                    'grand_total'    => 0,
+                    'shift_id'       => $order->shift_id,
+                ]));
+
+                foreach ($moved as $m) {
+                    /** @var \App\Models\OrderDetail $d */
+                    $d       = $m['detail'];
+                    $takeQty = $m['qty'];
+                    $unit    = (float) $d->price;
+                    // HPP dipindah proporsional (bila stok sudah dipotong di dapur).
+                    $hppUnit = (int) $d->qty > 0 ? (float) $d->hpp / (int) $d->qty : 0;
+
+                    $newOrder->details()->create([
+                        'menu_id'           => $d->menu_id,
+                        'qty'               => $takeQty,
+                        'price'             => $unit,
+                        'subtotal'          => round($unit * $takeQty, 2),
+                        'addons'            => $d->addons,
+                        'notes'             => $d->notes,
+                        'status'            => $d->status,
+                        'hpp'               => round($hppUnit * $takeQty, 2),
+                        'is_stock_deducted' => (bool) $d->is_stock_deducted,
+                    ]);
+
+                    $leftQty = (int) $d->qty - $takeQty;
+                    if ($leftQty > 0) {
+                        $d->update([
+                            'qty'      => $leftQty,
+                            'subtotal' => round($unit * $leftQty, 2),
+                            'hpp'      => round($hppUnit * $leftQty, 2),
+                        ]);
+                    } else {
+                        $d->delete();
+                    }
+                }
+
+                $this->recalcOrderTotals($order->fresh());
+                $this->recalcOrderTotals($newOrder->fresh());
+
+                return ['from' => $order->fresh(), 'to' => $newOrder->fresh()];
+            });
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success'  => true,
+            'message'  => 'Nota berhasil dipecah.',
+            'original' => $this->orderSummary($result['from']),
+            'new'      => $this->orderSummary($result['to']),
+        ]);
+    }
+
+    /**
+     * MERGE TABLE — gabungkan beberapa pesanan BELUM LUNAS ke satu nota tujuan.
+     * Item digabung (qty ditambahkan bila menu+addons+catatan sama), nota sumber dihapus.
+     */
+    public function mergeOrders(Request $request)
+    {
+        $data = $request->validate([
+            'target_id'  => ['required', 'integer'],
+            'source_ids' => ['required', 'array', 'min:1'],
+            'source_ids.*' => ['integer'],
+            'table_no'   => ['nullable', 'string', 'max:20'],
+        ]);
+
+        try {
+            $target = DB::transaction(function () use ($data) {
+                /** @var Order $target */
+                $target = Order::whereKey($data['target_id'])->lockForUpdate()->firstOrFail();
+                if ($target->payment_status === 'paid') {
+                    throw new \RuntimeException('Nota tujuan sudah lunas — tidak bisa digabung.');
+                }
+
+                $sources = Order::whereIn('id', $data['source_ids'])
+                    ->where('id', '!=', $target->id)
+                    ->lockForUpdate()->get();
+
+                if ($sources->isEmpty()) {
+                    throw new \RuntimeException('Tidak ada nota sumber yang valid.');
+                }
+                foreach ($sources as $s) {
+                    if ($s->payment_status === 'paid') {
+                        throw new \RuntimeException('Nota ' . $s->invoice_no . ' sudah lunas — tidak bisa digabung.');
+                    }
+                }
+
+                foreach ($sources as $src) {
+                    foreach ($src->details()->get() as $d) {
+                        // Cari baris identik di nota tujuan -> gabungkan qty.
+                        $same = $target->details()
+                            ->where('menu_id', $d->menu_id)
+                            ->where('price', $d->price)
+                            ->where('status', $d->status)
+                            ->get()
+                            ->first(fn ($t) => json_encode($t->addons) === json_encode($d->addons)
+                                && (string) $t->notes === (string) $d->notes
+                                && (bool) $t->is_stock_deducted === (bool) $d->is_stock_deducted);
+
+                        if ($same) {
+                            $same->update([
+                                'qty'      => (int) $same->qty + (int) $d->qty,
+                                'subtotal' => (float) $same->subtotal + (float) $d->subtotal,
+                                'hpp'      => (float) $same->hpp + (float) $d->hpp,
+                            ]);
+                            $d->delete();
+                        } else {
+                            $d->update(['order_id' => $target->id]);
+                        }
+                    }
+
+                    // Nota sumber sudah kosong -> hapus (belum lunas, jadi tak mengubah omzet).
+                    $src->delete();
+                }
+
+                if (! empty($data['table_no'])) {
+                    $target->update(['table_no' => $data['table_no']]);
+                }
+
+                $this->recalcOrderTotals($target->fresh());
+
+                return $target->fresh();
+            });
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Nota berhasil digabung.',
+            'order'   => $this->orderSummary($target),
+        ]);
+    }
+
+    /** Hitung ulang subtotal/diskon/pajak/grand sebuah pesanan dari item-itemnya. */
+    private function recalcOrderTotals(Order $order): void
+    {
+        $subtotal = (float) $order->details()->sum('subtotal');
+        $totals   = $this->applyPromoAndTax($subtotal, $order->promo_id);
+
+        $order->update(array_merge(['subtotal' => $subtotal], $totals));
     }
 }

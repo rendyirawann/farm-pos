@@ -325,6 +325,10 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
         // Tambah/gabung item ke pesanan yang MASIH BELUM LUNAS (view -> tambah menu -> merge).
         Route::post('/admin/kasir/order/{id}/add-items', [KasirController::class, 'addItems'])->name('kasir.add-items');
         Route::post('/admin/kasir/order/{id}/complete', [KasirController::class, 'completeOrder'])->name('kasir.complete');
+        // Split bill: pecah nota belum lunas jadi 2 (pilih item/qty yang dipindah).
+        Route::post('/admin/kasir/order/{id}/split', [KasirController::class, 'splitOrder'])->name('kasir.split');
+        // Merge table: gabungkan beberapa nota belum lunas ke satu nota tujuan.
+        Route::post('/admin/kasir/orders/merge', [KasirController::class, 'mergeOrders'])->name('kasir.merge');
         Route::get('/admin/kasir/print/{id}', [KasirController::class, 'printReceipt'])->name('kasir.print');
 
         // Aksi sensitif khusus OWNER (Superadmin lolos via Gate::before) —

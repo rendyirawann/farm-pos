@@ -426,19 +426,37 @@
                  ditampilkan sebagai ikon terkunci supaya owner tahu roadmap produk. --}}
             @if (auth()->user()->hasRole('owner'))
                 @php
-                    // Daftar "Fitur Mendatang" per VERTICAL.
-                    // - Laundry: hanya fitur AI (HPP/Inventory dsb. tak relevan / dikelola lain).
-                    // - F&B: HPP & Inventory SUDAH jadi fitur nyata -> tak lagi di daftar terkunci.
+                    /**
+                     * Daftar fitur TERKUNCI.
+                     * Aturan: 'module' = null  -> fitur belum dibangun (selalu "segera").
+                     *         'module' = 'x'   -> fitur SUDAH ada, tapi hanya untuk paket tertentu;
+                     *                             ikon terkunci muncul HANYA bila paket tenant belum punya
+                     *                             (kalau punya, fitur tampil sebagai menu nyata di atas).
+                     */
                     $aiFeatures = [
-                        ['label' => 'AI Assistant',   'icon' => 'ki-messages',          'color' => 'success', 'desc' => 'Chatbot WhatsApp & upselling otomatis'],
-                        ['label' => 'AI Prediksi',    'icon' => 'ki-chart-line-up',     'color' => 'primary', 'desc' => 'Prediksi stok, penjualan & rekomendasi promo'],
+                        ['label' => 'AI Assistant', 'icon' => 'ki-messages',      'color' => 'success', 'module' => null, 'desc' => 'Chatbot WhatsApp & upselling otomatis'],
+                        ['label' => 'AI Prediksi',  'icon' => 'ki-chart-line-up', 'color' => 'primary', 'module' => null, 'desc' => 'Prediksi stok, penjualan & rekomendasi promo'],
                     ];
-                    $lockedFeatures = $sbIsLaundry ? $aiFeatures : array_merge([
-                        ['label' => 'CRM',            'icon' => 'ki-profile-circle',    'color' => 'info',    'desc' => 'Database pelanggan, membership & poin loyalitas'],
-                        ['label' => 'QR Menu',        'icon' => 'ki-scan-barcode',      'color' => 'success', 'desc' => 'QR menu, self ordering & pesan dari meja'],
-                        ['label' => 'Akuntansi',      'icon' => 'ki-bill',              'color' => 'dark',    'desc' => 'Laba rugi, arus kas & hutang piutang'],
+
+                    // Laundry: hanya fitur AI (HPP/Inventory dsb. modul F&B).
+                    $candidateLocked = $sbIsLaundry ? $aiFeatures : array_merge([
+                        ['label' => 'HPP',        'icon' => 'ki-chart-pie-simple', 'color' => 'primary', 'module' => 'inventory_hpp', 'desc' => 'HPP per menu, margin & analisis food cost — paket Customize'],
+                        ['label' => 'Inventory',  'icon' => 'ki-package',          'color' => 'warning', 'module' => 'inventory_hpp', 'desc' => 'Stok berbasis lot (FIFO/FEFO), opname & kartu stok — paket Customize'],
+                        ['label' => 'QR Menu',    'icon' => 'ki-scan-barcode',     'color' => 'success', 'module' => 'qr_selforder',  'desc' => 'QR menu, self ordering & pesan dari meja — paket Customize'],
+                        ['label' => 'CRM',        'icon' => 'ki-profile-circle',   'color' => 'info',    'module' => null,            'desc' => 'Database pelanggan, membership & poin loyalitas'],
+                        ['label' => 'Akuntansi',  'icon' => 'ki-bill',             'color' => 'dark',    'module' => null,            'desc' => 'Laba rugi, arus kas & hutang piutang'],
                     ], $aiFeatures);
+
+                    // Sembunyikan yang SUDAH termasuk paket tenant (atau Superadmin) — itu sudah jadi menu nyata.
+                    $sbIsSa = auth()->user()->isSuperadmin();
+                    $lockedFeatures = collect($candidateLocked)->reject(function ($f) use ($sbIsSa, $currentTenant) {
+                        if (empty($f['module'])) {
+                            return false; // belum dibangun -> tetap terkunci
+                        }
+                        return $sbIsSa || \App\Tenancy\Plan::tenantAllows($currentTenant ?? null, $f['module']);
+                    })->values()->all();
                 @endphp
+                @if (count($lockedFeatures))
                 <div class="mb-6">
                     <div class="d-flex align-items-center justify-content-between mb-4">
                         <h3 class="text-gray-800 fw-bold mb-0 fs-5">Fitur Mendatang</h3>
@@ -461,8 +479,9 @@
                             </div>
                         @endforeach
                     </div>
-                    <div class="text-muted fs-8 px-1">Fitur ini sedang dikembangkan & akan tersedia bertahap.</div>
+                    <div class="text-muted fs-8 px-1">Fitur berlabel <b>paket Customize</b> bisa dibuka dengan upgrade paket; sisanya sedang dikembangkan.</div>
                 </div>
+                @endif
             @endif
             @else
             {{-- Sidebar Superadmin (mode Analitik): pintasan platform --}}
