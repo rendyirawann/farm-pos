@@ -34,6 +34,13 @@
                 <div class="card-header pt-5">
                     <h3 class="card-title fw-bold text-gray-800 fs-2">Daftar Tenant</h3>
                     <div class="card-toolbar gap-2">
+                        {{-- Filter VERTICAL (F&B / Laundry / Retail) --}}
+                        <select id="filter-vertical" class="form-select form-select-solid w-175px" data-control="select2" data-hide-search="true">
+                            <option value="">Semua Vertical ({{ array_sum($verticalCounts ?? []) }})</option>
+                            @foreach (($verticals ?? []) as $vKey => $vMeta)
+                                <option value="{{ $vKey }}">{{ $vMeta['label'] ?? $vKey }} ({{ $verticalCounts[$vKey] ?? 0 }})</option>
+                            @endforeach
+                        </select>
                         <input type="text" id="search" class="form-control form-control-solid w-250px" placeholder="Cari tenant..." />
                         <a href="{{ route('tenants.create') }}" class="btn btn-primary fw-bold"><i class="ki-outline ki-plus fs-3"></i> Buat Tenant</a>
                     </div>
@@ -72,7 +79,11 @@
                     processing: true,
                     serverSide: true,
                     order: false,
-                    ajax: "{{ route('tenants.data') }}",
+                    ajax: {
+                        url: "{{ route('tenants.data') }}",
+                        // Kirim filter vertical yang dipilih ke server.
+                        data: function (d) { d.vertical = $('#filter-vertical').val() || ''; }
+                    },
                     columns: [
                         { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                         { data: 'business', name: 'name' },
@@ -89,6 +100,9 @@
                     clearTimeout(timeout);
                     timeout = setTimeout(() => table.search($(this).val()).draw(), 400);
                 });
+
+                // Ganti filter vertical -> muat ulang tabel.
+                $('#filter-vertical').on('change', function () { table.ajax.reload(); });
 
                 $(document).on('click', '.btn-toggle-active', function () {
                     const id = $(this).data('id');

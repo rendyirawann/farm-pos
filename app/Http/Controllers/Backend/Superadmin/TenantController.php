@@ -27,7 +27,12 @@ class TenantController extends Controller
             'users'    => User::withoutGlobalScopes()->whereNotNull('tenant_id')->count(),
         ];
 
-        return view('backend.superadmin.tenants.index', compact('stats'));
+        // Pilihan filter Vertical + jumlah tenant per vertical.
+        $verticals = \App\Verticals\VerticalRegistry::all();
+        $verticalCounts = Tenant::selectRaw('vertical, COUNT(*) AS total')
+            ->groupBy('vertical')->pluck('total', 'vertical')->all();
+
+        return view('backend.superadmin.tenants.index', compact('stats', 'verticals', 'verticalCounts'));
     }
 
     public function getData(Request $request)
@@ -37,21 +42,33 @@ class TenantController extends Controller
             // mode POS di satu toko, scope User bisa salah -> jumlah user keliru).
             $query = Tenant::withCount(['users' => fn($q) => $q->withoutGlobalScopes()])->orderByDesc('created_at');
 
+            // Filter Vertical (F&B / Laundry / ...). Kosong = semua.
+            $vertical = trim((string) $request->input('vertical', ''));
+            if ($vertical !== '' && \App\Verticals\VerticalRegistry::exists($vertical)) {
+                $query->where('vertical', $vertical);
+            }
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('business', function ($row) {
+                    // Badge VERTICAL (F&B / Laundry) supaya Superadmin langsung tahu jenis usaha.
+                    $vKey  = \App\Verticals\VerticalRegistry::normalize($row->vertical);
+                    $vCol  = $vKey === 'laundry' ? 'info' : ($vKey === 'retail' ? 'warning' : 'success');
+                    $vBadge = ' <span class="badge badge-light-' . $vCol . '">'
+                        . e(\App\Verticals\VerticalRegistry::label($vKey)) . '</span>';
                     $cat = $row->category ? ' · <span class="badge badge-light-dark">' . strtoupper($row->category) . '</span>' : '';
                     $src = $row->created_via === 'manual'
                         ? ' <span class="badge badge-light-primary">Manual Superadmin</span>'
                         : ($row->created_via === 'midtrans' ? ' <span class="badge badge-light-info">Midtrans</span>' : '');
-                    return '<div class="fw-bold text-gray-800">' . e($row->name) . $src . '</div>'
+                    return '<div class="fw-bold text-gray-800">' . e($row->name) . $vBadge . $src . '</div>'
                         . '<div class="fs-8 text-muted">' . e($row->business_type ?? '-') . $cat . ' · ' . e($row->email ?? '-') . '</div>';
                 })
                 ->addColumn('plan', function ($row) {
                     if ($row->billing_mode === 'deposit') {
                         return '<span class="badge badge-light-primary">Starter</span> <span class="fs-8 text-muted">Deposit</span>';
                     }
-                    return $row->plan ? (Plan::name($row->plan)) : '<span class="text-muted">—</span>';
+                    // Nama paket dibaca sesuai VERTICAL tenant (paket laundry beda dari F&B).
+                    return $row->plan ? (Plan::name($row->plan, $row->vertical)) : '<span class="text-muted">—</span>';
                 })
                 ->addColumn('status', function ($row) {
                     $suspended = $row->is_active ? '' : ' <span class="badge badge-light-danger">Suspended</span>';
