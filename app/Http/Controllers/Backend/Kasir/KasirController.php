@@ -203,6 +203,8 @@ class KasirController extends Controller
                 'subtotal' => (float) $d->subtotal,
                 'addons'   => $d->addons ?? [],
                 'notes'    => $d->notes,
+                // Asal item setelah merge (NULL = memang nota ini) -> dipakai mengelompokkan di detail & struk.
+                'merged_from' => $d->merged_from,
                 'status'   => $d->status,
             ]),
         ]);
@@ -951,6 +953,8 @@ class KasirController extends Controller
                 'subtotal' => (float) $d->subtotal,
                 'addons'   => $d->addons ?? [],
                 'notes'    => $d->notes,
+                // Asal nota (hasil MERGE) -> struk mengelompokkan item per nota.
+                'merged_from' => $d->merged_from,
             ]),
             'subtotal'        => (float) $order->subtotal,
             'discount_amount' => (float) $order->discount_amount,
@@ -964,8 +968,7 @@ class KasirController extends Controller
     }
 
     /**
-     * SPLIT BILL — pecah pesanan BELUM LUNAS menjadi 2 nota.
-     * Item (atau sebagian qty-nya) yang dipilih DIPINDAH ke nota baru; sisanya tetap di nota asal.
+     * (docblock lama; implementasi N-struk ada di bawah)
      * Kedua nota dihitung ulang server-side (subtotal/diskon/pajak) supaya angka tak bisa dimanipulasi.
      *
      * Catatan: hanya untuk pesanan yang BELUM dibayar. Item yang stoknya sudah dipotong
@@ -1194,12 +1197,17 @@ class KasirController extends Controller
                 }
 
                 foreach ($sources as $src) {
+                    // Nomor antrian nota sumber dipakai sebagai penanda asal item.
+                    $originLabel = (string) ($src->queue_number ?? $src->invoice_no);
+
                     foreach ($src->details()->get() as $d) {
-                        // Cari baris identik di nota tujuan -> gabungkan qty.
+                        // Gabungkan qty HANYA bila baris identik DAN berasal dari nota yang sama,
+                        // supaya jejak "item ini dari No. 7" tidak hilang saat digabung.
                         $same = $target->details()
                             ->where('menu_id', $d->menu_id)
                             ->where('price', $d->price)
                             ->where('status', $d->status)
+                            ->where('merged_from', $originLabel)
                             ->get()
                             ->first(fn ($t) => json_encode($t->addons) === json_encode($d->addons)
                                 && (string) $t->notes === (string) $d->notes
@@ -1213,7 +1221,11 @@ class KasirController extends Controller
                             ]);
                             $d->delete();
                         } else {
-                            $d->update(['order_id' => $target->id]);
+                            $d->update([
+                                'order_id'    => $target->id,
+                                // Merge berantai: pertahankan asal pertama bila item ini sudah pernah digabung.
+                                'merged_from' => $d->merged_from ?: $originLabel,
+                            ]);
                         }
                     }
 

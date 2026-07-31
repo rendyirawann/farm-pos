@@ -1464,6 +1464,49 @@
             });
         });
 
+
+        /**
+         * Item hasil MERGE dikelompokkan per nota asal (order_details.merged_from).
+         * Kelompok pertama = item milik nota ini, lalu tiap nota yang digabung diberi
+         * judul + subtotalnya sendiri. Total keseluruhan tetap total nota gabungan.
+         */
+        function renderDetailRows(items, queueNumber) {
+            const groups = new Map();
+            (items || []).forEach(it => {
+                const key = it.merged_from || '';
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key).push(it);
+            });
+
+            const line = it => {
+                const ad = (it.addons && it.addons.length) ? `<div class="fs-8 text-primary">+ ${it.addons.map(a => esc(a.name) + (a.qty > 1 ? ' ×' + a.qty : '')).join(', ')}</div>` : '';
+                const nt = it.notes ? `<div class="fs-8 text-muted fst-italic">“${esc(it.notes)}”</div>` : '';
+                return `<div class="d-flex justify-content-between border-bottom py-2">
+                    <div><span class="fw-bold">${it.qty}x</span> ${esc(it.name)}${ad}${nt}</div>
+                    <div class="fw-bold">${rupiah(it.subtotal)}</div></div>`;
+            };
+
+            // Tanpa item gabungan -> tampilkan datar seperti biasa.
+            if (groups.size <= 1 && groups.has('')) return (items || []).map(line).join('');
+
+            let html = '';
+            const keys = [...groups.keys()].sort((a, b) => (a === '' ? -1 : b === '' ? 1 : String(a).localeCompare(String(b), 'id', { numeric: true })));
+            keys.forEach(k => {
+                const list = groups.get(k);
+                const sub  = list.reduce((a, b) => a + Number(b.subtotal || 0), 0);
+                const qty  = list.reduce((a, b) => a + Number(b.qty || 0), 0);
+                const judul = k === ''
+                    ? `No. ${queueNumber ?? '-'} <span class="badge badge-light-primary fs-9 ms-1">nota ini</span>`
+                    : `No. ${esc(k)} <span class="badge badge-light-warning fs-9 ms-1">digabung</span>`;
+                html += `<div class="d-flex align-items-center justify-content-between bg-light rounded px-3 py-2 mt-3 mb-1">
+                        <span class="fw-bold fs-7 text-gray-800">${judul}</span>
+                        <span class="fs-8 text-muted">${qty} item · <b class="text-gray-800">${rupiah(sub)}</b></span>
+                    </div>`;
+                html += list.map(line).join('');
+            });
+            return html;
+        }
+
         // View detail
         $('body').on('click', '.btn-view', function() {
             const id = $(this).data('id');
@@ -1478,13 +1521,7 @@
                     payment_method: o.payment_method, payment_status: o.payment_status,
                     cash_received: o.cash_received, change_amount: o.change_amount
                 };
-                const rows = res.items.map(it => {
-                    const ad = (it.addons && it.addons.length) ? `<div class="fs-8 text-primary">+ ${it.addons.map(a => esc(a.name) + (a.qty > 1 ? ' ×' + a.qty : '')).join(', ')}</div>` : '';
-                    const nt = it.notes ? `<div class="fs-8 text-muted fst-italic">“${esc(it.notes)}”</div>` : '';
-                    return `<div class="d-flex justify-content-between border-bottom py-2">
-                        <div><span class="fw-bold">${it.qty}x</span> ${esc(it.name)}${ad}${nt}</div>
-                        <div class="fw-bold">${rupiah(it.subtotal)}</div></div>`;
-                }).join('');
+                const rows = renderDetailRows(res.items, o.queue_number);
                 $('#detail-body').html(`
                     <div class="mb-3">
                         <div class="fs-2 fw-bold text-primary">No. ${o.queue_number ?? '-'}</div>

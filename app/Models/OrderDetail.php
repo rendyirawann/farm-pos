@@ -19,6 +19,8 @@ class OrderDetail extends Model
         'addons',
         'notes',
         'status',
+        // Jejak MERGE TABLE: nomor antrian nota asal (NULL = memang milik nota ini).
+        'merged_from',
         // Modul HPP: snapshot biaya bahan nyata + penjaga idempoten potong stok.
         'hpp',
         'is_stock_deducted',

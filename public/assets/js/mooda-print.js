@@ -24,6 +24,37 @@ window.MoodaPrint = (function () {
         '49535343-fe7d-4ae5-8fa9-9fafd205e455',                // ISSC/Microchip transparent UART
     ];
 
+    /**
+     * Kelompokkan item per NOTA ASAL (it.merged_from) untuk pesanan hasil MERGE TABLE.
+     * Mengembalikan satu kelompok tanpa label bila tak ada item gabungan, sehingga
+     * struk pesanan biasa sama sekali tidak berubah.
+     */
+    function groupByOrigin(r) {
+        const items = r.items || [];
+        const map = new Map();
+        items.forEach(it => {
+            const k = it.merged_from || '';
+            if (!map.has(k)) map.set(k, []);
+            map.get(k).push(it);
+        });
+        if (map.size <= 1) return [{ label: null, items: items, subtotal: 0, qty: 0 }];
+
+        const keys = [...map.keys()].sort((a, b) =>
+            a === '' ? -1 : b === '' ? 1 : String(a).localeCompare(String(b), 'id', { numeric: true }));
+        return keys.map(k => {
+            const list = map.get(k);
+            return {
+                label: k === '' ? 'No. ' + (r.queue_number ?? '-') : 'No. ' + k + ' (gabung)',
+                // Label pendek untuk baris subtotal: struk 32 kolom, label panjang bikin baris meluber.
+                short: 'No. ' + (k === '' ? (r.queue_number ?? '-') : k),
+                items: list,
+                subtotal: list.reduce((a, b) => a + Number(b.subtotal || 0), 0),
+                qty: list.reduce((a, b) => a + Number(b.qty || 0), 0),
+            };
+        });
+    }
+
+
     const ESC = 0x1b, GS = 0x1d;
     const cols = () => (Number(CFG.paper_width) >= 80 ? 48 : 32);
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -97,11 +128,15 @@ window.MoodaPrint = (function () {
         if (r.table_no) line('Meja ' + r.table_no + ' - ' + (r.customer_name || 'Pelanggan'));
         else if (r.customer_name) row('Plg', r.customer_name);
         rule();
-        (r.items || []).forEach(it => {
-            line(String(it.name));
-            if (it.addons && it.addons.length) it.addons.forEach(a => line('  + ' + (a.name || '') + ((a.qty > 1) ? ' x' + a.qty : '')));
-            row('  ' + it.qty + ' x ' + money(it.price), money(it.subtotal));
-            if (it.notes) line('  * ' + it.notes);
+        groupByOrigin(r).forEach(g => {
+            if (g.label) { line('-- ' + g.label + ' --'); }
+            g.items.forEach(it => {
+                line(String(it.name));
+                if (it.addons && it.addons.length) it.addons.forEach(a => line('  + ' + (a.name || '') + ((a.qty > 1) ? ' x' + a.qty : '')));
+                row('  ' + it.qty + ' x ' + money(it.price), money(it.subtotal));
+                if (it.notes) line('  * ' + it.notes);
+            });
+            if (g.label) { row('  Subtotal ' + g.short, money(g.subtotal)); }
         });
         rule();
         row('Subtotal', money(r.subtotal));
@@ -144,11 +179,15 @@ window.MoodaPrint = (function () {
         if (r.table_no) o.push('Meja ' + r.table_no + ' - ' + (r.customer_name || 'Pelanggan'));
         else if (r.customer_name) o.push(row('Plg', r.customer_name));
         o.push(sep);
-        (r.items || []).forEach(it => {
-            o.push(String(it.name));
-            if (it.addons && it.addons.length) it.addons.forEach(a => o.push('  + ' + (a.name || '') + ((a.qty > 1) ? ' x' + a.qty : '')));
-            o.push(row('  ' + it.qty + ' x ' + money(it.price), money(it.subtotal)));
-            if (it.notes) o.push('  * ' + it.notes);
+        groupByOrigin(r).forEach(g => {
+            if (g.label) o.push('-- ' + g.label + ' --');
+            g.items.forEach(it => {
+                o.push(String(it.name));
+                if (it.addons && it.addons.length) it.addons.forEach(a => o.push('  + ' + (a.name || '') + ((a.qty > 1) ? ' x' + a.qty : '')));
+                o.push(row('  ' + it.qty + ' x ' + money(it.price), money(it.subtotal)));
+                if (it.notes) o.push('  * ' + it.notes);
+            });
+            if (g.label) o.push(row('  Subtotal ' + g.short, money(g.subtotal)));
         });
         o.push(sep);
         o.push(row('Subtotal', money(r.subtotal)));
