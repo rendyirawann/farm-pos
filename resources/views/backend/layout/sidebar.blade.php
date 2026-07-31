@@ -171,7 +171,8 @@
             <div class="px-3 mb-6">
                 <div class="d-flex align-items-center flex-column w-100 mb-6">
                     <div class="d-flex justify-content-between fw-bolder fs-6 text-gray-800 w-100 mt-auto mb-3">
-                        <span>Target Penjualan Hari Ini</span>
+                        {{-- Istilah target mengikuti vertical: laundry pakai "Profit". --}}
+                        <span>{{ (($currentTenant ?? null) && $currentTenant->isLaundry()) ? 'Target Profit Hari Ini' : 'Target Penjualan Hari Ini' }}</span>
                         <span id="sb-target">Rp {{ number_format($salesTarget ?? 0, 0, ',', '.') }}</span>
                     </div>
                     <div class="w-100 bg-light-success rounded mb-2" style="height: 24px">

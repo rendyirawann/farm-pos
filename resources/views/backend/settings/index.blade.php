@@ -46,7 +46,24 @@
                                 </div>
                             </div>
                             <div class="row mb-2">
-                                <label class="col-lg-3 col-form-label required fw-semibold fs-6">Pajak Restoran (PB1)</label>
+                                @php
+                                    // Label pajak mengikuti VERTICAL: PB1 hanya untuk restoran/F&B;
+                                    // laundry & retail memakai istilah pajak umum (PPN).
+                                    $stIsLaundry = ($currentTenant ?? null) && $currentTenant->isLaundry();
+                                    $taxLabel = $stIsLaundry ? 'Pajak / PPN' : 'Pajak Restoran (PB1)';
+
+                                    // Item contoh untuk pratinjau struk (dipakai di blok <script> bawah).
+                                    $previewItemsJson = json_encode($stIsLaundry
+                                        ? [
+                                            ['name' => 'Cuci Setrika Kiloan', 'qty' => 3, 'price' => 9000, 'subtotal' => 27000, 'notes' => 'parfum lavender'],
+                                            ['name' => 'Bed Cover', 'qty' => 1, 'price' => 25000, 'subtotal' => 25000],
+                                        ]
+                                        : [
+                                            ['name' => 'Kopi Susu', 'qty' => 2, 'price' => 18000, 'subtotal' => 36000, 'addons' => [['name' => 'Extra Shot']], 'notes' => 'less ice'],
+                                            ['name' => 'Roti Bakar', 'qty' => 1, 'price' => 15000, 'subtotal' => 15000],
+                                        ]);
+                                @endphp
+                                <label class="col-lg-3 col-form-label required fw-semibold fs-6">{{ $taxLabel }}</label>
                                 <div class="col-lg-9">
                                     <div class="input-group input-group-solid w-200px">
                                         <input type="number" name="tax_rate" class="form-control form-control-solid js-no-format"
@@ -73,7 +90,7 @@
                                         <label class="fw-semibold fs-6 mb-2">Teks Header (opsional)</label>
                                         <input type="text" name="receipt_header" class="form-control form-control-solid"
                                             maxlength="120" value="{{ old('receipt_header', $setting->receipt_header) }}"
-                                            placeholder="mis. Cabang Bandung / Coffee &amp; Eatery">
+                                            placeholder="{{ $stIsLaundry ? 'mis. Cabang Bandung / Laundry Express' : 'mis. Cabang Bandung / Coffee & Eatery' }}">
                                         <div class="form-text">Muncul tepat di bawah nama toko.</div>
                                     </div>
 
@@ -258,10 +275,15 @@
                 refreshPrinterControls();
 
                 // ===== Pratinjau struk (tab Struk) — memakai engine cetak yang sama =====
+                // Contoh item pratinjau struk sesuai vertical tenant.
+                const PREVIEW_ITEMS = {!! $previewItemsJson !!};
+
                 function buildPreviewReceipt() {
                     const showAddr = $('input[name="receipt_show_address"]').is(':checked');
                     const showPhone = $('input[name="receipt_show_phone"]').is(':checked');
-                    const subtotal = 51000, discount = 0;
+                    // Subtotal dihitung dari PREVIEW_ITEMS supaya selalu cocok dgn item contoh.
+                    const subtotal = PREVIEW_ITEMS.reduce((s, it) => s + (it.subtotal || 0), 0);
+                    const discount = 0;
                     const net = Math.max(0, subtotal - discount);
                     const rate = parseFloat($('input[name="tax_rate"]').val()) || 0;   // ikut nilai Pajak di tab Umum
                     const tax = Math.round(net * (rate / 100));
@@ -275,10 +297,8 @@
                         receipt_footer: $('textarea[name="receipt_footer"]').val() || '',
                         invoice_no: 'MDA-INV-CONTOH', queue_number: 7, customer_name: 'Budi',
                         datetime: '01/01/2026 12.00',
-                        items: [
-                            { name: 'Kopi Susu', qty: 2, price: 18000, subtotal: 36000, addons: [{ name: 'Extra Shot' }], notes: 'less ice' },
-                            { name: 'Roti Bakar', qty: 1, price: 15000, subtotal: 15000 },
-                        ],
+                        // Contoh item mengikuti VERTICAL (laundry: layanan cuci; F&B: menu).
+                        items: PREVIEW_ITEMS,
                         subtotal: subtotal, discount_amount: discount, tax: tax, tax_rate: rate, grand_total: grand,
                         payment_method: 'cash', payment_status: 'paid', cash_received: cash, change_amount: Math.max(0, cash - grand),
                     };

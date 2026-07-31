@@ -66,7 +66,7 @@
 
                                                 @if ($needTarget)
                                                     <div class="mb-4">
-                                                        <label class="required fw-semibold fs-6 mb-1">Target Penjualan Hari Ini (Rp)</label>
+                                                        <label class="required fw-semibold fs-6 mb-1">{{ (($currentTenant ?? null) && $currentTenant->isLaundry()) ? 'Target Profit Hari Ini (Rp)' : 'Target Penjualan Hari Ini (Rp)' }}</label>
                                                         <input type="number" name="target_penjualan"
                                                             class="form-control form-control-solid" placeholder="Contoh: 3000000"
                                                             min="0" required>

@@ -1304,8 +1304,8 @@
         $('#btn-set-target').on('click', function() {
             const current = window.rawNum ? window.rawNum($('#sb-target').text()) : 0;
             Swal.fire({
-                title: 'Target Penjualan Hari Ini',
-                text: 'Masukkan target penjualan (Rupiah) untuk hari ini.',
+                title: @json((($currentTenant ?? null) && $currentTenant->isLaundry()) ? 'Target Profit Hari Ini' : 'Target Penjualan Hari Ini'),
+                text: @json((($currentTenant ?? null) && $currentTenant->isLaundry()) ? 'Masukkan target profit (Rupiah) untuk hari ini.' : 'Masukkan target penjualan (Rupiah) untuk hari ini.'),
                 input: 'number',
                 inputValue: current || '',
                 inputAttributes: { min: 0, step: 1000 },
