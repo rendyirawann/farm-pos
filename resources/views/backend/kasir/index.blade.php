@@ -1824,15 +1824,24 @@
             return ok;
         }
 
-        // Bagi rata: porsi tiap item disebar berurutan ke tiap struk (sisa dibagi dari struk #1).
+        /**
+         * Bagi rata: porsi disebar bergilir antar struk memakai kursor GLOBAL yang
+         * berlanjut dari satu item ke item berikutnya.
+         * Kursor per-item (cara lama) salah: item ber-qty 1 selalu jatuh ke struk #1,
+         * sehingga nota berisi 8 item @1 porsi menumpuk semua di struk #1.
+         */
         function splitEven() {
+            const acc = splitItems.map(() => new Array(splitCount).fill(0));
+            let cur = 0;
             splitItems.forEach((it, i) => {
-                const base = Math.floor(it.qty / splitCount);
-                let rest = it.qty - base * splitCount;
+                for (let n = 0; n < it.qty; n++) {
+                    acc[i][cur % splitCount]++;
+                    cur++;
+                }
+            });
+            splitItems.forEach((it, i) => {
                 for (let g = 0; g < splitCount; g++) {
-                    let v = base + (rest > 0 ? 1 : 0);
-                    if (rest > 0) rest--;
-                    $(`.split-cell[data-i="${i}"][data-g="${g}"]`).val(v);
+                    $(`.split-cell[data-i="${i}"][data-g="${g}"]`).val(acc[i][g]);
                 }
             });
             splitRecalc();
