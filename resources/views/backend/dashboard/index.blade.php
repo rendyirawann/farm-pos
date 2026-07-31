@@ -534,7 +534,6 @@
             var chart = new ApexCharts(element, options);
             chart.render();
         });
-    </script>
 
         // ============ RINCIAN HPP PER MENU (modal + DataTables ajax) ============
         (function () {
@@ -596,4 +595,5 @@
             });
         })();
 
+    </script>
     @endpush
