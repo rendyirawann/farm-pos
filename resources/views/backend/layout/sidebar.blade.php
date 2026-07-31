@@ -401,15 +401,18 @@
                  ditampilkan sebagai ikon terkunci supaya owner tahu roadmap produk. --}}
             @if (auth()->user()->hasRole('owner'))
                 @php
-                    $lockedFeatures = [
-                        ['label' => 'HPP',            'icon' => 'ki-chart-pie-simple',  'color' => 'primary', 'desc' => 'HPP per menu, margin & analisis food cost'],
-                        ['label' => 'Inventory',      'icon' => 'ki-package',           'color' => 'warning', 'desc' => 'Stok masuk/keluar, opname, minimum stok'],
-                        ['label' => 'CRM',            'icon' => 'ki-profile-circle',    'color' => 'info',    'desc' => 'Database pelanggan, membership & poin loyalitas'],
-                        ['label' => 'QR Menu',        'icon' => 'ki-scan-barcode',      'color' => 'success', 'desc' => 'QR menu, self ordering & pesan dari meja'],
-                        ['label' => 'Akuntansi',      'icon' => 'ki-bill',              'color' => 'dark',    'desc' => 'Laba rugi, arus kas & hutang piutang'],
+                    // Daftar "Fitur Mendatang" per VERTICAL.
+                    // - Laundry: hanya fitur AI (HPP/Inventory dsb. tak relevan / dikelola lain).
+                    // - F&B: HPP & Inventory SUDAH jadi fitur nyata -> tak lagi di daftar terkunci.
+                    $aiFeatures = [
                         ['label' => 'AI Assistant',   'icon' => 'ki-messages',          'color' => 'success', 'desc' => 'Chatbot WhatsApp & upselling otomatis'],
                         ['label' => 'AI Prediksi',    'icon' => 'ki-chart-line-up',     'color' => 'primary', 'desc' => 'Prediksi stok, penjualan & rekomendasi promo'],
                     ];
+                    $lockedFeatures = $sbIsLaundry ? $aiFeatures : array_merge([
+                        ['label' => 'CRM',            'icon' => 'ki-profile-circle',    'color' => 'info',    'desc' => 'Database pelanggan, membership & poin loyalitas'],
+                        ['label' => 'QR Menu',        'icon' => 'ki-scan-barcode',      'color' => 'success', 'desc' => 'QR menu, self ordering & pesan dari meja'],
+                        ['label' => 'Akuntansi',      'icon' => 'ki-bill',              'color' => 'dark',    'desc' => 'Laba rugi, arus kas & hutang piutang'],
+                    ], $aiFeatures);
                 @endphp
                 <div class="mb-6">
                     <div class="d-flex align-items-center justify-content-between mb-4">

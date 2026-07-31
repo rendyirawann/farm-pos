@@ -32,4 +32,17 @@ class Menu extends Model
     {
         return $this->hasMany(MenuAddon::class)->where('is_active', true);
     }
+
+    /** RESEP (modul HPP): bahan + gramasi per porsi. */
+    public function menuIngredients()
+    {
+        return $this->hasMany(\App\Models\Fnb\MenuIngredient::class);
+    }
+
+    /** Bahan baku yang dipakai menu ini (via resep). */
+    public function ingredients()
+    {
+        return $this->belongsToMany(\App\Models\Fnb\Ingredient::class, 'menu_ingredients')
+            ->withPivot('quantity');
+    }
 }

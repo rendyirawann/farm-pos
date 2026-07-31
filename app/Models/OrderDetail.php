@@ -19,10 +19,15 @@ class OrderDetail extends Model
         'addons',
         'notes',
         'status',
+        // Modul HPP: snapshot biaya bahan nyata + penjaga idempoten potong stok.
+        'hpp',
+        'is_stock_deducted',
     ];
 
     protected $casts = [
         'addons' => 'array', // [{"id":1,"name":"Extra Keju","price":5000,"qty":2}, ...]
+        'hpp'               => 'decimal:2',
+        'is_stock_deducted' => 'boolean',
     ];
 
     public function order()

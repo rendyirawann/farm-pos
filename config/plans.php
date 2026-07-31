@@ -73,9 +73,12 @@ $fnbPlans = [
                 'kasir', 'kitchen', 'report_sales', 'data_master', 'resources', 'expense',
                 'promo', 'report_items', 'tables', 'hpp', 'report_finance',
                 'qr_selforder', 'payment_gateway',
+                // Modul HPP + Inventory (FIFO/FEFO) + Resep: KHUSUS paket Customize.
+                'inventory_hpp',
             ],
             'features' => [
                 'Semua fitur Enterprise & Basic',
+                'HPP, Inventory (FIFO/FEFO) & Resep — modal bahan & food cost akurat',
                 'Tanpa batasan jumlah user',
                 'Penyimpanan Database Pelanggan (Tidak Terbatas)',
                 'VPS & domain sendiri',
