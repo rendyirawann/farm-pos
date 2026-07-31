@@ -964,13 +964,57 @@ class KasirController extends Controller
      * Catatan: hanya untuk pesanan yang BELUM dibayar. Item yang stoknya sudah dipotong
      * (is_stock_deducted) tetap membawa HPP-nya secara proporsional agar laporan tetap akurat.
      */
+    /**
+     * SPLIT BILL — pecah SATU nota belum lunas menjadi BEBERAPA struk (2 s/d 6).
+     *
+     * Payload: groups = [ {label, items:[{detail_id, qty}, ...]}, ... ]
+     * Aturan: SELURUH qty setiap item wajib dialokasikan (tidak boleh ada sisa menggantung),
+     * dan tiap struk minimal berisi 1 item. Struk #1 memakai nota ASAL (invoice & nomor antrian
+     * tetap), struk #2..N jadi nota baru dengan meja & promo yang sama.
+     *
+     * Payload lama (items[] tanpa groups) tetap diterima: diartikan pecah 2 struk —
+     * sisa di nota asal + item terpilih ke nota baru — supaya tab kasir yang belum
+     * di-refresh tidak gagal di tengah shift.
+     */
     public function splitOrder($id, Request $request)
     {
-        $data = $request->validate([
-            'items'             => ['required', 'array', 'min:1'],
-            'items.*.detail_id' => ['required', 'integer'],
-            'items.*.qty'       => ['required', 'integer', 'min:1'],
-            'customer_name'     => ['nullable', 'string', 'max:100'],
+        $groups = $request->input('groups');
+
+        if (! is_array($groups) || count($groups) < 2) {
+            // ---- Kompatibilitas payload lama: items[] -> 2 grup ----
+            $legacy = $request->validate([
+                'items'             => ['required', 'array', 'min:1'],
+                'items.*.detail_id' => ['required', 'integer'],
+                'items.*.qty'       => ['required', 'integer', 'min:1'],
+                'customer_name'     => ['nullable', 'string', 'max:100'],
+            ]);
+
+            $order = Order::whereKey($id)->firstOrFail();
+            $moveMap = [];
+            foreach ($legacy['items'] as $row) {
+                $moveMap[(int) $row['detail_id']] = ($moveMap[(int) $row['detail_id']] ?? 0) + (int) $row['qty'];
+            }
+
+            $stay = $move = [];
+            foreach ($order->details()->get() as $d) {
+                $take = min((int) ($moveMap[$d->id] ?? 0), (int) $d->qty);
+                $left = (int) $d->qty - $take;
+                if ($left > 0) { $stay[] = ['detail_id' => $d->id, 'qty' => $left]; }
+                if ($take > 0) { $move[] = ['detail_id' => $d->id, 'qty' => $take]; }
+            }
+
+            $groups = [
+                ['label' => $order->customer_name, 'items' => $stay],
+                ['label' => $legacy['customer_name'] ?? null, 'items' => $move],
+            ];
+        }
+
+        $data = $request->merge(['groups' => $groups])->validate([
+            'groups'                    => ['required', 'array', 'min:2', 'max:6'],
+            'groups.*.label'            => ['nullable', 'string', 'max:100'],
+            'groups.*.items'            => ['required', 'array', 'min:1'],
+            'groups.*.items.*.detail_id' => ['required', 'integer'],
+            'groups.*.items.*.qty'      => ['required', 'integer', 'min:1'],
         ]);
 
         try {
@@ -981,82 +1025,120 @@ class KasirController extends Controller
                 if ($order->payment_status === 'paid') {
                     throw new \RuntimeException('Pesanan sudah lunas — tidak bisa dipecah.');
                 }
+                if ($order->voided_at) {
+                    throw new \RuntimeException('Pesanan bertanda salah — tidak bisa dipecah.');
+                }
 
                 $details = $order->details()->get()->keyBy('id');
-                $moved   = [];
+                if ($details->isEmpty()) {
+                    throw new \RuntimeException('Pesanan tidak punya item.');
+                }
 
-                foreach ($data['items'] as $row) {
-                    $d = $details->get((int) $row['detail_id']);
-                    if (! $d) {
-                        continue;
+                // alloc[detail_id][index grup] = qty
+                $alloc = [];
+                foreach ($data['groups'] as $gi => $g) {
+                    foreach ($g['items'] as $row) {
+                        $did = (int) $row['detail_id'];
+                        if (! $details->has($did)) {
+                            throw new \RuntimeException('Ada item yang bukan milik nota ini.');
+                        }
+                        $alloc[$did][$gi] = ($alloc[$did][$gi] ?? 0) + (int) $row['qty'];
                     }
-                    $takeQty = min((int) $row['qty'], (int) $d->qty);
-                    if ($takeQty < 1) {
-                        continue;
+                }
+
+                // Setiap item WAJIB teralokasi penuh — cegah qty hilang / dobel.
+                foreach ($details as $d) {
+                    $sum = array_sum($alloc[$d->id] ?? []);
+                    if ($sum !== (int) $d->qty) {
+                        throw new \RuntimeException(
+                            "Pembagian '{$d->menu?->name}' belum pas: {$sum} dari {$d->qty} porsi. "
+                            . 'Seluruh porsi tiap item harus masuk ke salah satu struk.'
+                        );
                     }
-                    $moved[] = ['detail' => $d, 'qty' => $takeQty];
                 }
 
-                if (empty($moved)) {
-                    throw new \RuntimeException('Tidak ada item yang dipilih.');
+                // Tiap struk minimal 1 porsi.
+                foreach ($data['groups'] as $gi => $g) {
+                    $qtyGroup = 0;
+                    foreach ($alloc as $perGroup) {
+                        $qtyGroup += (int) ($perGroup[$gi] ?? 0);
+                    }
+                    if ($qtyGroup < 1) {
+                        throw new \RuntimeException('Struk #' . ($gi + 1) . ' kosong. Isi minimal 1 porsi atau kurangi jumlah struk.');
+                    }
                 }
 
-                // Jangan biarkan SELURUH item pindah (nota asal tak boleh kosong).
-                $totalQty = (int) $details->sum('qty');
-                $movedQty = array_sum(array_column($moved, 'qty'));
-                if ($movedQty >= $totalQty) {
-                    throw new \RuntimeException('Tidak bisa memindahkan semua item. Sisakan minimal 1 item di nota asal.');
+                // Snapshot qty & HPP SEBELUM mutasi: update() ikut menyinkronkan getOriginal(),
+                // jadi harga satuan HPP untuk struk #2..N harus diambil dari nilai awal.
+                $origQty = $details->mapWithKeys(fn ($d) => [$d->id => (int) $d->qty])->all();
+                $origHpp = $details->mapWithKeys(fn ($d) => [$d->id => (float) $d->hpp])->all();
+
+                // ---- Struk #1 tetap di nota ASAL ----
+                if (! empty($data['groups'][0]['label'])) {
+                    $order->update(['customer_name' => $data['groups'][0]['label']]);
                 }
-
-                // Nota baru: meja & promo mengikuti nota asal.
-                $newOrder = Order::create(array_merge($this->newOrderBase($data['customer_name'] ?? $order->customer_name), [
-                    'table_no'       => $order->table_no,
-                    'promo_id'       => $order->promo_id,
-                    'order_status'   => $order->order_status,
-                    'payment_status' => 'unpaid',
-                    'subtotal'       => 0,
-                    'discount_amount' => 0,
-                    'tax'            => 0,
-                    'grand_total'    => 0,
-                    'shift_id'       => $order->shift_id,
-                ]));
-
-                foreach ($moved as $m) {
-                    /** @var \App\Models\OrderDetail $d */
-                    $d       = $m['detail'];
-                    $takeQty = $m['qty'];
-                    $unit    = (float) $d->price;
-                    // HPP dipindah proporsional (bila stok sudah dipotong di dapur).
-                    $hppUnit = (int) $d->qty > 0 ? (float) $d->hpp / (int) $d->qty : 0;
-
-                    $newOrder->details()->create([
-                        'menu_id'           => $d->menu_id,
-                        'qty'               => $takeQty,
-                        'price'             => $unit,
-                        'subtotal'          => round($unit * $takeQty, 2),
-                        'addons'            => $d->addons,
-                        'notes'             => $d->notes,
-                        'status'            => $d->status,
-                        'hpp'               => round($hppUnit * $takeQty, 2),
-                        'is_stock_deducted' => (bool) $d->is_stock_deducted,
-                    ]);
-
-                    $leftQty = (int) $d->qty - $takeQty;
-                    if ($leftQty > 0) {
+                foreach ($details as $d) {
+                    $keep = (int) ($alloc[$d->id][0] ?? 0);
+                    $unit = (float) $d->price;
+                    $hppU = $origQty[$d->id] > 0 ? $origHpp[$d->id] / $origQty[$d->id] : 0;
+                    if ($keep > 0) {
                         $d->update([
-                            'qty'      => $leftQty,
-                            'subtotal' => round($unit * $leftQty, 2),
-                            'hpp'      => round($hppUnit * $leftQty, 2),
+                            'qty'      => $keep,
+                            'subtotal' => round($unit * $keep, 2),
+                            'hpp'      => round($hppU * $keep, 2),
                         ]);
                     } else {
                         $d->delete();
                     }
                 }
 
-                $this->recalcOrderTotals($order->fresh());
-                $this->recalcOrderTotals($newOrder->fresh());
+                // ---- Struk #2..N jadi nota baru ----
+                $newOrders = [];
+                for ($gi = 1; $gi < count($data['groups']); $gi++) {
+                    $newOrder = Order::create(array_merge(
+                        $this->newOrderBase($data['groups'][$gi]['label'] ?? $order->customer_name),
+                        [
+                            'table_no'        => $order->table_no,
+                            'promo_id'        => $order->promo_id,
+                            'order_status'    => $order->order_status,
+                            'payment_status'  => 'unpaid',
+                            'subtotal'        => 0,
+                            'discount_amount' => 0,
+                            'tax'             => 0,
+                            'grand_total'     => 0,
+                            'shift_id'        => $order->shift_id,
+                        ]
+                    ));
 
-                return ['from' => $order->fresh(), 'to' => $newOrder->fresh()];
+                    foreach ($details as $d) {
+                        $take = (int) ($alloc[$d->id][$gi] ?? 0);
+                        if ($take < 1) {
+                            continue;
+                        }
+                        $unit = (float) $d->price;
+                        // HPP dipindah proporsional (bila stok sudah dipotong di dapur).
+                        $hppU = $origQty[$d->id] > 0 ? $origHpp[$d->id] / $origQty[$d->id] : 0;
+
+                        $newOrder->details()->create([
+                            'menu_id'           => $d->menu_id,
+                            'qty'               => $take,
+                            'price'             => $unit,
+                            'subtotal'          => round($unit * $take, 2),
+                            'addons'            => $d->addons,
+                            'notes'             => $d->notes,
+                            'status'            => $d->status,
+                            'hpp'               => round($hppU * $take, 2),
+                            'is_stock_deducted' => (bool) $d->is_stock_deducted,
+                        ]);
+                    }
+
+                    $this->recalcOrderTotals($newOrder->fresh());
+                    $newOrders[] = $newOrder->fresh();
+                }
+
+                $this->recalcOrderTotals($order->fresh());
+
+                return ['from' => $order->fresh(), 'to' => $newOrders];
             });
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
@@ -1064,9 +1146,9 @@ class KasirController extends Controller
 
         return response()->json([
             'success'  => true,
-            'message'  => 'Nota berhasil dipecah.',
+            'message'  => 'Nota dipecah menjadi ' . (count($result['to']) + 1) . ' struk.',
             'original' => $this->orderSummary($result['from']),
-            'new'      => $this->orderSummary($result['to']),
+            'new'      => array_map(fn ($o) => $this->orderSummary($o), $result['to']),
         ]);
     }
 

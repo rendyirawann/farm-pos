@@ -450,27 +450,52 @@
     {{-- ================= MODAL SPLIT BILL (paket Customize) ================= --}}
     @if ($canSplitMerge)
     <div class="modal fade" id="modal-split" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered mw-600px">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content">
                 <div class="modal-header py-4">
                     <div>
-                        <h3 class="fw-bold mb-0">Split Bill — Pecah Nota</h3>
-                        <span class="text-muted fs-8">Pilih item & jumlah yang dipindah ke nota baru.</span>
+                        <h3 class="fw-bold mb-0">Split Bill — Pecah Nota <span class="text-muted fs-6 fw-normal" id="split-order-label"></span></h3>
+                        <span class="text-muted fs-8">Tentukan mau jadi berapa struk, lalu bagi porsi tiap item ke struk yang dituju.</span>
                     </div>
                     <div class="btn btn-icon btn-sm btn-active-light" data-bs-dismiss="modal"><i class="ki-outline ki-cross fs-1"></i></div>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-primary d-flex align-items-center py-3 fs-8">
+                    <div class="d-flex flex-wrap align-items-end gap-4 mb-4">
+                        <div>
+                            <label class="form-label fw-semibold fs-7 mb-1">Pecah jadi berapa struk?</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-icon btn-light-warning" id="split-minus"><i class="ki-outline ki-minus fs-3"></i></button>
+                                <input type="number" id="split-count" class="form-control form-control-solid text-center fw-bold"
+                                    style="max-width:90px" min="2" max="6" value="2" readonly>
+                                <button type="button" class="btn btn-sm btn-icon btn-light-warning" id="split-plus"><i class="ki-outline ki-plus fs-3"></i></button>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <button type="button" class="btn btn-sm btn-light-primary fw-bold" id="split-even">
+                                <i class="ki-outline ki-arrows-circle fs-5 me-1"></i> Bagi rata otomatis
+                            </button>
+                            <button type="button" class="btn btn-sm btn-light fw-bold" id="split-reset">Kosongkan</button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-row-bordered align-middle gy-2 mb-0" id="split-grid">
+                            <thead><tr class="fw-bold text-muted bg-light fs-8" id="split-head"></tr></thead>
+                            <tbody id="split-body"></tbody>
+                            <tfoot class="fw-bold" id="split-foot"></tfoot>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-primary d-flex align-items-start py-3 fs-8 mt-4 mb-0">
                         <i class="ki-outline ki-information-5 fs-2 me-2"></i>
-                        Sisakan minimal 1 item di nota asal. Nota baru memakai meja yang sama & berstatus belum lunas.
+                        <div>
+                            <b>Seluruh porsi harus terbagi</b> — kolom "sisa" tiap item wajib 0, dan tiap struk minimal berisi 1 porsi.
+                            Struk #1 memakai nota asal (nomor antrian tetap); struk lain jadi nota baru di meja yang sama, status belum lunas.
+                        </div>
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold fs-7">Nama / Keterangan Nota Baru</label>
-                        <input type="text" id="split-customer" class="form-control form-control-solid" placeholder="mis. Meja 5 - Budi">
-                    </div>
-                    <div id="split-items"><div class="text-center py-6"><span class="spinner-border text-primary"></span></div></div>
                 </div>
                 <div class="modal-footer py-3">
+                    <span class="me-auto fs-8 fw-bold" id="split-status"></span>
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
                     <button type="button" class="btn btn-warning fw-bold" id="btn-split-confirm">Pecah Nota</button>
                 </div>
@@ -1675,54 +1700,158 @@
             setInterval(updateSyncBadge, 5000);
         });
     
-        // ==================== SPLIT BILL ====================
+        // ==================== SPLIT BILL (N struk) ====================
         let splitOrderId = null;
+        let splitItems   = [];   // [{detail_id, name, qty, price, notes}]
+        let splitCount   = 2;
+
+        function splitRender() {
+            // Header: kolom Item + satu kolom per struk + kolom sisa
+            let head = '<th class="ps-3">Item</th>';
+            for (let g = 0; g < splitCount; g++) {
+                head += `<th class="text-center" style="min-width:130px">
+                    <div class="text-gray-800">Struk #${g + 1}${g === 0 ? ' <span class="badge badge-light-warning fs-9">nota asal</span>' : ''}</div>
+                    <input type="text" class="form-control form-control-sm form-control-solid mt-1 split-label"
+                           data-g="${g}" placeholder="nama (opsional)">
+                </th>`;
+            }
+            head += '<th class="text-center pe-3">Sisa</th>';
+            $('#split-head').html(head);
+
+            let body = '';
+            splitItems.forEach((it, i) => {
+                let cells = '';
+                for (let g = 0; g < splitCount; g++) {
+                    cells += `<td class="text-center">
+                        <input type="number" class="form-control form-control-sm text-center split-cell js-no-format"
+                               data-i="${i}" data-g="${g}" min="0" max="${it.qty}" value="0" style="max-width:80px;margin:auto">
+                    </td>`;
+                }
+                body += `<tr data-i="${i}">
+                    <td class="ps-3">
+                        <div class="fw-bold text-gray-800 fs-7">${esc(it.name)}</div>
+                        <div class="fs-8 text-muted">${it.qty} porsi x ${rupiah(it.price)}${it.notes ? ' • ' + esc(it.notes) : ''}</div>
+                    </td>${cells}
+                    <td class="text-center pe-3"><span class="badge badge-light-danger split-left" data-i="${i}">${it.qty}</span></td>
+                </tr>`;
+            });
+            $('#split-body').html(body || `<tr><td colspan="${splitCount + 2}" class="text-center text-muted py-8">Pesanan tidak punya item.</td></tr>`);
+
+            let foot = '<tr><td class="ps-3 text-muted fs-8">Total per struk</td>';
+            for (let g = 0; g < splitCount; g++) foot += `<td class="text-center fs-7 split-total" data-g="${g}">Rp 0</td>`;
+            foot += '<td></td></tr>';
+            $('#split-foot').html(foot);
+
+            splitRecalc();
+        }
+
+        function splitRecalc() {
+            let ok = splitItems.length > 0;
+            const totals = new Array(splitCount).fill(0);
+
+            splitItems.forEach((it, i) => {
+                let used = 0;
+                $(`.split-cell[data-i="${i}"]`).each(function () {
+                    const g = +$(this).data('g');
+                    let v = parseInt($(this).val(), 10) || 0;
+                    if (v < 0) { v = 0; $(this).val(0); }
+                    used += v;
+                    totals[g] += v * it.price;
+                });
+                const left = it.qty - used;
+                const badge = $(`.split-left[data-i="${i}"]`);
+                badge.text(left)
+                    .removeClass('badge-light-danger badge-light-success badge-light-warning')
+                    .addClass(left === 0 ? 'badge-light-success' : (left < 0 ? 'badge-light-warning' : 'badge-light-danger'));
+                if (left !== 0) ok = false;
+            });
+
+            totals.forEach((v, g) => $(`.split-total[data-g="${g}"]`).text(rupiah(v)));
+            const emptyStruk = totals.some(v => v <= 0);
+            if (emptyStruk) ok = false;
+
+            $('#split-status')
+                .removeClass('text-success text-danger')
+                .addClass(ok ? 'text-success' : 'text-danger')
+                .text(ok ? '✓ Pembagian sudah pas' : (emptyStruk ? 'Ada struk yang masih kosong' : 'Masih ada porsi yang belum dibagi'));
+            $('#btn-split-confirm').prop('disabled', !ok);
+            return ok;
+        }
+
+        // Bagi rata: porsi tiap item disebar berurutan ke tiap struk (sisa dibagi dari struk #1).
+        function splitEven() {
+            splitItems.forEach((it, i) => {
+                const base = Math.floor(it.qty / splitCount);
+                let rest = it.qty - base * splitCount;
+                for (let g = 0; g < splitCount; g++) {
+                    let v = base + (rest > 0 ? 1 : 0);
+                    if (rest > 0) rest--;
+                    $(`.split-cell[data-i="${i}"][data-g="${g}"]`).val(v);
+                }
+            });
+            splitRecalc();
+        }
 
         $(document).on('click', '.btn-split-order', function () {
             splitOrderId = $(this).data('id');
-            $('#split-customer').val('');
-            $('#split-items').html('<div class="text-center py-6"><span class="spinner-border text-primary"></span></div>');
+            splitCount = 2;
+            splitItems = [];
+            $('#split-count').val(2);
+            $('#split-order-label').text('');
+            $('#split-head, #split-foot').empty();
+            $('#split-body').html('<tr><td class="text-center py-8"><span class="spinner-border text-primary"></span></td></tr>');
+            $('#btn-split-confirm').prop('disabled', true);
             new bootstrap.Modal(document.getElementById('modal-split')).show();
 
             $.get(`${ROUTES.base}/${splitOrderId}`).done(function (o) {
-                const rows = (o.items || []).map(it => `
-                    <div class="d-flex align-items-center justify-content-between border-bottom py-2 split-row"
-                         data-detail="${it.detail_id ?? it.id}" data-max="${it.qty}">
-                        <div class="me-2">
-                            <div class="fw-bold text-gray-800 fs-7">${esc(it.name)}</div>
-                            <div class="fs-8 text-muted">${it.qty} x ${rupiah(it.price)}${it.notes ? ' • ' + esc(it.notes) : ''}</div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="fs-8 text-muted">pindah</span>
-                            <input type="number" class="form-control form-control-sm w-70px text-center split-qty js-no-format"
-                                   min="0" max="${it.qty}" value="0">
-                            <span class="fs-8 text-muted">/ ${it.qty}</span>
-                        </div>
-                    </div>`).join('');
-                $('#split-items').html(rows || '<div class="text-center text-muted py-6">Pesanan tidak punya item.</div>');
-            }).fail(() => $('#split-items').html('<div class="text-center text-danger py-6">Gagal memuat item pesanan.</div>'));
+                splitItems = (o.items || []).map(it => ({
+                    detail_id: it.detail_id ?? it.id,
+                    name: it.name, qty: +it.qty, price: +it.price, notes: it.notes,
+                }));
+                const totalQty = splitItems.reduce((a, b) => a + b.qty, 0);
+                $('#split-order-label').text(`• No. ${(o.order && o.order.queue_number) ?? '-'} • ${totalQty} porsi`);
+                // Jumlah struk tidak boleh melebihi jumlah porsi yang tersedia.
+                $('#split-count').attr('max', Math.max(2, Math.min(6, totalQty)));
+                splitRender();
+            }).fail(() => $('#split-body').html('<tr><td class="text-center text-danger py-8">Gagal memuat item pesanan.</td></tr>'));
         });
 
+        $('#split-plus').on('click', function () {
+            const max = +$('#split-count').attr('max') || 6;
+            if (splitCount < max) { splitCount++; $('#split-count').val(splitCount); splitRender(); }
+        });
+        $('#split-minus').on('click', function () {
+            if (splitCount > 2) { splitCount--; $('#split-count').val(splitCount); splitRender(); }
+        });
+        $('#split-even').on('click', splitEven);
+        $('#split-reset').on('click', function () { $('.split-cell').val(0); splitRecalc(); });
+        $(document).on('input', '.split-cell', splitRecalc);
+
         $('#btn-split-confirm').on('click', function () {
-            const items = [];
-            $('#split-items .split-row').each(function () {
-                const qty = parseInt($(this).find('.split-qty').val(), 10) || 0;
-                if (qty > 0) items.push({ detail_id: $(this).data('detail'), qty: qty });
-            });
-            if (!items.length) { Swal.fire('Pilih item', 'Tentukan jumlah item yang dipindah ke nota baru.', 'info'); return; }
+            if (!splitRecalc()) return;
+
+            const groups = [];
+            for (let g = 0; g < splitCount; g++) {
+                const items = [];
+                splitItems.forEach((it, i) => {
+                    const qty = parseInt($(`.split-cell[data-i="${i}"][data-g="${g}"]`).val(), 10) || 0;
+                    if (qty > 0) items.push({ detail_id: it.detail_id, qty: qty });
+                });
+                groups.push({ label: $(`.split-label[data-g="${g}"]`).val() || null, items: items });
+            }
 
             const btn = $(this); btn.prop('disabled', true).text('Memproses...');
             $.ajax({
                 url: `${ROUTES.base}/${splitOrderId}/split`,
                 method: 'POST',
-                data: { _token: CSRF, items: items, customer_name: $('#split-customer').val() || null },
+                data: { _token: CSRF, groups: groups },
             }).done(function (res) {
                 bootstrap.Modal.getInstance(document.getElementById('modal-split')).hide();
-                Swal.fire({ icon: 'success', title: 'Nota dipecah', timer: 1600, showConfirmButton: false });
+                Swal.fire({ icon: 'success', title: res.message || 'Nota dipecah', timer: 1800, showConfirmButton: false });
                 loadOrders();
             }).fail(function (x) {
                 Swal.fire('Gagal', (x.responseJSON && x.responseJSON.error) || 'Tidak bisa memecah nota.', 'error');
-            }).always(() => btn.prop('disabled', false).text('Pecah Nota'));
+            }).always(() => btn.text('Pecah Nota').prop('disabled', false));
         });
 
         // ==================== MERGE TABLE ====================
