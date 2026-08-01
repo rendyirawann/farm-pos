@@ -474,6 +474,12 @@ class KasirController extends Controller
             }
 
             $order->update(['order_status' => 'completed']);
+
+            // Jaring pengaman modul HPP: pesanan yang sudah lunas SEBELUM fitur ini ada
+            // (atau yang pembayarannya lewat jalur lain) tetap dipotong stoknya saat
+            // diselesaikan. Idempoten — item yang sudah dipotong dilewati.
+            app(\App\Services\Fnb\StockService::class)->deductOrderStock($order);
+
             DB::commit();
 
             return response()->json([
@@ -936,6 +942,12 @@ class KasirController extends Controller
         }
 
         $order->update($data);
+
+        // Modul HPP: potong stok & catat HPP begitu pesanan LUNAS.
+        // Sebelumnya hanya layar Dapur yang memotong stok, sehingga toko yang tidak
+        // memakai Kitchen Display (mis. minuman langsung sajikan) selalu ber-HPP 0.
+        // Idempoten via is_stock_deducted, dan tidak pernah menggagalkan pembayaran.
+        app(\App\Services\Fnb\StockService::class)->deductOrderStock($order);
     }
 
     /** Payload struk untuk ditampilkan modal/JS setelah checkout. */

@@ -117,6 +117,35 @@ class StockService
      * @param  array  $batchSelections  [ingredient_id => batch_id] pilihan manual dari dapur
      * @return float  HPP baris pesanan (0 bila menu tanpa resep / sudah pernah dipotong)
      */
+    /**
+     * Potong stok & catat HPP untuk SELURUH item satu pesanan.
+     *
+     * Dipakai kasir saat pesanan dibayar/diselesaikan, supaya HPP tetap tercatat pada
+     * toko yang tidak memakai layar Dapur (mis. minuman yang langsung diserahkan).
+     * Aman dipanggil berulang: item yang sudah dipotong dilewati lewat is_stock_deducted.
+     * Tidak pernah menggagalkan transaksi kasir — kegagalan hanya dicatat ke log.
+     */
+    public function deductOrderStock(\App\Models\Order $order): float
+    {
+        $tenant = auth()->user()?->tenant;
+        if (! $tenant || ! \App\Tenancy\Plan::tenantAllows($tenant, 'inventory_hpp')) {
+            return 0.0;
+        }
+
+        $total = 0.0;
+        foreach ($order->details()->where('is_stock_deducted', false)->get() as $detail) {
+            try {
+                $total += $this->deductMenuStock($detail);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning(
+                    'HPP: potong stok gagal saat kasir (detail#' . $detail->id . '): ' . $e->getMessage()
+                );
+            }
+        }
+
+        return $total;
+    }
+
     public function deductMenuStock(OrderDetail $detail, array $batchSelections = []): float
     {
         if ($detail->is_stock_deducted) {
