@@ -144,7 +144,7 @@
                         {{-- Pesanan berjalan --}}
                         <div class="card card-flush shadow-sm mb-4">
                             <div class="card-header pt-4 pb-0 min-h-40px">
-                                <ul class="nav nav-pills nav-pills-sm gap-2 w-100">
+                                <ul class="nav nav-pills nav-pills-sm gap-2 w-100 flex-wrap">
                                     <li class="nav-item">
                                         <a class="nav-link btn btn-sm btn-color-muted btn-active-light-primary fw-bold active"
                                             data-bs-toggle="tab" href="#tab-processing">Sedang Diproses
@@ -166,12 +166,13 @@
                                             data-bs-toggle="tab" href="#tab-offline">Offline
                                             <span class="badge badge-warning ms-1" id="count-offline">0</span></a>
                                     </li>
-                                    <li class="nav-item ms-auto d-flex align-items-center gap-1">
+                                    <li class="nav-item ms-sm-auto d-flex align-items-center flex-wrap gap-1">
                                         {{-- MERGE TABLE: gabungkan beberapa nota belum lunas (paket Customize) --}}
                                         @if ($canSplitMerge)
-                                            <button class="btn btn-sm btn-icon btn-light-warning" id="btn-merge-open"
-                                                title="Gabung meja / nota (merge)">
-                                                <i class="ki-outline ki-arrow-mix fs-4"></i></button>
+                                            <button class="btn btn-sm btn-light-warning fw-bold" id="btn-merge-open"
+                                                title="Gabung beberapa nota belum lunas jadi satu nota">
+                                                <i class="ki-outline ki-arrow-mix fs-4"></i>
+                                                <span class="d-none d-sm-inline">Gabung Nota</span></button>
                                         @endif
                                         @can('sales.target')
                                             <button class="btn btn-sm btn-icon btn-light-primary" id="btn-set-target"
@@ -1279,7 +1280,7 @@
                     <i class="ki-outline ki-check fs-5"></i> Selesai</button>`;
             // HAPUS: hanya di tab "Sedang Diproses" & khusus owner.
             const delBtn = (tab === 'processing' && CAN_DELETE)
-                ? `<button class="btn btn-sm btn-light-danger btn-del-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" title="Hapus pesanan"><i class="ki-outline ki-trash fs-5"></i></button>`
+                ? `<button class="btn btn-sm btn-light-danger fw-bold btn-del-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" title="Hapus pesanan ini"><i class="ki-outline ki-trash fs-5"></i> Hapus</button>`
                 : '';
             // TANDAI SALAH: hanya di tab "Selesai" (owner + kasir). Toggle.
             const voidBtn = (tab === 'completed' && CAN_VOID)
@@ -1289,12 +1290,12 @@
                 : '';
             // SPLIT BILL: hanya tab "Sedang Diproses", belum lunas, & item lebih dari 1.
             const splitBtn = (CAN_SPLIT_MERGE && tab === 'processing' && !paid && (o.items_count || 0) > 1)
-                ? `<button class="btn btn-sm btn-light-warning btn-split-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" title="Pecah nota (split bill)"><i class="ki-outline ki-arrow-two-diagonals fs-5"></i></button>`
+                ? `<button class="btn btn-sm btn-light-warning fw-bold btn-split-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" title="Split bill — pecah nota ini jadi beberapa struk"><i class="ki-outline ki-arrow-two-diagonals fs-5"></i> Pecah Nota</button>`
                 : '';
             // UNMERGE: hanya untuk nota hasil gabungan yang belum lunas.
             const mergedLabels = o.merged_labels || [];
             const unmergeBtn = (CAN_SPLIT_MERGE && tab === 'processing' && !paid && mergedLabels.length)
-                ? `<button class="btn btn-sm btn-light-info btn-unmerge-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" data-labels="${esc(mergedLabels.join(','))}" title="Pisahkan kembali nota gabungan"><i class="ki-outline ki-arrows-loop fs-5"></i></button>`
+                ? `<button class="btn btn-sm btn-light-info fw-bold btn-unmerge-order" data-id="${o.id}" data-q="${o.queue_number ?? ''}" data-labels="${esc(mergedLabels.join(','))}" title="Pisahkan kembali nota gabungan ini ke nota asalnya"><i class="ki-outline ki-arrows-loop fs-5"></i> Pisah Nota</button>`
                 : '';
             const mergedBadge = mergedLabels.length
                 ? `<span class="badge badge-light-warning ms-1 fs-9" title="Nota ini gabungan dari No. ${esc(mergedLabels.join(', No. '))}">+ No. ${esc(mergedLabels.join(', '))}</span>`
@@ -1317,8 +1318,8 @@
                             ${payBadge}
                         </div>
                     </div>
-                    <div class="d-flex gap-2 mt-2">
-                        <button class="btn btn-sm btn-light flex-fill btn-view" data-id="${o.id}"><i class="ki-outline ki-eye fs-5"></i> View</button>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <button class="btn btn-sm btn-light flex-fill btn-view" data-id="${o.id}" title="Lihat rincian pesanan"><i class="ki-outline ki-eye fs-5"></i> Lihat</button>
                         ${selesaiBtn}
                         ${splitBtn}
                         ${unmergeBtn}
