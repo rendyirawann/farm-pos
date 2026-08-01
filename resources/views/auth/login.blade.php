@@ -421,21 +421,6 @@
         </script>
 
         <script>
-            // Isi otomatis kredensial demo lalu submit form login yang sudah ada
-            function demoLogin(email, pass) {
-                const form = document.getElementById('kt_sign_in_form');
-                if (!form) return;
-                form.querySelector('[name="email"]').value = email;
-                form.querySelector('[name="password"]').value = pass;
-                if (typeof form.requestSubmit === 'function') {
-                    form.requestSubmit();
-                } else {
-                    form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-                }
-            }
-        </script>
-
-        <script>
             document.getElementById('kt_sign_in_form').addEventListener('submit', function(e) {
                 e.preventDefault();
 

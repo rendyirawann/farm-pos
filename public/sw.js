@@ -1,7 +1,7 @@
 // Mooda Service Worker — subfolder-aware.
 // BASE otomatis mengikuti lokasi sw.js: "/" di localhost, "/subfolder/" di server.
 const BASE = self.location.href.replace(/sw\.js.*$/, '');
-const CACHE_NAME = 'mooda-pos-cache-v2';
+const CACHE_NAME = 'mooda-pos-cache-v3';
 const ASSETS_TO_CACHE = [
   BASE + 'admin/kasir',
   BASE + 'assets/css/style.bundle.css',
@@ -46,7 +46,16 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(req)
       .then(response => {
-        if (response && response.status === 200 && response.type === 'basic') {
+        // JANGAN cache HTML sembarangan. Sebelumnya semua halaman ikut tersimpan, sehingga
+        // versi lama (mis. layar login yang masih memuat daftar akun demo) bisa muncul lagi
+        // saat jaringan goyah — dan halaman berisi data tenant ikut tertinggal di perangkat.
+        // Yang boleh disimpan: aset statis + SATU shell layar Kasir untuk mode offline.
+        const isHtml = (response.headers.get('content-type') || '').includes('text/html');
+        const isKasirShell = req.mode === 'navigate' && req.url.split('?')[0] === BASE + 'admin/kasir';
+        const boleh = response && response.status === 200 && response.type === 'basic'
+            && (! isHtml || isKasirShell);
+
+        if (boleh) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(req, clone).catch(() => {}));
         }
