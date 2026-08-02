@@ -22,6 +22,17 @@ return [
             'icon'    => 'ki-abstract-26',
             'modules' => ['laundry_service', 'laundry_produksi'],
         ],
+        // FARM (farm.mooda.id) — bukan POS: inventori & perdagangan ternak.
+        // Objek jualan = ayam (potong/petelur) & telur; alur = stock in dari supplier,
+        // stock out ke agen dengan harga pokok FIFO. Tidak ada kasir/meja/dapur.
+        'farm' => [
+            'label'   => 'Peternakan',
+            'name'    => 'Mooda Farm',
+            'host'    => env('APP_HOST_FARM', 'farm.mooda.id'),
+            'icon'    => 'ki-abstract-44',
+            'modules' => ['inventory', 'stock_in', 'stock_out', 'supplier', 'agent'],
+        ],
+
         // Retail menyusul (fokus Laundry dulu).
         'retail' => [
             'label'   => 'Retail',
