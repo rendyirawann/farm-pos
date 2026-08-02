@@ -198,6 +198,36 @@ $laundryPlans = [
     ],
 ];
 
+/**
+ * Paket FARM (vertical 'farm') — instance satu tenant peternakan.
+ * Hanya ada satu paket: Customize. Tidak ada Basic/Enterprise/Starter-deposit,
+ * karena farm.mooda.id bukan etalase SaaS.
+ */
+$farmPlans = [
+    'customize' => [
+        'name'    => 'Customize',
+        'price'   => 0,
+        'contact' => true,
+        'wa'      => '6285760366666',
+        'tagline' => 'Paket khusus peternakan — kontrak, fitur menyesuaikan operasional.',
+        'limits'  => ['outlets' => null, 'staff' => null, 'customers' => null],
+        'modules' => ['inventory', 'stock_in', 'stock_out', 'supplier', 'agent',
+                      'report_sales', 'report_finance', 'expense', 'resources', 'data_master'],
+        'features' => [
+            'Stok berbasis lot dengan harga pokok FIFO',
+            'Pencatatan ekor & kilogram sekaligus (susut bobot terlihat)',
+            'Barang Masuk & Barang Keluar + nota cetak',
+            'Margin per nota tampil sebelum disimpan',
+            'Produksi telur dengan harga pokok otomatis dari biaya operasional',
+            'Penyesuaian stok: mati, susut, rusak, koreksi opname',
+            'Piutang agen: tempo, cicilan & kartu piutang',
+            'Buka/Tutup Gudang dengan hitung fisik & selisih',
+            'Tanpa batasan jumlah user',
+            'Konsultasi & support prioritas',
+        ],
+    ],
+];
+
 return [
 
     'currency' => 'Rp',
@@ -213,5 +243,6 @@ return [
     'verticals' => [
         'fnb'     => $fnbPlans,
         'laundry' => $laundryPlans,
+        'farm'    => $farmPlans,
     ],
 ];

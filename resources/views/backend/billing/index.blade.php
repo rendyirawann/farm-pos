@@ -58,43 +58,8 @@
             {{-- PILIHAN PAKET (presisi di tengah) --}}
             <div class="row g-6 mb-8 justify-content-center">
 
-                {{-- STARTER (Deposit / bayar sesuai pakai) — mengarah ke halaman Deposit --}}
-                <div class="col-md-6 col-lg-5">
-                    <div class="card card-flush h-100 border border-2 {{ $tenant->isDepositMode() ? 'border-success' : 'border-info' }}">
-                        <div class="card-body d-flex flex-column">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h2 class="fw-bolder text-gray-900">Starter</h2>
-                                    <div class="text-muted fs-7">Bayar sesuai pakai — tanpa langganan bulanan.</div>
-                                </div>
-                                @if ($tenant->isDepositMode())
-                                    <span class="badge badge-success">Paket Anda</span>
-                                @else
-                                    <span class="badge badge-light-info">Hemat</span>
-                                @endif
-                            </div>
-
-                            <div class="my-5">
-                                <span class="fs-3x fw-bolder text-gray-900">Deposit</span>
-                                <span class="fs-6 text-muted">/isi saldo</span>
-                            </div>
-
-                            <ul class="list-unstyled mb-6">
-                                @foreach (['Isi saldo, saldo dipotong tiap transaksi', 'Tanpa biaya bulanan tetap', 'Cocok untuk baru mulai / musiman', 'Semua fitur kasir dasar'] as $feature)
-                                    <li class="d-flex align-items-center mb-3">
-                                        <i class="ki-outline ki-check-circle fs-2 text-success me-3"></i>
-                                        <span class="text-gray-700">{{ $feature }}</span>
-                                    </li>
-                                @endforeach
-                            </ul>
-
-                            <a href="{{ route('deposit.index') }}" class="btn {{ $tenant->isDepositMode() ? 'btn-success' : 'btn-info' }} w-100 mt-auto">
-                                <i class="ki-outline ki-wallet fs-3 me-1"></i>
-                                {{ $tenant->isDepositMode() ? 'Kelola Deposit' : 'Pilih Starter (Deposit)' }}
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                {{-- Kartu STARTER (Deposit) DIHAPUS di farm.mooda.id — instance ini tidak
+                     memakai skema pay-as-you-go, hanya paket Customize tetap. --}}
 
                 @foreach ($plans as $key => $plan)
                     @php
