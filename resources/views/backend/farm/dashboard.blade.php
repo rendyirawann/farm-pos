@@ -77,7 +77,20 @@
     @endif
 
     {{-- ===================== PANDUAN SETUP (khas peternakan) ===================== --}}
-    @if ($onboarding['selesai'] < $onboarding['total'])
+    {{-- Sakelar tampil/sembunyi — tetap bisa dibuka lagi walau setup sudah selesai. --}}
+    <div class="d-flex justify-content-end mb-3">
+      <form method="POST" action="{{ route('farm.onboarding-toggle') }}" id="onb-form" class="m-0">
+        @csrf
+        <label class="form-check form-switch form-check-custom form-check-solid">
+          <input class="form-check-input" type="checkbox" name="show" value="1"
+                 {{ $onboarding['show'] ? 'checked' : '' }}
+                 onchange="document.getElementById('onb-form').submit()">
+          <span class="form-check-label fw-semibold text-gray-600 fs-8 ms-2">Panduan Setup Awal</span>
+        </label>
+      </form>
+    </div>
+
+    @if ($onboarding['show'])
       <div class="card card-flush mb-5 border-start border-4 border-success">
         <div class="card-body py-5">
           <div class="d-flex align-items-center justify-content-between mb-4">
@@ -86,8 +99,21 @@
               <span class="fs-4 fw-bold text-gray-800">Siapkan data peternakan Anda 🐔</span>
               <div class="fs-7 text-muted mt-1">Lengkapi langkah berikut agar pencatatan stok bisa berjalan.</div>
             </div>
-            <span class="badge badge-light-primary fs-8">{{ $onboarding['selesai'] }}/{{ $onboarding['total'] }} selesai</span>
+            <span class="badge badge-light-{{ $onboarding['done'] ? 'success' : 'primary' }} fs-8">
+              {{ $onboarding['selesai'] }}/{{ $onboarding['total'] }} selesai</span>
           </div>
+
+          @if ($onboarding['done'])
+            <div class="alert alert-success d-flex align-items-center py-3 fs-8 mb-4">
+              <i class="ki-outline ki-check-circle fs-2 me-2"></i>
+              <div class="flex-grow-1">Semua langkah selesai — data peternakan Anda siap dipakai. 🎉</div>
+              <form method="POST" action="{{ route('farm.onboarding-toggle') }}" class="m-0">
+                @csrf
+                <button class="btn btn-sm btn-light-success fw-bold">
+                  <i class="ki-outline ki-eye-slash fs-6 me-1"></i>Sembunyikan panduan</button>
+              </form>
+            </div>
+          @endif
           <div class="d-flex flex-column gap-2">
             @foreach ($onboarding['steps'] as $i => $s)
               <div class="d-flex align-items-center justify-content-between border rounded p-3 {{ $s['selesai'] ? 'bg-light-success border-success' : '' }}">

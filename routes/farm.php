@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/admin/farm', [FarmDashboardController::class, 'index'])->name('farm.dashboard');
+Route::post('/admin/farm/onboarding-toggle', [FarmDashboardController::class, 'toggleOnboarding'])->name('farm.onboarding-toggle');
 
 // ---------- MASTER ----------
 Route::get('/admin/farm/suppliers', [SupplierController::class, 'index'])->name('farm.suppliers.index');

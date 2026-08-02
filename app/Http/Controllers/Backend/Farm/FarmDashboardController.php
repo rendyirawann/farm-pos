@@ -25,6 +25,17 @@ class FarmDashboardController extends Controller
 {
     public function __construct(private EggCostService $eggCost) {}
 
+    /** Tampil/sembunyikan panduan setup (preferensi per-tenant). */
+    public function toggleOnboarding(Request $request)
+    {
+        $tenantId = auth()->user()?->tenant_id;
+        if ($tenantId) {
+            \App\Models\SiteOption::set('farm_onboarding.' . $tenantId, $request->has('show') ? '1' : '0');
+        }
+
+        return back();
+    }
+
     public function index(Request $request)
     {
         // Periode: harian (default) atau bulanan — sama polanya dengan dashboard F&B.
@@ -162,8 +173,13 @@ class FarmDashboardController extends Controller
         }
 
         // ---------- PANDUAN SETUP (khas peternakan, bukan setup kasir) ----------
+        // Preferensi tampil/sembunyi disimpan per-tenant di SiteOption, sama seperti
+        // dashboard F&B: belum diset -> otomatis (tampil selama belum selesai),
+        // '1' = paksa tampil walau sudah selesai, '0' = sembunyikan.
+        $u = auth()->user();
+        $onbPref = $u->tenant_id ? \App\Models\SiteOption::get('farm_onboarding.' . $u->tenant_id) : null;
+
         $onboarding = [
-            'show'  => ! (bool) session('farm_setup_hidden'),
             'steps' => [
                 ['judul' => 'Tambah Supplier', 'ket' => 'Pemasok ayam Anda',
                  'url' => route('farm.suppliers.index'), 'selesai' => Supplier::exists()],
@@ -177,6 +193,8 @@ class FarmDashboardController extends Controller
         ];
         $onboarding['selesai'] = collect($onboarding['steps'])->where('selesai', true)->count();
         $onboarding['total']   = count($onboarding['steps']);
+        $onboarding['done']    = $onboarding['selesai'] >= $onboarding['total'];
+        $onboarding['show']    = $onbPref === null ? ! $onboarding['done'] : ($onbPref === '1');
 
         return view('backend.farm.dashboard', [
             'summary'   => $summary,
