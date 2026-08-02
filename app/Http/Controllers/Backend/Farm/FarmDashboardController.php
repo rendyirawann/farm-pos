@@ -185,10 +185,13 @@ class FarmDashboardController extends Controller
                  'url' => route('farm.suppliers.index'), 'selesai' => Supplier::exists()],
                 ['judul' => 'Tambah Agen', 'ket' => 'Pembeli/agen langganan',
                  'url' => route('farm.agents.index'), 'selesai' => Agent::exists()],
-                ['judul' => 'Tambah Item', 'ket' => 'Ayam potong, ayam petelur, telur',
-                 'url' => route('farm.items.index'), 'selesai' => Item::exists()],
-                ['judul' => 'Catat Pembelian Pertama', 'ket' => 'Stock In dari supplier',
-                 'url' => route('farm.stock-in.create'), 'selesai' => StockIn::exists()],
+                // Selesai bila tenant sudah punya akun admin, supervisor, DAN gudang —
+                // tiga peran operasional peternakan (owner sudah pasti ada karena login).
+                ['judul' => 'Setup Karyawan', 'ket' => 'Buat akun Admin, Supervisor & Gudang',
+                 'url' => route('users.index'),
+                 'selesai' => \App\Models\User::role('admin')->exists()
+                     && \App\Models\User::role('supervisor')->exists()
+                     && \App\Models\User::role('gudang')->exists()],
             ],
         ];
         $onboarding['selesai'] = collect($onboarding['steps'])->where('selesai', true)->count();
