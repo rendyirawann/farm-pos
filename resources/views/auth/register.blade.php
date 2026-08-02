@@ -158,11 +158,8 @@
                             <a href="{{ route('login') }}" class="link-primary fw-bold">Masuk di sini</a>
                         </div>
 
-                        <div class="d-grid">
-                            <a href="{{ \App\Verticals\VerticalRegistry::mainHomeUrl() }}" class="btn btn-light btn-active-light-primary">
-                                <i class="ki-outline ki-arrow-left fs-4 me-1"></i> Kembali ke Beranda
-                            </a>
-                        </div>
+                        {{-- KUSTOMISASI farm.mooda.id: tanpa landing page, jadi "Kembali ke Beranda"
+                             hanya akan berputar ke halaman ini sendiri -> dihapus. --}}
                     </form>
 
                 </div>

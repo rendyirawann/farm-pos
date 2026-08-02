@@ -814,7 +814,7 @@ class KasirController extends Controller
     private function generateInvoiceNo(): string
     {
         do {
-            $invoice = 'MDA-INV-' . now()->format('YmdHis') . '-' . strtoupper(\Illuminate\Support\Str::random(6));
+            $invoice = 'FRM-INV-' . now()->format('YmdHis') . '-' . strtoupper(\Illuminate\Support\Str::random(6));
         } while (Order::withoutGlobalScopes()->where('invoice_no', $invoice)->exists());
 
         return $invoice;
