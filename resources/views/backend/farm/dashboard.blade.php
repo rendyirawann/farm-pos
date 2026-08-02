@@ -16,7 +16,7 @@
         <div class="text-white">
           <h2 class="text-white fw-bold mb-1">Halo, {{ auth()->user()->name }} 👋</h2>
           <div class="text-white opacity-75 fs-6">
-            {{ optional($currentTenant)->name ?? 'Mooda Farm' }} •
+            {{ optional($currentTenant)->name ?? 'Mooda Stok' }} •
             <span class="fw-bold">{{ $periodLabel }}</span>
             <span class="badge badge-light ms-1 fs-9">{{ $range === 'day' ? 'Harian' : 'Bulanan' }}</span>
           </div>

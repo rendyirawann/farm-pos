@@ -34,7 +34,7 @@ window.farmNota = function (d) {
     var status = d.payment_status === 'paid' ? 'paid' : 'unpaid';
 
     return {
-        store_name: (window.FARM_STORE_NAME || 'Mooda Farm'),
+        store_name: (window.FARM_STORE_NAME || 'Mooda Stok'),
         invoice_no: d.invoice_no,
         queue_number: null,
         customer_name: (d.party_label || 'Pihak') + ': ' + (d.party || '-'),

@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * Mesin stok Mooda Farm.
+ * Mesin stok Mooda Stok (modul peternakan).
  *
  * Dua besaran dipakai berdampingan: EKOR dan KG. Pengambilan FIFO memakai KG
  * sebagai patokan utama (karena harga umumnya per kg), dan jumlah ekor ikut

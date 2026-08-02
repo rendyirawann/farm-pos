@@ -70,7 +70,7 @@
 @push('scripts')
 <script src="{{ asset('assets/js/mooda-print.js') }}"></script>
 <script src="{{ asset('assets/js/farm-nota.js') }}"></script>
-<script>window.FARM_STORE_NAME = @json(optional($currentTenant)->name ?? 'Mooda Farm');</script>
+<script>window.FARM_STORE_NAME = @json(optional($currentTenant)->name ?? 'Mooda Stok');</script>
 <script>
   function cetakNota() {
     fetch('{{ route('farm.stock-in.receipt', $row->id) }}', { headers: { Accept: 'application/json' } })

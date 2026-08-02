@@ -27,7 +27,9 @@ return [
         // stock out ke agen dengan harga pokok FIFO. Tidak ada kasir/meja/dapur.
         'farm' => [
             'label'   => 'Peternakan',
-            'name'    => 'Mooda Farm',
+            // Nama aplikasi: "Stok" dipilih karena inti sistemnya persediaan &
+            // perdagangan (beli -> lot -> jual bermargin), bukan point-of-sale.
+            'name'    => 'Mooda Stok',
             'host'    => env('APP_HOST_FARM', 'farm.mooda.id'),
             'icon'    => 'ki-abstract-44',
             'modules' => ['inventory', 'stock_in', 'stock_out', 'supplier', 'agent'],

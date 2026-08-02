@@ -133,7 +133,7 @@
 <script src="{{ asset('assets/js/mooda-print.js') }}"></script>
 <script src="{{ asset('assets/js/farm-nota.js') }}"></script>
 <script>
-  window.FARM_STORE_NAME = @json(optional($currentTenant)->name ?? 'Mooda Farm');
+  window.FARM_STORE_NAME = @json(optional($currentTenant)->name ?? 'Mooda Stok');
   function cetakNota() {
     fetch('{{ route('farm.stock-out.receipt', $row->id) }}', { headers: { Accept: 'application/json' } })
       .then(r => r.json())
