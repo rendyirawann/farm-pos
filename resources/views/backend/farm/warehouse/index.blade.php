@@ -1,6 +1,7 @@
 @extends('backend.layout.app')
 @section('title', 'Buka / Tutup Gudang')
 @section('content')
+@include('backend.farm._style')
 @php $num = fn($n,$d=0) => number_format((float)$n, $d, ',', '.'); @endphp
 <div id="kt_app_content" class="app-content flex-column-fluid mt-5">
   <div id="kt_app_content_container" class="app-container container-xxl">
@@ -27,7 +28,7 @@
             @csrf
             <div class="fw-bold fs-6 text-gray-800 mb-3">Hitung Fisik Sebelum Tutup</div>
             <div class="table-responsive">
-              <table class="table table-row-bordered align-middle gy-2 mb-0">
+              <table class="table table-row-bordered align-middle gy-2 mb-0 farm-form-table">
                 <thead><tr class="fw-bold text-muted bg-light fs-8">
                   <th class="ps-3">Item</th><th class="text-end">Stok Sistem</th>
                   <th class="text-center" style="width:150px">Fisik (ekor)</th>
@@ -37,12 +38,12 @@
                 @foreach ($items as $i)
                   @php $s = $i->stock(); @endphp
                   <tr>
-                    <td class="ps-3 fw-bold text-gray-800">{{ $i->name }}</td>
-                    <td class="text-end">{{ $num($s['ekor']) }} ekor
+                    <td data-label="Item" class="ps-3 fw-bold text-gray-800">{{ $i->name }}</td>
+                    <td data-label="Stok Sistem" class="text-end">{{ $num($s['ekor']) }} ekor
                       <div class="fs-8 text-muted">{{ $num($s['kg'], 2) }} kg</div></td>
-                    <td><input type="number" name="physical[{{ $i->id }}][ekor]" class="form-control form-control-sm form-control-solid text-center"
+                    <td data-label="Fisik (ekor)"><input type="number" name="physical[{{ $i->id }}][ekor]" class="form-control form-control-sm form-control-solid text-center"
                                min="0" value="{{ $s['ekor'] }}"></td>
-                    <td><input type="number" name="physical[{{ $i->id }}][kg]" class="form-control form-control-sm form-control-solid text-center"
+                    <td data-label="Fisik (kg)"><input type="number" name="physical[{{ $i->id }}][kg]" class="form-control form-control-sm form-control-solid text-center"
                                min="0" step="0.01" value="{{ $s['kg'] }}"></td>
                   </tr>
                 @endforeach
@@ -63,9 +64,9 @@
           <i class="ki-outline ki-lock-2 fs-4x text-warning mb-4 d-block"></i>
           <h3 class="fw-bold text-gray-800">Gudang Tertutup</h3>
           <div class="text-muted fs-7 mb-5">Buka gudang untuk memulai pencatatan hari ini. Stok awal terekam otomatis.</div>
-          <form method="POST" action="{{ route('farm.warehouse.open') }}" class="d-inline-flex gap-2 align-items-center">
+          <form method="POST" action="{{ route('farm.warehouse.open') }}" class="d-inline-flex gap-2 align-items-center farm-inline-form">
             @csrf
-            <input name="notes" class="form-control form-control-solid" placeholder="Catatan (opsional)" style="width:280px" maxlength="255">
+            <input name="notes" class="form-control form-control-solid" placeholder="Catatan (opsional)" style="max-width:280px" maxlength="255">
             <button class="btn btn-success fw-bold btn-lg"><i class="ki-outline ki-entrance-left fs-3"></i> Buka Gudang</button>
           </form>
         </div>
@@ -76,7 +77,7 @@
       <div class="card-header pt-5"><h3 class="card-title fw-bold fs-5 mb-0">Riwayat Sesi Gudang</h3></div>
       <div class="card-body pt-4">
         <div class="table-responsive">
-          <table class="table table-row-bordered align-middle gy-3 mb-0">
+          <table class="table table-row-bordered align-middle gy-3 mb-0 farm-list-table">
             <thead><tr class="fw-bold text-muted bg-light fs-8">
               <th class="ps-4">Buka</th><th>Tutup</th><th>Petugas</th><th>Selisih Fisik</th><th class="pe-4">Catatan</th>
             </tr></thead>

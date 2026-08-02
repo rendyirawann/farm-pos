@@ -1,6 +1,7 @@
 @extends('backend.layout.app')
 @section('title', 'Barang Keluar')
 @section('content')
+@include('backend.farm._style')
 @php
     $rp = fn($n) => 'Rp ' . number_format((float)$n, 0, ',', '.');
     // Disiapkan di sini karena @json() tidak bisa mengurai closure multi-baris.
@@ -59,7 +60,7 @@
           </div>
 
           <div class="table-responsive">
-            <table class="table table-row-bordered align-middle gy-2 mb-0" id="t-lines">
+            <table class="table table-row-bordered align-middle gy-2 mb-0 farm-form-table" id="t-lines">
               <thead><tr class="fw-bold text-muted bg-light fs-8">
                 <th style="min-width:210px">Item</th>
                 <th class="text-center" style="min-width:105px">Ekor/Butir</th>
@@ -75,9 +76,9 @@
               <tfoot>
                 <tr class="fw-bold">
                   <td colspan="5" class="text-end">TOTAL</td>
-                  <td class="text-end fs-4" id="g-jual">Rp 0</td>
-                  <td class="text-end text-muted" id="g-modal">Rp 0</td>
-                  <td class="text-end fs-4 text-success" id="g-laba">Rp 0</td>
+                  <td class="text-end fs-4" id="g-jual" data-label="Total Jual">Rp 0</td>
+                  <td class="text-end text-muted" id="g-modal" data-label="Total Modal">Rp 0</td>
+                  <td class="text-end fs-4 text-success" id="g-laba" data-label="Total Laba">Rp 0</td>
                   <td></td>
                 </tr>
                 <tr><td colspan="9" class="text-end fs-8 text-muted">Margin: <b id="g-margin">0%</b></td></tr>
@@ -101,7 +102,7 @@
               (<b>{{ $rp($hppTelur) }}/butir</b> bulan ini) dari biaya operasional.</div>
           </div>
         </div>
-        <div class="card-footer py-4 d-flex justify-content-end gap-2">
+        <div class="card-footer py-4 d-flex justify-content-end gap-2 farm-actions">
           <a href="{{ route('farm.stock-out.index') }}" class="btn btn-light">Batal</a>
           <button class="btn btn-warning fw-bold btn-lg"><i class="ki-outline ki-check fs-3"></i> Simpan &amp; Cetak Nota</button>
         </div>
@@ -126,17 +127,19 @@
       return `<option value="${i.id}" data-produced="${i.produced ? 1 : 0}">${i.name} — sisa ${sisa}</option>`;
     }).join('');
 
+    // data-label dipakai gaya responsif: di layar <768px tiap sel berubah jadi
+    // baris berlabel; tabel 10 kolom (~1200px) tak perlu digeser ke samping.
     document.querySelector('#t-lines tbody').insertAdjacentHTML('beforeend', `<tr data-row="${idx}">
-      <td><select name="lines[${idx}][item_id]" class="form-select form-select-solid js-item" required>${opsi}</select></td>
-      <td><input type="number" name="lines[${idx}][qty_ekor]" class="form-control form-control-solid text-center js-hit" min="0" value="0"></td>
-      <td><input type="number" name="lines[${idx}][weight_kg]" class="form-control form-control-solid text-center js-hit" min="0" step="0.01" value="0"></td>
-      <td><select name="lines[${idx}][price_basis]" class="form-select form-select-solid js-hit">
+      <td data-label="Item"><select name="lines[${idx}][item_id]" class="form-select form-select-solid js-item" required>${opsi}</select></td>
+      <td data-label="Ekor/Butir"><input type="number" name="lines[${idx}][qty_ekor]" class="form-control form-control-solid text-center js-hit" min="0" value="0"></td>
+      <td data-label="Berat (kg)"><input type="number" name="lines[${idx}][weight_kg]" class="form-control form-control-solid text-center js-hit" min="0" step="0.01" value="0"></td>
+      <td data-label="Dasar"><select name="lines[${idx}][price_basis]" class="form-select form-select-solid js-hit">
             <option value="kg">per kg</option><option value="ekor">per ekor</option><option value="butir">per butir</option></select></td>
-      <td><input type="number" name="lines[${idx}][unit_price]" class="form-control form-control-solid text-center js-hit" min="0" step="100" value="0" required></td>
-      <td class="text-end fw-bold js-sub">Rp 0</td>
-      <td class="text-end js-modal text-muted fs-8">—</td>
-      <td class="text-end fw-bold js-laba">Rp 0</td>
-      <td class="text-center"><button type="button" class="btn btn-sm btn-icon btn-light-danger js-del"><i class="ki-outline ki-cross fs-4"></i></button></td>
+      <td data-label="Harga Jual"><input type="number" name="lines[${idx}][unit_price]" class="form-control form-control-solid text-center js-hit" min="0" step="100" value="0" required></td>
+      <td data-label="Subtotal" class="text-end fw-bold js-sub">Rp 0</td>
+      <td data-label="Modal (FIFO)" class="text-end js-modal text-muted fs-8">—</td>
+      <td data-label="Laba" class="text-end fw-bold js-laba">Rp 0</td>
+      <td class="text-center farm-cell-action"><button type="button" class="btn btn-sm btn-icon btn-light-danger js-del"><i class="ki-outline ki-cross fs-4"></i></button></td>
     </tr>`);
     idx++;
   }

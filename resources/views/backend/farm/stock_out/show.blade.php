@@ -1,6 +1,7 @@
 @extends('backend.layout.app')
 @section('title', 'Nota Penjualan')
 @section('content')
+@include('backend.farm._style')
 @php
   $rp = fn($n) => 'Rp ' . number_format((float)$n, 0, ',', '.');
   $num = fn($n,$d=0) => number_format((float)$n, $d, ',', '.');

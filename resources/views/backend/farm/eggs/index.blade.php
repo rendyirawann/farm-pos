@@ -1,6 +1,7 @@
 @extends('backend.layout.app')
 @section('title', 'Produksi Telur')
 @section('content')
+@include('backend.farm._style')
 @php
   $rp = fn($n) => 'Rp ' . number_format((float)$n, 0, ',', '.');
   $num = fn($n) => number_format((float)$n, 0, ',', '.');
@@ -51,7 +52,7 @@
       </div>
       <div class="card-body pt-4">
         <div class="table-responsive">
-          <table class="table table-row-bordered align-middle gy-3 mb-0">
+          <table class="table table-row-bordered align-middle gy-3 mb-0 farm-list-table">
             <thead><tr class="fw-bold text-muted bg-light fs-8">
               <th class="ps-4">Tanggal</th><th>Kandang</th><th>Item</th>
               <th class="text-end">Butir</th><th class="text-end">Pecah</th><th class="text-end">Bersih</th>

@@ -1,6 +1,7 @@
 @extends('backend.layout.app')
 @section('title', 'Agen')
 @section('content')
+@include('backend.farm._style')
 @php $rp = fn($n) => 'Rp ' . number_format((float)$n, 0, ',', '.'); @endphp
 <div id="kt_app_content" class="app-content flex-column-fluid mt-5">
   <div id="kt_app_content_container" class="app-container container-xxl">
@@ -19,7 +20,7 @@
       </div>
       <div class="card-body pt-4">
         <div class="table-responsive">
-          <table class="table table-row-bordered align-middle gy-3 mb-0">
+          <table class="table table-row-bordered align-middle gy-3 mb-0 farm-list-table">
             <thead><tr class="fw-bold text-muted bg-light fs-8">
               <th class="ps-4">Nama</th><th>Telepon</th><th class="text-end">Tempo</th>
               <th class="text-end">Batas Piutang</th><th class="text-end">Sisa Piutang</th>

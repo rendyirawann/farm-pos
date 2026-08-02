@@ -2,6 +2,7 @@
 @section('title', 'Dashboard Peternakan')
 
 @section('content')
+@include('backend.farm._style')
 @php
     $rp = fn ($n) => 'Rp ' . number_format((float) $n, 0, ',', '.');
     $num = fn ($n, $d = 0) => number_format((float) $n, $d, ',', '.');
@@ -11,7 +12,7 @@
   <div id="kt_app_content_container" class="app-container container-xxl">
 
     {{-- ===================== HERO + FILTER PERIODE ===================== --}}
-    <div class="card border-0 mb-5" style="background:linear-gradient(120deg,#15803d 0%,#16a34a 55%,#22c55e 100%)">
+    <div class="card border-0 mb-5 farm-hero" style="background:linear-gradient(120deg,#15803d 0%,#16a34a 55%,#22c55e 100%)">
       <div class="card-body d-flex flex-wrap align-items-center justify-content-between py-6">
         <div class="text-white">
           <h2 class="text-white fw-bold mb-1">Halo, {{ auth()->user()->name }} 👋</h2>
@@ -22,7 +23,7 @@
           </div>
         </div>
 
-        <div class="d-flex gap-2 mt-3 mt-sm-0 align-items-center flex-wrap">
+        <div class="d-flex gap-2 mt-3 mt-sm-0 align-items-center flex-wrap farm-hero-actions">
           <form method="GET" class="d-flex align-items-center gap-2" id="form-periode">
             <div class="btn-group btn-group-sm">
               <input type="radio" class="btn-check" name="range" id="r-day" value="day"
@@ -111,7 +112,7 @@
     @endif
 
     {{-- ===================== KPI STOK ===================== --}}
-    <div class="row g-4 mb-5">
+    <div class="row g-4 mb-5 farm-kpi">
       <div class="col-6 col-lg-3">
         <div class="card bg-light-success border-0 h-100"><div class="card-body p-6">
           <div class="fs-7 fw-semibold text-success mb-2">Stok Ayam</div>
@@ -145,7 +146,7 @@
     </div>
 
     {{-- ===================== KPI TRANSAKSI PERIODE ===================== --}}
-    <div class="row g-4 mb-5">
+    <div class="row g-4 mb-5 farm-kpi">
       <div class="col-6 col-lg-3">
         <div class="card border-0 shadow-sm h-100"><div class="card-body p-6">
           <div class="fs-7 fw-semibold text-muted mb-2">Pembelian</div>
@@ -175,7 +176,7 @@
     </div>
 
     {{-- ===================== GRAFIK + STOK PER ITEM ===================== --}}
-    <div class="row g-4 mb-5">
+    <div class="row g-4 mb-5 farm-kpi">
       <div class="col-12 col-xl-8">
         <div class="card card-flush h-100">
           <div class="card-header pt-5">
@@ -222,7 +223,7 @@
       </div>
       <div class="card-body pt-3">
         <div class="table-responsive">
-          <table class="table table-row-bordered align-middle gy-3 mb-0">
+          <table class="table table-row-bordered align-middle gy-3 mb-0 farm-list-table">
             <thead><tr class="fw-bold text-muted bg-light fs-8">
               <th class="ps-4">Nota</th><th>Tanggal</th><th>Agen</th>
               <th class="text-end">Jual</th><th class="text-end">Laba</th><th class="text-end pe-4">Status</th>
