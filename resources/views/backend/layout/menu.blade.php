@@ -6,6 +6,7 @@
     data-kt-swapper-parent="{default: '#kt_app_body', lg: '#kt_app_header_wrapper'}">
     <div class="menu menu-rounded menu-active-bg menu-state-primary menu-column menu-lg-row menu-title-gray-700 menu-icon-gray-500 menu-arrow-gray-500 menu-bullet-gray-500 my-5 my-lg-0 align-items-stretch fw-semibold px-2 px-lg-0"
         id="kt_app_header_menu" data-kt-menu="true">
+        @php $navIsFarm = ($currentTenant ?? null) && $currentTenant->isFarm(); @endphp
         {{-- PLATFORM MENU (Superadmin) — paling depan --}}
         @can('view_tenants')
             <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('platform-menu.*') ? 'here show ' : '' }}">
@@ -21,19 +22,14 @@
             <a href="{{ route('dashboard') }}"
                 class="menu-link px-4 {{ request()->routeIs('dashboard') ? 'active ' : '' }}">
 
-                <span class="menu-title">Dashboards</span>
+                <span class="menu-title">{{ $navIsFarm ? 'Dashboard' : 'Dashboards' }}</span>
             </a>
         </div>
 
         {{-- ===== MENU LAUNDRY (hanya tenant vertical 'laundry') ===== --}}
-        @php $navIsFarm = ($currentTenant ?? null) && $currentTenant->isFarm(); @endphp
 
         {{-- ===== MENU NAVBAR PETERNAKAN (vertical 'farm') ===== --}}
         @if ($navIsFarm)
-            <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('farm.dashboard') ? 'here show ' : '' }}">
-                <a href="{{ route('farm.dashboard') }}" class="menu-link px-4 {{ request()->routeIs('farm.dashboard') ? 'active ' : '' }}">
-                    <span class="menu-title">Dashboard</span></a>
-            </div>
             <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('farm.stock-in.*') ? 'here show ' : '' }}">
                 <a href="{{ route('farm.stock-in.index') }}" class="menu-link px-4 {{ request()->routeIs('farm.stock-in.*') ? 'active ' : '' }}">
                     <span class="menu-title">Barang Masuk</span></a>
