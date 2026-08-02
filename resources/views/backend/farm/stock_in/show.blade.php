@@ -1,7 +1,6 @@
 @extends('backend.layout.app')
 @section('title', 'Nota Pembelian')
 @section('content')
-@include('backend.farm._style')
 @php
   $rp = fn($n) => 'Rp ' . number_format((float)$n, 0, ',', '.');
   $num = fn($n,$d=0) => number_format((float)$n, $d, ',', '.');
@@ -18,6 +17,7 @@
         </div>
         <div class="card-toolbar gap-2">
           <a href="{{ route('farm.stock-in.index') }}" class="btn btn-sm btn-light">Kembali</a>
+          @include('backend.farm._print_button')
           <button class="btn btn-sm btn-primary fw-bold" id="btn-cetak">
             <i class="ki-outline ki-printer fs-4"></i> Cetak Nota</button>
         </div>
@@ -69,9 +69,7 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('assets/js/mooda-print.js') }}"></script>
-<script src="{{ asset('assets/js/farm-nota.js') }}"></script>
-<script>window.FARM_STORE_NAME = @json(optional($currentTenant)->name ?? 'Mooda Stok');</script>
+@include('backend.farm._print_script')
 <script>
   function cetakNota() {
     fetch('{{ route('farm.stock-in.receipt', $row->id) }}', { headers: { Accept: 'application/json' } })

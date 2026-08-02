@@ -1,7 +1,6 @@
 @extends('backend.layout.app')
 @section('title', 'Produksi Telur')
 @section('content')
-@include('backend.farm._style')
 @php
   $rp = fn($n) => 'Rp ' . number_format((float)$n, 0, ',', '.');
   $num = fn($n) => number_format((float)$n, 0, ',', '.');

@@ -1,7 +1,6 @@
 @extends('backend.layout.app')
 @section('title', 'Kartu Piutang')
 @section('content')
-@include('backend.farm._style')
 @php $rp = fn($n) => 'Rp ' . number_format((float)$n, 0, ',', '.'); @endphp
 <div id="kt_app_content" class="app-content flex-column-fluid mt-5">
   <div id="kt_app_content_container" class="app-container container-xxl">

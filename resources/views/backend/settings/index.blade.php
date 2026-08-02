@@ -47,13 +47,26 @@
                             </div>
                             <div class="row mb-2">
                                 @php
-                                    // Label pajak mengikuti VERTICAL: PB1 hanya untuk restoran/F&B;
-                                    // laundry & retail memakai istilah pajak umum (PPN).
+                                    // Label pajak mengikuti VERTICAL:
+                                    // - F&B      : PB1 (pajak restoran, dipungut daerah atas makan-minum di tempat)
+                                    // - Laundry  : PPN / pajak jasa
+                                    // - Peternakan: PPN. Perdagangan ternak & telur umumnya TIDAK dikenai PB1;
+                                    //               banyak pedagang juga bukan PKP -> biarkan 0.
                                     $stIsLaundry = ($currentTenant ?? null) && $currentTenant->isLaundry();
-                                    $taxLabel = $stIsLaundry ? 'Pajak / PPN' : 'Pajak Restoran (PB1)';
+                                    $stIsFarm    = ($currentTenant ?? null) && $currentTenant->isFarm();
+                                    $taxLabel = $stIsFarm ? 'PPN (opsional)'
+                                        : ($stIsLaundry ? 'Pajak / PPN' : 'Pajak Restoran (PB1)');
+                                    $taxHint = $stIsFarm
+                                        ? 'Isi 0 bila tidak memungut PPN — lazim untuk pedagang ternak yang belum PKP.'
+                                        : 'Masukkan angka 0 jika toko tidak membebankan pajak ke pelanggan.';
 
                                     // Item contoh untuk pratinjau struk (dipakai di blok <script> bawah).
-                                    $previewItemsJson = json_encode($stIsLaundry
+                                    $previewItemsJson = json_encode($stIsFarm
+                                        ? [
+                                            ['name' => 'Ayam Potong Broiler', 'qty' => 250, 'price' => 24000, 'subtotal' => 6000000, 'notes' => '120 ekor / 250,00 kg @ kg'],
+                                            ['name' => 'Telur Ayam', 'qty' => 300, 'price' => 2200, 'subtotal' => 660000, 'notes' => '300 butir'],
+                                        ]
+                                        : ($stIsLaundry
                                         ? [
                                             ['name' => 'Cuci Setrika Kiloan', 'qty' => 3, 'price' => 9000, 'subtotal' => 27000, 'notes' => 'parfum lavender'],
                                             ['name' => 'Bed Cover', 'qty' => 1, 'price' => 25000, 'subtotal' => 25000],
@@ -61,7 +74,7 @@
                                         : [
                                             ['name' => 'Kopi Susu', 'qty' => 2, 'price' => 18000, 'subtotal' => 36000, 'addons' => [['name' => 'Extra Shot']], 'notes' => 'less ice'],
                                             ['name' => 'Roti Bakar', 'qty' => 1, 'price' => 15000, 'subtotal' => 15000],
-                                        ]);
+                                        ]));
                                 @endphp
                                 <label class="col-lg-3 col-form-label required fw-semibold fs-6">{{ $taxLabel }}</label>
                                 <div class="col-lg-9">
@@ -70,7 +83,7 @@
                                             value="{{ old('tax_rate', $setting->tax_rate) }}" min="0" max="100" required>
                                         <span class="input-group-text">%</span>
                                     </div>
-                                    <div class="form-text">Masukkan angka 0 jika toko tidak membebankan pajak ke pelanggan.</div>
+                                    <div class="form-text">{{ $taxHint }}</div>
                                 </div>
                             </div>
                         </div>
@@ -276,6 +289,7 @@
 
                 // ===== Pratinjau struk (tab Struk) — memakai engine cetak yang sama =====
                 // Contoh item pratinjau struk sesuai vertical tenant.
+                const IS_FARM = {{ ($currentTenant ?? null) && $currentTenant->isFarm() ? 'true' : 'false' }};
                 const PREVIEW_ITEMS = {!! $previewItemsJson !!};
 
                 function buildPreviewReceipt() {
@@ -295,12 +309,19 @@
                         store_phone: showPhone ? ($('input[name="phone"]').val() || '') : '',
                         receipt_header: $('input[name="receipt_header"]').val() || '',
                         receipt_footer: $('textarea[name="receipt_footer"]').val() || '',
-                        invoice_no: 'MDA-INV-CONTOH', queue_number: 7, customer_name: 'Budi',
-                        datetime: '01/01/2026 12.00',
-                        // Contoh item mengikuti VERTICAL (laundry: layanan cuci; F&B: menu).
+                        // Nota PETERNAKAN bukan struk kasir: tidak ada nomor antrian,
+                        // tidak ada uang tunai/kembalian, lawan transaksinya AGEN.
+                        invoice_no: IS_FARM ? 'JUAL-20260101-CONTOH' : 'MDA-INV-CONTOH',
+                        queue_number: IS_FARM ? null : 7,
+                        customer_name: IS_FARM ? 'Agen: Agen Pasar Baru' : 'Budi',
+                        datetime: IS_FARM ? '01/01/2026' : '01/01/2026 12.00',
+                        // Contoh item mengikuti VERTICAL (peternakan: ayam & telur; laundry: layanan; F&B: menu).
                         items: PREVIEW_ITEMS,
                         subtotal: subtotal, discount_amount: discount, tax: tax, tax_rate: rate, grand_total: grand,
-                        payment_method: 'cash', payment_status: 'paid', cash_received: cash, change_amount: Math.max(0, cash - grand),
+                        payment_method: IS_FARM ? '-' : 'cash',
+                        payment_status: IS_FARM ? 'unpaid' : 'paid',
+                        cash_received: IS_FARM ? null : cash,
+                        change_amount: IS_FARM ? null : Math.max(0, cash - grand),
                     };
                 }
                 function renderStrukPreview() {

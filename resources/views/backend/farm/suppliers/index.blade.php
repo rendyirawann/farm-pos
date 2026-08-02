@@ -1,7 +1,6 @@
 @extends('backend.layout.app')
 @section('title', 'Supplier')
 @section('content')
-@include('backend.farm._style')
 <div id="kt_app_content" class="app-content flex-column-fluid mt-5">
   <div id="kt_app_content_container" class="app-container container-xxl">
     @include('backend.farm._flash')

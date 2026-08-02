@@ -55,6 +55,13 @@ License: Proprietary - Mooda System
             window.top.location.replace(window.self.location.href);
         }
     </script>
+    {{-- Gaya responsif MOODA STOK: dimuat untuk SELURUH halaman tenant farm
+         (termasuk Pengaturan, Pengguna, Pengeluaran) — bukan hanya halaman /admin/farm,
+         karena perbaikan navbar 1024-1400px berlaku di semua halaman. --}}
+    @if (($currentTenant ?? null) && $currentTenant->isFarm())
+        @include('backend.farm._style')
+    @endif
+
     @stack('stylesheets')
 </head>
 <!--end::Head-->

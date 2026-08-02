@@ -1,7 +1,6 @@
 @extends('backend.layout.app')
 @section('title', 'Barang Keluar')
 @section('content')
-@include('backend.farm._style')
 @php
     $rp = fn($n) => 'Rp ' . number_format((float)$n, 0, ',', '.');
     // Disiapkan di sini karena @json() tidak bisa mengurai closure multi-baris.

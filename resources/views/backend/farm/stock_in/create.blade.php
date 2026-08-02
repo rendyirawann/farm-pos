@@ -1,7 +1,6 @@
 @extends('backend.layout.app')
 @section('title', 'Barang Masuk')
 @section('content')
-@include('backend.farm._style')
 @php
     // @json() tidak bisa mengurai closure multi-baris -> siapkan array di sini.
     $itemsJson = $items->map(fn($i) => ['id' => $i->id, 'name' => $i->name, 'unit' => $i->primary_unit])->values();
