@@ -117,7 +117,8 @@ class TenantController extends Controller
         // withoutGlobalScopes: superadmin melihat user tenant mana pun (tak kena TenantScope).
         $users = User::withoutGlobalScopes()->where('tenant_id', $tenant->id)->with('roles')->get();
         $subscriptions = $tenant->subscriptions()->orderByDesc('created_at')->limit(30)->get();
-        $plans = Plan::all();
+        // KUSTOMISASI farm.mooda.id: hanya paket Customize yang tersedia di instance ini.
+        $plans = array_intersect_key(Plan::all(), ['customize' => true]);
 
         return view('backend.superadmin.tenants.show', compact('tenant', 'users', 'subscriptions', 'plans'));
     }
@@ -125,7 +126,8 @@ class TenantController extends Controller
     /** Form buat tenant baru (+ akun owner & opsional kasir). */
     public function create()
     {
-        $plans = Plan::all();
+        // KUSTOMISASI farm.mooda.id: hanya paket Customize yang tersedia di instance ini.
+        $plans = array_intersect_key(Plan::all(), ['customize' => true]);
         return view('backend.superadmin.tenants.create', compact('plans'));
     }
 
@@ -140,7 +142,7 @@ class TenantController extends Controller
             'email'          => ['nullable', 'email', 'max:255'],
             'address'        => ['nullable', 'string', 'max:500'],
             // langganan
-            'plan'                 => ['nullable', 'in:' . implode(',', array_keys(Plan::all()))],
+            'plan'                 => ['nullable', 'in:customize'],
             'billing_months'       => ['nullable', 'integer', 'min:0', 'max:120'],
             'extra_days'           => ['nullable', 'integer', 'min:0', 'max:365'],
             'subscription_ends_at' => ['nullable', 'date'],

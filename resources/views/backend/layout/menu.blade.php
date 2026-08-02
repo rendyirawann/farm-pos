@@ -208,12 +208,7 @@
                             <span class="menu-title">Payment Gateway</span>
                         </a>
                     </div>
-                    <div class="menu-item {{ request()->routeIs('deposit-settings.*') ? 'here show ' : '' }}">
-                        <a class="menu-link py-3 {{ request()->routeIs('deposit-settings.*') ? 'active ' : '' }}" href="{{ route('deposit-settings.index') }}">
-                            <span class="menu-icon"><i class="ki-outline ki-wallet fs-2"></i></span>
-                            <span class="menu-title">Setelan Deposit</span>
-                        </a>
-                    </div>
+                    {{-- Setelan Deposit dihapus: farm.mooda.id tidak memakai skema deposit. --}}
                     <div class="menu-item {{ request()->routeIs('doku-channels.*') ? 'here show ' : '' }}">
                         <a class="menu-link py-3 {{ request()->routeIs('doku-channels.*') ? 'active ' : '' }}" href="{{ route('doku-channels.index') }}">
                             <span class="menu-icon"><i class="ki-outline ki-bank fs-2"></i></span>
@@ -282,14 +277,8 @@
                 </a>
             </div>
 
-            {{-- PLAN DEPOSIT / POIN --}}
-            <div
-                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('deposit.*') ? 'here show ' : '' }}">
-                <a href="{{ route('deposit.index') }}"
-                    class="menu-link px-4 {{ request()->routeIs('deposit.*') ? 'active ' : '' }}">
-                    <span class="menu-title">Deposit</span>
-                </a>
-            </div>
+            {{-- PLAN DEPOSIT / POIN — DIHAPUS di farm.mooda.id.
+                 Instance satu-tenant memakai paket Customize tetap, bukan pay-as-you-go. --}}
         @endif
 
         {{-- APLIKASI TABLET (semua user login) --}}

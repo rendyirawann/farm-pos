@@ -12,14 +12,12 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
-    // --- REGISTER ---
-    // Jika aplikasi perizinan tidak boleh daftar sendiri (hanya admin yg buat user),
-    // Abang bisa matikan (komentar) 2 baris route register di bawah ini.
-    Route::get('/admin/register', [RegisteredUserController::class, 'create'])
-        ->name('register');
-
-    Route::post('/admin/register', [RegisteredUserController::class, 'store'])
-        ->middleware('throttle:6,1');
+    // --- REGISTER: DIMATIKAN di farm.mooda.id ---
+    // Instance ini dipakai SATU tenant; tidak ada pendaftaran mandiri. Akun dibuat
+    // Superadmin lewat Manajemen User. Route tetap didefinisikan (bukan dihapus) supaya
+    // route('register') di view lama tidak error, tapi selalu 404.
+    Route::get('/admin/register', fn () => abort(404))->name('register');
+    Route::post('/admin/register', fn () => abort(404));
 
     // --- LOGIN ---
     Route::get('/admin/login', [AuthenticatedSessionController::class, 'create'])

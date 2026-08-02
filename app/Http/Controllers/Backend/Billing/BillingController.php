@@ -30,7 +30,9 @@ class BillingController extends Controller
             abort(404, 'Tenant tidak ditemukan untuk akun ini.');
         }
 
-        $plans = Plan::all();
+        // KUSTOMISASI farm.mooda.id: instance satu-tenant hanya memakai paket Customize.
+        // Basic/Enterprise adalah paket etalase SaaS dan tidak ditawarkan di sini.
+        $plans = array_intersect_key(Plan::all(), ['customize' => true]);
         $history = Subscription::where('tenant_id', $tenant->id)
             ->orderByDesc('created_at')
             ->limit(20)
@@ -60,7 +62,8 @@ class BillingController extends Controller
         }
 
         $request->validate([
-            'plan'   => ['required', 'string', 'in:' . implode(',', array_keys(Plan::all()))],
+            // Hanya paket Customize yang boleh di-checkout di instance ini.
+            'plan'   => ['required', 'string', 'in:customize'],
             'months' => ['nullable', 'integer', 'min:1', 'max:36'],
         ]);
 

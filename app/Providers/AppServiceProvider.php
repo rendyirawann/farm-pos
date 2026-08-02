@@ -40,8 +40,22 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        // Implicitly grant "Superadmin" role all permissions
+        /**
+         * KUSTOMISASI farm.mooda.id — modul etalase SaaS dimatikan untuk SEMUA orang.
+         *
+         * Instance ini melayani SATU tenant, jadi Blog, program Affiliate, dan Deposit
+         * (pay-as-you-go) tidak relevan. Penolakan dipasang di Gate::before dan
+         * dikembalikan `false` SEBELUM bypass Superadmin, sebab Superadmin di sini
+         * otomatis mendapat semua ability — mencabut permission di tabel saja tidak cukup.
+         * Efeknya sekaligus menutup @can di view DAN middleware can: di route.
+         */
         Gate::before(function ($user, $ability) {
+            $dimatikan = ['blog.manage', 'affiliate.manage', 'affiliate.refer'];
+            if (in_array($ability, $dimatikan, true)) {
+                return false;
+            }
+
+            // Implicitly grant "Superadmin" role all permissions
             return $user->hasRole('Superadmin') ? true : null;
         });
 

@@ -64,6 +64,9 @@ Route::domain('affiliate.mooda.id')->group(base_path('routes/affiliate.php'));
 
 // Modul BLOG — ADMIN (host utama, /admin/blog*). File route terpisah, khusus
 // Superadmin (can:blog.manage). Bukan fitur tenant -> TANPA 'subscribed'.
+// Modul BLOG admin. Di farm.mooda.id dinonaktifkan lewat PENCABUTAN permission
+// 'blog.manage' (lihat catatan DEPLOY-FARM.md), bukan dengan menghapus route —
+// supaya route('blog.admin.*') di view tetap resolve dan tidak melempar error.
 Route::middleware(['auth', 'forbid-banned-user', 'can:blog.manage'])
     ->group(base_path('routes/blog_admin.php'));
 
@@ -158,9 +161,12 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
         Route::get('/admin/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
 
         // Plan Deposit / Poin
-        Route::get('/admin/deposit', [DepositController::class, 'index'])->name('deposit.index');
-        Route::post('/admin/deposit/checkout', [DepositController::class, 'checkout'])->name('deposit.checkout');
-        Route::post('/admin/deposit/switch', [DepositController::class, 'switchToDeposit'])->name('deposit.switch');
+        // DEPOSIT DIMATIKAN di farm.mooda.id — instance satu-tenant memakai paket tetap,
+        // bukan pay-as-you-go. Nama route dipertahankan agar route('deposit.*') di view
+        // lama tidak error, tapi endpoint-nya selalu 404.
+        Route::get('/admin/deposit', fn () => abort(404))->name('deposit.index');
+        Route::post('/admin/deposit/checkout', fn () => abort(404))->name('deposit.checkout');
+        Route::post('/admin/deposit/switch', fn () => abort(404))->name('deposit.switch');
     });
 
     // ====================================================
@@ -236,9 +242,9 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
         Route::post('/admin/founders/{id}/remove-photo', [\App\Http\Controllers\Backend\Superadmin\FounderController::class, 'removePhoto'])->name('founders.remove-photo');
 
         // Setelan Plan Deposit (platform-wide, Superadmin)
-        Route::get('/admin/deposit-settings', [DepositSettingController::class, 'index'])->name('deposit-settings.index');
-        Route::post('/admin/deposit-settings', [DepositSettingController::class, 'update'])->name('deposit-settings.update');
-        Route::post('/admin/deposit-settings/manual-topup', [DepositSettingController::class, 'manualTopup'])->name('deposit-settings.manual-topup');
+        Route::get('/admin/deposit-settings', fn () => abort(404))->name('deposit-settings.index');
+        Route::post('/admin/deposit-settings', fn () => abort(404))->name('deposit-settings.update');
+        Route::post('/admin/deposit-settings/manual-topup', fn () => abort(404))->name('deposit-settings.manual-topup');
 
         // Channel Virtual Account DOKU (SNAP) — platform-wide, Superadmin
         Route::get('/admin/doku-channels', [DokuChannelController::class, 'index'])->name('doku-channels.index');

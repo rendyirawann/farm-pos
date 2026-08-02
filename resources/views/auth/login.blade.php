@@ -204,11 +204,7 @@
                                     <span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
                             </button>
                         </div>
-
-                        <div class="text-gray-500 text-center fw-semibold fs-6 mb-4">Belum punya akun?
-                            <a href="{{ route('register') }}" class="link-primary fw-bold">Daftar di sini</a>
-                        </div>
-
+                        {{-- Link daftar dihapus: farm.mooda.id tidak menerima pendaftaran mandiri. --}}
                         {{-- KUSTOMISASI farm.mooda.id: tanpa landing page, jadi "Kembali ke Beranda"
                              hanya akan berputar ke halaman ini sendiri -> dihapus. --}}
                     </form>
