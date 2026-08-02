@@ -201,6 +201,11 @@ class Tenant extends Model
         return $this->vertical() === 'fnb';
     }
 
+    public function isFarm(): bool
+    {
+        return $this->vertical() === 'farm';
+    }
+
     public function isLaundry(): bool
     {
         return $this->vertical() === 'laundry';

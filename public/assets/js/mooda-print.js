@@ -119,10 +119,14 @@ window.MoodaPrint = (function () {
         const phone = r.store_phone ?? CFG.store_phone;
         if (phone) line('Telp: ' + phone);
         rule();
-        push(ESC, 0x61, 0x01); push(GS, 0x21, 0x01);   // center, double height
-        line('No. Antrian ' + (r.queue_number ?? '-'));
-        push(GS, 0x21, 0x00); push(ESC, 0x61, 0x00);
-        rule();
+        // Nomor antrian hanya relevan untuk POS. Nota peternakan (beli/jual) tidak
+        // punya antrian -> blok ini dilewati agar tidak tercetak "NO. ANTRIAN -".
+        if (r.queue_number != null && r.queue_number !== '') {
+            push(ESC, 0x61, 0x01); push(GS, 0x21, 0x01);   // center, double height
+            line('No. Antrian ' + r.queue_number);
+            push(GS, 0x21, 0x00); push(ESC, 0x61, 0x00);
+            rule();
+        }
         if (r.invoice_no) row('No', r.invoice_no);
         if (r.datetime) row('Tgl', r.datetime);
         if (r.table_no) line('Meja ' + r.table_no + ' - ' + (r.customer_name || 'Pelanggan'));
@@ -173,7 +177,10 @@ window.MoodaPrint = (function () {
         lines(r.store_address ?? CFG.store_address).forEach(l => o.push(center(l)));
         const phone = r.store_phone ?? CFG.store_phone;
         if (phone) o.push(center('Telp: ' + phone));
-        o.push(sep); o.push(center('NO. ANTRIAN ' + (r.queue_number ?? '-'))); o.push(sep);
+        if (r.queue_number != null && r.queue_number !== '') {
+            o.push(sep); o.push(center('NO. ANTRIAN ' + r.queue_number));
+        }
+        o.push(sep);
         if (r.invoice_no) o.push(row('No', r.invoice_no));
         if (r.datetime) o.push(row('Tgl', r.datetime));
         if (r.table_no) o.push('Meja ' + r.table_no + ' - ' + (r.customer_name || 'Pelanggan'));

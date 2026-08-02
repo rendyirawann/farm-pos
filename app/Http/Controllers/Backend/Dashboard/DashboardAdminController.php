@@ -18,6 +18,11 @@ class DashboardAdminController extends Controller
 {
     public function index(Request $request)
     {
+        // Tenant FARM memakai dashboard peternakan, bukan dashboard restoran.
+        if (($t = auth()->user()?->tenant) && $t->isFarm()) {
+            return app(\App\Http\Controllers\Backend\Farm\FarmDashboardController::class)->index($request);
+        }
+
         // Superadmin default: dashboard ANALITIK platform (bukan kasir).
         // Bisa dialihkan ke mode kasir/POS lewat tombol (session sa_mode).
         if (auth()->user()->hasRole('Superadmin') && session('sa_mode', 'analytics') === 'analytics') {

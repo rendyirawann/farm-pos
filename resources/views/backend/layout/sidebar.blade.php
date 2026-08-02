@@ -248,13 +248,39 @@
                 // Tenant LAUNDRY memakai kartu menu sendiri (Kasir Laundry, Produksi, Layanan,
                 // Pelanggan); kartu khas F&B (Kasir F&B, Dapur, Menu F&B) disembunyikan.
                 $sbIsLaundry = ($currentTenant ?? null) && $currentTenant->isLaundry();
+                // Tenant FARM: kartu menu peternakan; seluruh kartu POS F&B disembunyikan.
+                $sbIsFarm = ($currentTenant ?? null) && $currentTenant->isFarm();
             @endphp
 
             <div class="mb-6 mt-4">
                 <h3 class="text-gray-800 fw-bold mb-8">Menu Utama</h3>
                 <div class="row row-cols-3" data-kt-buttons="true" data-kt-buttons-target="[data-kt-button]">
 
-                    @if ($sbIsLaundry)
+                    @if ($sbIsFarm)
+                        {{-- ===== KARTU MENU PETERNAKAN ===== --}}
+                        @php
+                            $farmCards = [
+                                ['Barang Masuk',   'farm.stock-in.create',   'ki-entrance-left',  'success'],
+                                ['Barang Keluar',  'farm.stock-out.create',  'ki-entrance-right', 'warning'],
+                                ['Gudang',         'farm.warehouse.index',   'ki-tablet-ok',      'primary'],
+                                ['Supplier',       'farm.suppliers.index',   'ki-truck',          'info'],
+                                ['Agen',           'farm.agents.index',      'ki-profile-user',   'dark'],
+                                ['Item',           'farm.items.index',       'ki-package',        'success'],
+                                ['Produksi Telur', 'farm.eggs.index',        'ki-abstract-26',    'warning'],
+                                ['Penyesuaian',    'farm.adjustments.index', 'ki-arrows-circle',  'danger'],
+                                ['Piutang',        'farm.receivables.index', 'ki-dollar',         'danger'],
+                            ];
+                        @endphp
+                        @foreach ($farmCards as [$judul, $rute, $ikon, $warna])
+                            <div class="col mb-4">
+                                <a href="{{ route($rute) }}"
+                                    class="btn btn-icon btn-outline btn-bg-light btn-active-light-{{ $warna }} btn-flex flex-column flex-center w-lg-90px h-lg-90px w-70px h-70px border-gray-200">
+                                    <span class="mb-2"><i class="ki-outline {{ $ikon }} fs-2x text-{{ $warna }}"></i></span>
+                                    <span class="fs-8 fw-bold text-center lh-1">{{ $judul }}</span>
+                                </a>
+                            </div>
+                        @endforeach
+                    @elseif ($sbIsLaundry)
                         {{-- ===== KARTU MENU LAUNDRY ===== --}}
                         @can('view_kasir')
                             <div class="col mb-4">
@@ -377,7 +403,7 @@
                         $sbHpp = auth()->user()->isSuperadmin()
                             || \App\Tenancy\Plan::tenantAllows($currentTenant ?? null, 'inventory_hpp');
                     @endphp
-                    @if (! $sbIsLaundry && $sbHpp)
+                    @if (! $sbIsLaundry && ! $sbIsFarm && $sbHpp)
                         @can('view_data_master')
                             <div class="col mb-4">
                                 <a href="{{ route('fnb.stock.index') }}"
@@ -439,7 +465,7 @@
                     ];
 
                     // Laundry: hanya fitur AI (HPP/Inventory dsb. modul F&B).
-                    $candidateLocked = $sbIsLaundry ? $aiFeatures : array_merge([
+                    $candidateLocked = ($sbIsLaundry || $sbIsFarm) ? $aiFeatures : array_merge([
                         ['label' => 'HPP',        'icon' => 'ki-chart-pie-simple', 'color' => 'primary', 'module' => 'inventory_hpp', 'desc' => 'HPP per menu, margin & analisis food cost — paket Customize'],
                         ['label' => 'Inventory',  'icon' => 'ki-package',          'color' => 'warning', 'module' => 'inventory_hpp', 'desc' => 'Stok berbasis lot (FIFO/FEFO), opname & kartu stok — paket Customize'],
                         // QR Menu: modulnya BELUM dibangun (tidak ada route/controller/tabel),

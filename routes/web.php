@@ -170,6 +170,10 @@ Route::middleware(['auth', 'forbid-banned-user', 'maintenance', 'verified'])->gr
     });
 
     // ====================================================
+    // MODUL FARM (vertical 'farm') — inventori & perdagangan ternak.
+    // Berkas terpisah supaya tidak bercampur dengan modul F&B/laundry.
+    Route::middleware('vertical:farm')->group(base_path('routes/farm.php'));
+
     // MODUL LAUNDRY (vertical 'laundry') — hanya tenant laundry (superadmin bebas)
     // ====================================================
     Route::middleware('vertical:laundry')->group(function () {

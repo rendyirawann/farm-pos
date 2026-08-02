@@ -26,7 +26,53 @@
         </div>
 
         {{-- ===== MENU LAUNDRY (hanya tenant vertical 'laundry') ===== --}}
-        @if (($currentTenant ?? null) && $currentTenant->isLaundry())
+        @php $navIsFarm = ($currentTenant ?? null) && $currentTenant->isFarm(); @endphp
+
+        {{-- ===== MENU NAVBAR PETERNAKAN (vertical 'farm') ===== --}}
+        @if ($navIsFarm)
+            <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('farm.dashboard') ? 'here show ' : '' }}">
+                <a href="{{ route('farm.dashboard') }}" class="menu-link px-4 {{ request()->routeIs('farm.dashboard') ? 'active ' : '' }}">
+                    <span class="menu-title">Dashboard</span></a>
+            </div>
+            <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('farm.stock-in.*') ? 'here show ' : '' }}">
+                <a href="{{ route('farm.stock-in.index') }}" class="menu-link px-4 {{ request()->routeIs('farm.stock-in.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Barang Masuk</span></a>
+            </div>
+            <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('farm.stock-out.*') ? 'here show ' : '' }}">
+                <a href="{{ route('farm.stock-out.index') }}" class="menu-link px-4 {{ request()->routeIs('farm.stock-out.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Barang Keluar</span></a>
+            </div>
+            <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
+                class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
+                <span class="menu-link px-4 {{ request()->routeIs('farm.suppliers.*', 'farm.agents.*', 'farm.items.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Data Master</span><span class="menu-arrow d-lg-none"></span></span>
+                <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-210px">
+                    <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.suppliers.index') }}">
+                        <span class="menu-icon"><i class="ki-outline ki-truck fs-2"></i></span><span class="menu-title">Supplier</span></a></div>
+                    <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.agents.index') }}">
+                        <span class="menu-icon"><i class="ki-outline ki-profile-user fs-2"></i></span><span class="menu-title">Agen</span></a></div>
+                    <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.items.index') }}">
+                        <span class="menu-icon"><i class="ki-outline ki-package fs-2"></i></span><span class="menu-title">Item</span></a></div>
+                </div>
+            </div>
+            <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
+                class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
+                <span class="menu-link px-4 {{ request()->routeIs('farm.eggs.*', 'farm.adjustments.*', 'farm.warehouse.*', 'farm.receivables.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Operasional</span><span class="menu-arrow d-lg-none"></span></span>
+                <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-210px">
+                    <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.warehouse.index') }}">
+                        <span class="menu-icon"><i class="ki-outline ki-tablet-ok fs-2"></i></span><span class="menu-title">Buka/Tutup Gudang</span></a></div>
+                    <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.eggs.index') }}">
+                        <span class="menu-icon"><i class="ki-outline ki-abstract-26 fs-2"></i></span><span class="menu-title">Produksi Telur</span></a></div>
+                    <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.adjustments.index') }}">
+                        <span class="menu-icon"><i class="ki-outline ki-arrows-circle fs-2"></i></span><span class="menu-title">Penyesuaian Stok</span></a></div>
+                    <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.receivables.index') }}">
+                        <span class="menu-icon"><i class="ki-outline ki-dollar fs-2"></i></span><span class="menu-title">Piutang Agen</span></a></div>
+                </div>
+            </div>
+        @endif
+
+        @if (! $navIsFarm && ($currentTenant ?? null) && $currentTenant->isLaundry())
             @can('view_kasir')
                 <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('laundry.kasir.*') ? 'here show ' : '' }}">
                     <a href="{{ route('laundry.kasir.index') }}" class="menu-link px-4 {{ request()->routeIs('laundry.kasir.*') ? 'active ' : '' }}">
@@ -57,7 +103,7 @@
         @endif
 
         {{-- DATA MASTER F&B (disembunyikan utk Superadmin di mode Analitik & untuk vertical laundry) --}}
-        @if ((! ($isSuperadminView ?? false) || ($saMode ?? 'pos') === 'pos') && ! (($currentTenant ?? null) && $currentTenant->isLaundry()))
+        @if (! $navIsFarm && (! ($isSuperadminView ?? false) || ($saMode ?? 'pos') === 'pos') && ! (($currentTenant ?? null) && $currentTenant->isLaundry()))
         @can('view_data_master')
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
                 class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
@@ -97,7 +143,7 @@
         @endif
 
         {{-- REPORT (disembunyikan utk Superadmin di mode Analitik) --}}
-        @if (! ($isSuperadminView ?? false) || ($saMode ?? 'pos') === 'pos')
+        @if (! $navIsFarm && (! ($isSuperadminView ?? false) || ($saMode ?? 'pos') === 'pos'))
         @can('view_report')
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
                 class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
