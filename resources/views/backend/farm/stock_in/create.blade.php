@@ -89,6 +89,24 @@
 
   const rupiah = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
 
+  /**
+   * Membaca angka dari input dengan BENAR.
+   *
+   * Pemformat ribuan global (partials/_number_format) mengubah input angka jadi
+   * teks berformat Indonesia: 38000 -> "38.000". Membacanya dengan +value akan
+   * menghasilkan 38 karena JavaScript menganggap titik sebagai koma desimal —
+   * inilah sebab subtotal sempat 1000x lebih kecil. Nilai aslinya disimpan
+   * pemformat di dataset.raw, jadi itu yang dipakai bila tersedia.
+   */
+  function angka(el) {
+      if (!el) return 0;
+      if (el.dataset && el.dataset.raw !== undefined && el.dataset.raw !== '') {
+          return Number(el.dataset.raw) || 0;
+      }
+      return parseFloat(el.value) || 0;
+  }
+
+
   function barisBaru() {
     const opsi = ITEMS.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
     // data-label dipakai gaya responsif: di layar <768px tiap sel berubah jadi
@@ -96,7 +114,7 @@
     const html = `<tr data-row="${idx}">
       <td data-label="Item"><select name="lines[${idx}][item_id]" class="form-select form-select-solid" required>${opsi}</select></td>
       <td data-label="Jumlah (ekor)"><input type="number" name="lines[${idx}][qty_ekor]" class="form-control form-control-solid text-center js-hit" min="0" value="0"></td>
-      <td data-label="Berat (kg)"><input type="number" name="lines[${idx}][weight_kg]" class="form-control form-control-solid text-center js-hit" min="0" step="0.01" value="0"></td>
+      <td data-label="Berat (kg)"><input type="number" name="lines[${idx}][weight_kg]" class="form-control form-control-solid text-center js-hit js-no-format" min="0" step="0.01" value="0"></td>
       <td data-label="Dasar Harga"><select name="lines[${idx}][price_basis]" class="form-select form-select-solid js-hit">
             <option value="kg">per kg</option><option value="ekor">per ekor</option></select></td>
       <td data-label="Harga Satuan"><input type="number" name="lines[${idx}][unit_price]" class="form-control form-control-solid text-center js-hit" min="0" step="100" value="0" required></td>
@@ -110,10 +128,10 @@
   function hitung() {
     let total = 0;
     document.querySelectorAll('#t-lines tbody tr').forEach(tr => {
-      const ekor = +tr.querySelector('[name*="[qty_ekor]"]').value || 0;
-      const kg   = +tr.querySelector('[name*="[weight_kg]"]').value || 0;
+      const ekor = angka(tr.querySelector('[name*="[qty_ekor]"]'));
+      const kg   = angka(tr.querySelector('[name*="[weight_kg]"]'));
       const basis = tr.querySelector('[name*="[price_basis]"]').value;
-      const harga = +tr.querySelector('[name*="[unit_price]"]').value || 0;
+      const harga = angka(tr.querySelector('[name*="[unit_price]"]'));
       const sub = basis === 'ekor' ? harga * ekor : harga * kg;
       tr.querySelector('.js-sub').textContent = rupiah(sub);
       total += sub;

@@ -120,6 +120,24 @@
 
   const rupiah = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
 
+  /**
+   * Membaca angka dari input dengan BENAR.
+   *
+   * Pemformat ribuan global (partials/_number_format) mengubah input angka jadi
+   * teks berformat Indonesia: 38000 -> "38.000". Membacanya dengan +value akan
+   * menghasilkan 38 karena JavaScript menganggap titik sebagai koma desimal —
+   * inilah sebab subtotal sempat 1000x lebih kecil. Nilai aslinya disimpan
+   * pemformat di dataset.raw, jadi itu yang dipakai bila tersedia.
+   */
+  function angka(el) {
+      if (!el) return 0;
+      if (el.dataset && el.dataset.raw !== undefined && el.dataset.raw !== '') {
+          return Number(el.dataset.raw) || 0;
+      }
+      return parseFloat(el.value) || 0;
+  }
+
+
   function barisBaru() {
     const opsi = ITEMS.map(i => {
       const sisa = i.produced ? `${i.stok_ekor} butir` : `${i.stok_ekor} ekor / ${i.stok_kg} kg`;
@@ -131,7 +149,7 @@
     document.querySelector('#t-lines tbody').insertAdjacentHTML('beforeend', `<tr data-row="${idx}">
       <td data-label="Item"><select name="lines[${idx}][item_id]" class="form-select form-select-solid js-item" required>${opsi}</select></td>
       <td data-label="Ekor/Butir"><input type="number" name="lines[${idx}][qty_ekor]" class="form-control form-control-solid text-center js-hit" min="0" value="0"></td>
-      <td data-label="Berat (kg)"><input type="number" name="lines[${idx}][weight_kg]" class="form-control form-control-solid text-center js-hit" min="0" step="0.01" value="0"></td>
+      <td data-label="Berat (kg)"><input type="number" name="lines[${idx}][weight_kg]" class="form-control form-control-solid text-center js-hit js-no-format" min="0" step="0.01" value="0"></td>
       <td data-label="Dasar"><select name="lines[${idx}][price_basis]" class="form-select form-select-solid js-hit">
             <option value="kg">per kg</option><option value="ekor">per ekor</option><option value="butir">per butir</option></select></td>
       <td data-label="Harga Jual"><input type="number" name="lines[${idx}][unit_price]" class="form-control form-control-solid text-center js-hit" min="0" step="100" value="0" required></td>
@@ -146,8 +164,8 @@
   /** Ambil harga pokok FIFO dari server — tanpa menyentuh stok. */
   function ambilModal(tr) {
     const itemId = tr.querySelector('.js-item').value;
-    const ekor = +tr.querySelector('[name*="[qty_ekor]"]').value || 0;
-    const kg   = +tr.querySelector('[name*="[weight_kg]"]').value || 0;
+    const ekor = angka(tr.querySelector('[name*="[qty_ekor]"]'));
+    const kg   = angka(tr.querySelector('[name*="[weight_kg]"]'));
     if (!itemId || (ekor <= 0 && kg <= 0)) { tr.dataset.modal = 0; tr.querySelector('.js-modal').textContent = '—'; hitung(); return; }
 
     fetch(URL_PREVIEW, {
@@ -176,10 +194,10 @@
   function hitung() {
     let jual = 0, modal = 0;
     document.querySelectorAll('#t-lines tbody tr').forEach(tr => {
-      const ekor = +tr.querySelector('[name*="[qty_ekor]"]').value || 0;
-      const kg   = +tr.querySelector('[name*="[weight_kg]"]').value || 0;
+      const ekor = angka(tr.querySelector('[name*="[qty_ekor]"]'));
+      const kg   = angka(tr.querySelector('[name*="[weight_kg]"]'));
       const basis = tr.querySelector('[name*="[price_basis]"]').value;
-      const harga = +tr.querySelector('[name*="[unit_price]"]').value || 0;
+      const harga = angka(tr.querySelector('[name*="[unit_price]"]'));
       const sub = (basis === 'kg') ? harga * kg : harga * ekor;
       const m = +tr.dataset.modal || 0;
 
