@@ -28,16 +28,29 @@ class StockInController extends Controller
         $from = $request->filled('from') ? Carbon::parse($request->from) : Carbon::now()->startOfMonth();
         $to   = $request->filled('to') ? Carbon::parse($request->to) : Carbon::now();
 
-        $rows = StockIn::with(['supplier', 'lines.item'])
-            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
-            ->orderByDesc('date')->orderByDesc('id')
-            ->paginate(25)->withQueryString();
+        $q = StockIn::with(['supplier', 'lines.item', 'realizations'])
+            ->whereBetween('date', [$from->toDateString(), $to->toDateString()]);
+
+        // Filter status pembayaran KITA ke supplier.
+        if (in_array($request->input('status'), ['paid', 'unpaid'], true)) {
+            $q->where('payment_status', $request->input('status'));
+        }
+
+        $rows = $q->orderByDesc('date')->orderByDesc('id')->paginate(25)->withQueryString();
+
+        // Ringkasan seluruh nota BELUM LUNAS — tidak dibatasi rentang tanggal,
+        // karena nota lama yang menggantung justru yang paling perlu terlihat.
+        $belum = StockIn::with('realizations')->where('payment_status', 'unpaid')->get();
+        $sisaBelum = $belum->sum(fn (StockIn $r) => $r->remainingToPay());
 
         return view('backend.farm.stock_in.index', [
-            'rows' => $rows,
-            'from' => $from->format('Y-m-d'),
-            'to'   => $to->format('Y-m-d'),
-            'total' => (float) StockIn::whereBetween('date', [$from->toDateString(), $to->toDateString()])->sum('total'),
+            'rows'   => $rows,
+            'from'   => $from->format('Y-m-d'),
+            'to'     => $to->format('Y-m-d'),
+            'status' => $request->input('status'),
+            'total'  => (float) StockIn::whereBetween('date', [$from->toDateString(), $to->toDateString()])->sum('total'),
+            'jumlahBelum' => $belum->count(),
+            'sisaBelum'   => round((float) $sisaBelum, 2),
         ]);
     }
 

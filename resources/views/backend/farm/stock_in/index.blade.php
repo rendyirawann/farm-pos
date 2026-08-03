@@ -6,6 +6,24 @@
   <div id="kt_app_content_container" class="app-container container-xxl">
     @include('backend.farm._flash')
 
+    {{-- Peringatan nota yang masih menggantung — dihitung dari SELURUH riwayat,
+         bukan hanya rentang tanggal terpilih, karena nota lama yang belum dibayar
+         justru yang paling perlu terlihat. --}}
+    @if ($jumlahBelum > 0)
+      <div class="alert alert-warning d-flex flex-wrap align-items-center py-4 gap-2">
+        <i class="ki-outline ki-information-5 fs-2x me-2 text-warning"></i>
+        <div class="flex-grow-1">
+          <div class="fw-bold fs-6 text-gray-800">
+            Ada {{ $jumlahBelum }} nota pembelian yang belum dilunasi ke supplier
+          </div>
+          <div class="fs-8 text-muted">Total yang masih harus dibayar:
+            <b class="text-danger">{{ $rp($sisaBelum) }}</b></div>
+        </div>
+        <a href="{{ route('farm.stock-in.index', ['status' => 'unpaid', 'from' => $from, 'to' => $to]) }}"
+           class="btn btn-sm btn-warning fw-bold">Lihat yang Belum Lunas</a>
+      </div>
+    @endif
+
     <div class="card card-flush">
       <div class="card-header pt-5">
         <div>
@@ -17,6 +35,11 @@
             <input type="date" name="from" value="{{ $from }}" class="form-control form-control-sm form-control-solid" style="width:150px">
             <span class="text-muted">s/d</span>
             <input type="date" name="to" value="{{ $to }}" class="form-control form-control-sm form-control-solid" style="width:150px">
+            <select name="status" class="form-select form-select-sm form-select-solid" style="width:160px">
+              <option value="">Semua status</option>
+              <option value="unpaid" {{ $status === 'unpaid' ? 'selected' : '' }}>Belum Lunas</option>
+              <option value="paid" {{ $status === 'paid' ? 'selected' : '' }}>Lunas</option>
+            </select>
             <button class="btn btn-sm btn-light-primary fw-bold">Filter</button>
           </form>
           <a href="{{ route('farm.stock-in.create') }}" class="btn btn-success fw-bold">
@@ -28,7 +51,7 @@
           <table class="table table-row-bordered align-middle gy-3 mb-0 farm-list-table">
             <thead><tr class="fw-bold text-muted bg-light fs-8">
               <th class="ps-4">Nota</th><th>Tanggal</th><th>Supplier</th><th>Barang</th>
-              <th class="text-end pe-4">Total</th>
+              <th class="text-end">Total</th><th class="pe-4">Status Bayar</th>
             </tr></thead>
             <tbody>
             @forelse ($rows as $r)
@@ -43,10 +66,31 @@
                     </span>
                   @endforeach
                 </td>
-                <td class="text-end pe-4 fw-bold">{{ $rp($r->total) }}</td>
+                <td class="text-end fw-bold">{{ $rp($r->total) }}
+                  @php $nilaiRl = (float) $r->realizations->sum('value'); @endphp
+                  @if ($nilaiRl > 0)
+                    <div class="fs-9 text-danger">realisasi −{{ $rp($nilaiRl) }}</div>
+                    <div class="fs-9 text-muted">bersih {{ $rp($r->netTotal()) }}</div>
+                  @endif
+                </td>
+                <td class="pe-4">
+                  @if ($r->isPaid())
+                    <span class="badge badge-light-success fw-bold">Lunas</span>
+                    @if ($r->paid_at)<div class="fs-9 text-muted">{{ $r->paid_at->format('d/m/Y') }}</div>@endif
+                    @if ((float) $r->credit_applied > 0)
+                      <div class="fs-9 text-muted">via piutang {{ $rp($r->credit_applied) }}</div>
+                    @endif
+                  @else
+                    <span class="badge badge-light-danger fw-bold">Belum Lunas</span>
+                    <div class="fs-9 text-danger fw-bold">sisa {{ $rp($r->remainingToPay()) }}</div>
+                    @if ((float) $r->credit_applied > 0)
+                      <div class="fs-9 text-muted">sebagian via piutang</div>
+                    @endif
+                  @endif
+                </td>
               </tr>
             @empty
-              <tr><td colspan="5" class="text-center text-muted py-10">Belum ada pembelian pada periode ini.</td></tr>
+              <tr><td colspan="6" class="text-center text-muted py-10">Belum ada pembelian pada periode ini.</td></tr>
             @endforelse
             </tbody>
           </table>
