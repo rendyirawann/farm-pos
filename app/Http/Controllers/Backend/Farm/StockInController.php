@@ -12,7 +12,9 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 /**
  * STOCK IN — pembelian ayam dari supplier.
@@ -130,6 +132,65 @@ class StockInController extends Controller
             ->route('farm.stock-in.show', $stockIn->id)
             ->with('success', 'Pembelian tersimpan. Nota siap dicetak.')
             ->with('autoprint', true);
+    }
+
+
+    /**
+     * Unggah foto bon dari supplier. Boleh beberapa lembar.
+     * Berkas dikompres di sisi peramban sebelum dikirim (lihat view) supaya
+     * foto kamera 3-5 MB tidak membebani kuota petugas gudang.
+     */
+    public function uploadPhoto(Request $request, StockIn $stockIn)
+    {
+        $request->validate([
+            'photos'   => ['required', 'array', 'max:5'],
+            'photos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+        ], [], ['photos.*' => 'foto bon']);
+
+        $daftar = $stockIn->photoList();
+
+        foreach ($request->file('photos', []) as $file) {
+            $nama = 'bon-' . $stockIn->id . '-' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('farm/bon', $nama, 'public');
+            $daftar[] = $path;
+        }
+
+        // Batasi 10 lembar per nota agar tidak menumpuk tanpa kendali.
+        $stockIn->update(['photos' => array_slice($daftar, 0, 10)]);
+
+        return back()->with('success', 'Foto bon tersimpan.');
+    }
+
+    /** Hapus satu lembar foto bon (berkasnya ikut dihapus dari disk). */
+    public function deletePhoto(Request $request, StockIn $stockIn)
+    {
+        $path = (string) $request->input('path');
+        $daftar = $stockIn->photoList();
+
+        if (! in_array($path, $daftar, true)) {
+            return back()->with('error', 'Foto tidak ditemukan pada nota ini.');
+        }
+
+        Storage::disk('public')->delete($path);
+        $stockIn->update(['photos' => array_values(array_diff($daftar, [$path]))]);
+
+        return back()->with('success', 'Foto bon dihapus.');
+    }
+
+    /**
+     * Nota pembelian sebagai PDF (A5) — untuk diarsipkan atau dikirim ke supplier.
+     * Berbeda dari struk thermal: ini dokumen yang rapi dibaca & dicetak di kertas biasa.
+     */
+    public function pdf(StockIn $stockIn)
+    {
+        $stockIn->load(['lines.item', 'supplier', 'user']);
+
+        $pdf = Pdf::loadView('backend.farm.stock_in.pdf', [
+            'row'    => $stockIn,
+            'tenant' => app(\App\Tenancy\TenantManager::class)->tenant(),
+        ])->setPaper('a5');
+
+        return $pdf->download('Nota-Pembelian-' . $stockIn->invoice_no . '.pdf');
     }
 
     public function show(StockIn $stockIn)

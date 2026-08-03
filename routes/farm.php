@@ -48,6 +48,9 @@ Route::get('/admin/farm/stock-in/create', [StockInController::class, 'create'])-
 Route::post('/admin/farm/stock-in', [StockInController::class, 'store'])->name('farm.stock-in.store');
 Route::get('/admin/farm/stock-in/{stockIn}', [StockInController::class, 'show'])->name('farm.stock-in.show');
 Route::get('/admin/farm/stock-in/{stockIn}/receipt', [StockInController::class, 'receipt'])->name('farm.stock-in.receipt');
+Route::get('/admin/farm/stock-in/{stockIn}/pdf', [StockInController::class, 'pdf'])->name('farm.stock-in.pdf');
+Route::post('/admin/farm/stock-in/{stockIn}/photo', [StockInController::class, 'uploadPhoto'])->name('farm.stock-in.photo');
+Route::delete('/admin/farm/stock-in/{stockIn}/photo', [StockInController::class, 'deletePhoto'])->name('farm.stock-in.photo.delete');
 
 // ---------- STOCK OUT ----------
 Route::get('/admin/farm/stock-out', [StockOutController::class, 'index'])->name('farm.stock-out.index');
