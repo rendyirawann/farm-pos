@@ -68,17 +68,24 @@
           <div class="card-body p-5">
             <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
               <div>
-                <div class="fw-bold fs-6 text-gray-800">Foto Bon Supplier</div>
-                <div class="fs-8 text-muted">Bukti harga beli. Bon kertas mudah hilang — foto di sini agar
-                  harga pokok bisa dicek ulang kapan saja.</div>
+                <div class="fw-bold fs-6 text-gray-800">Bon Supplier</div>
+                <div class="fs-8 text-muted">Bukti harga beli. Bon kertas mudah hilang — simpan di sini agar
+                  harga pokok bisa dicek ulang kapan saja.<br>
+                  <span class="d-none d-md-inline">Di laptop: unggah berkas hasil scan atau PDF dari supplier.</span>
+                  <span class="d-md-none">Di HP: tombol ini langsung membuka kamera.</span></div>
               </div>
               <form method="POST" action="{{ route('farm.stock-in.photo', $row->id) }}"
                     enctype="multipart/form-data" id="f-bon" class="m-0">
                 @csrf
-                <input type="file" name="photos[]" id="in-bon" accept="image/*" capture="environment"
+                {{-- accept memuat PDF agar laptop bisa mengunggah scan/PDF dari supplier.
+                     Atribut capture hanya berlaku di perangkat berkamera; di laptop diabaikan
+                     dan yang terbuka adalah pemilih berkas biasa. --}}
+                <input type="file" name="photos[]" id="in-bon"
+                       accept="image/*,application/pdf" capture="environment"
                        multiple class="d-none">
                 <button type="button" class="btn btn-sm btn-success fw-bold" id="btn-bon">
-                  <i class="ki-outline ki-camera fs-4"></i> Ambil / Pilih Foto
+                  <i class="ki-outline ki-camera fs-4" id="ikon-bon"></i>
+                  <span id="label-bon">Ambil Foto / Unggah Berkas</span>
                 </button>
                 <span class="fs-8 text-muted ms-2 d-none" id="bon-status"></span>
               </form>
@@ -89,10 +96,21 @@
                 @foreach ($row->photoList() as $foto)
                   <div class="col-6 col-md-4 col-lg-3">
                     <div class="position-relative border rounded overflow-hidden bg-white">
-                      <a href="{{ asset('storage/' . $foto) }}" target="_blank" rel="noopener">
-                        <img src="{{ asset('storage/' . $foto) }}" alt="Foto bon"
-                             style="width:100%;height:150px;object-fit:cover;display:block">
-                      </a>
+                      @if (\App\Models\Farm\StockIn::isImagePath($foto))
+                        <a href="{{ asset('storage/' . $foto) }}" target="_blank" rel="noopener">
+                          <img src="{{ asset('storage/' . $foto) }}" alt="Bon supplier"
+                               style="width:100%;height:150px;object-fit:cover;display:block">
+                        </a>
+                      @else
+                        {{-- PDF/scan: tampilkan kartu berkas agar tidak jadi gambar rusak --}}
+                        <a href="{{ asset('storage/' . $foto) }}" target="_blank" rel="noopener"
+                           class="d-flex flex-column align-items-center justify-content-center text-decoration-none"
+                           style="height:150px;background:#fff5f5">
+                          <i class="ki-outline ki-file fs-3x text-danger mb-2"></i>
+                          <span class="fw-bold fs-8 text-gray-700">PDF</span>
+                          <span class="fs-9 text-muted">{{ \Illuminate\Support\Str::limit(basename($foto), 18) }}</span>
+                        </a>
+                      @endif
                       <form method="POST" action="{{ route('farm.stock-in.photo.delete', $row->id) }}"
                             class="position-absolute" style="top:6px;right:6px"
                             onsubmit="return confirm('Hapus foto bon ini?')">
@@ -142,6 +160,20 @@
       var MAKS_SISI = 1600;
       var MUTU = 0.75;
 
+      // Label menyesuaikan perangkat: berkamera -> menekankan "Ambil Foto",
+      // laptop/desktop -> "Unggah Berkas" (bon dari supplier biasanya PDF/scan).
+      var adaKamera = ('ontouchstart' in window) &&
+          navigator.maxTouchPoints > 0 && /Android|iPhone|iPad/i.test(navigator.userAgent);
+      var label = document.getElementById('label-bon');
+      var ikon  = document.getElementById('ikon-bon');
+      if (!adaKamera && label) {
+          label.textContent = 'Unggah Berkas Bon';
+          if (ikon) ikon.className = 'ki-outline ki-file-up fs-4';
+          input.removeAttribute('capture');   // pemilih berkas biasa
+      } else if (label) {
+          label.textContent = 'Ambil Foto Bon';
+      }
+
       tombol.addEventListener('click', function () { input.click(); });
 
       function kecilkan(file) {
@@ -182,7 +214,8 @@
           for (var i = 0; i < input.files.length && i < 5; i++) {
               var f = input.files[i];
               asal += f.size;
-              var kecil = await kecilkan(f);
+              // PDF/scan diteruskan apa adanya — mengompresnya lewat canvas justru merusak.
+              var kecil = /^image\//.test(f.type) ? await kecilkan(f) : f;
               hasil += kecil.size;
               dt.items.add(kecil);
           }

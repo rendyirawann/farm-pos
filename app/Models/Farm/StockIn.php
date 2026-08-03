@@ -26,6 +26,12 @@ class StockIn extends Model
         return count($this->photoList()) > 0;
     }
 
+    /** Berkas bon bisa berupa gambar (difoto di HP) atau PDF/scan (diunggah dari laptop). */
+    public static function isImagePath(string $path): bool
+    {
+        return in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'webp'], true);
+    }
+
     public function lines()   { return $this->hasMany(StockInLine::class, 'stock_in_id'); }
     public function supplier(){ return $this->belongsTo(Supplier::class, 'supplier_id'); }
     public function user()    { return $this->belongsTo(User::class, 'user_id'); }

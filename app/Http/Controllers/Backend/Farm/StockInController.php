@@ -142,15 +142,19 @@ class StockInController extends Controller
      */
     public function uploadPhoto(Request $request, StockIn $stockIn)
     {
+        // Di HP bon difoto; di laptop bon sering sudah berupa PDF/scan dari supplier,
+        // jadi keduanya diterima. PDF diberi batas lebih besar karena hasil scan
+        // multi-halaman wajar lebih berat daripada foto yang sudah dikompres.
         $request->validate([
             'photos'   => ['required', 'array', 'max:5'],
-            'photos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
-        ], [], ['photos.*' => 'foto bon']);
+            'photos.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:8192'],
+        ], [], ['photos.*' => 'berkas bon']);
 
         $daftar = $stockIn->photoList();
 
         foreach ($request->file('photos', []) as $file) {
-            $nama = 'bon-' . $stockIn->id . '-' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+            $ext  = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'bin');
+            $nama = 'bon-' . $stockIn->id . '-' . Str::random(8) . '.' . $ext;
             $path = $file->storeAs('farm/bon', $nama, 'public');
             $daftar[] = $path;
         }
