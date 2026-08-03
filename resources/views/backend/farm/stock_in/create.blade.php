@@ -27,10 +27,13 @@
             </div>
             <div class="col-12 col-md-4">
               <label class="form-label fw-semibold fs-7">Supplier</label>
-              <select name="supplier_id" class="form-select form-select-solid form-select-lg">
+              <select name="supplier_id" id="in-supplier" class="form-select form-select-solid form-select-lg">
                 <option value="">— tanpa supplier —</option>
                 @foreach ($suppliers as $s)
-                  <option value="{{ $s->id }}" {{ old('supplier_id') == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
+                  <option value="{{ $s->id }}" data-piutang="{{ (float) $s->piutang }}"
+                          {{ old('supplier_id') == $s->id ? 'selected' : '' }}>
+                    {{ $s->name }}@if ($s->piutang > 0.01) — piutang Rp {{ number_format($s->piutang, 0, ',', '.') }}@endif
+                  </option>
                 @endforeach
               </select>
               @if ($suppliers->isEmpty())
@@ -40,6 +43,30 @@
             <div class="col-12 col-md-4">
               <label class="form-label fw-semibold fs-7">Catatan</label>
               <input name="notes" class="form-control form-control-solid form-control-lg" maxlength="255" value="{{ old('notes') }}">
+            </div>
+          </div>
+
+          {{-- Notifikasi piutang supplier — muncul HANYA bila supplier terpilih
+               masih punya piutang dari realisasi terdahulu. --}}
+          <div class="alert alert-danger d-none mb-4" id="panel-piutang">
+            <div class="d-flex align-items-start">
+              <i class="ki-outline ki-information-5 fs-2x me-3"></i>
+              <div class="flex-grow-1">
+                <div class="fw-bold fs-6 text-gray-800">
+                  Supplier ini masih punya piutang <span id="nilai-piutang"></span>
+                </div>
+                <div class="fs-8 text-muted mt-1">
+                  Berasal dari realisasi terdahulu — barang yang ternyata kurang saat ditimbang.
+                  Nota ini bisa dipakai untuk menutup piutang tersebut.
+                </div>
+                <label class="form-check form-check-custom form-check-solid mt-3">
+                  <input class="form-check-input" type="checkbox" name="apply_credit" value="1" id="cb-piutang">
+                  <span class="form-check-label fw-bold text-gray-800 ms-2">
+                    Gunakan nota ini untuk menutupi piutang supplier
+                  </span>
+                </label>
+                <div class="fs-8 text-muted mt-2" id="ket-piutang"></div>
+              </div>
             </div>
           </div>
 
@@ -147,6 +174,58 @@
     if (b) { b.closest('tr').remove(); hitung(); }
   });
 
-  barisBaru(); hitung();
+
+  /**
+   * Notifikasi piutang supplier.
+   *
+   * Ditampilkan saat supplier dipilih, dan keterangannya diperbarui mengikuti total
+   * nota yang sedang diketik — supaya petugas tahu SEBELUM menyimpan apakah nota ini
+   * cukup menutup piutang atau hanya sebagian.
+   */
+  function perbaruiPanelPiutang() {
+      var sel = document.getElementById('in-supplier');
+      var panel = document.getElementById('panel-piutang');
+      if (!sel || !panel) return;
+
+      var piutang = parseFloat(sel.selectedOptions[0]?.dataset.piutang || 0) || 0;
+      if (piutang <= 0.01) {
+          panel.classList.add('d-none');
+          var cb = document.getElementById('cb-piutang');
+          if (cb) cb.checked = false;
+          return;
+      }
+
+      panel.classList.remove('d-none');
+      document.getElementById('nilai-piutang').textContent = rupiah(piutang);
+
+      // Total nota saat ini dipakai untuk memperkirakan hasilnya.
+      var total = 0;
+      document.querySelectorAll('#t-lines tbody tr').forEach(function (tr) {
+          var ekor = angka(tr.querySelector('[name*="[qty_ekor]"]'));
+          var kg = angka(tr.querySelector('[name*="[weight_kg]"]'));
+          var basis = tr.querySelector('[name*="[price_basis]"]').value;
+          var harga = angka(tr.querySelector('[name*="[unit_price]"]'));
+          total += basis === 'ekor' ? harga * ekor : harga * kg;
+      });
+
+      var ket = document.getElementById('ket-piutang');
+      if (total <= 0) {
+          ket.textContent = 'Isi barang dulu untuk melihat perkiraan penutupan.';
+      } else if (total >= piutang) {
+          ket.innerHTML = 'Nota ' + rupiah(total) + ' <b>cukup menutup seluruh piutang</b>. '
+              + 'Sisa yang tetap harus dibayar: <b>' + rupiah(total - piutang) + '</b>.';
+      } else {
+          ket.innerHTML = 'Nota ' + rupiah(total) + ' <b>belum menutup seluruh piutang</b>. '
+              + 'Nota ini akan LUNAS tanpa pembayaran tunai, sisa piutang supplier: <b>'
+              + rupiah(piutang - total) + '</b>.';
+      }
+  }
+
+  document.getElementById('in-supplier')?.addEventListener('change', perbaruiPanelPiutang);
+  document.addEventListener('input', function (e) {
+      if (e.target.classList.contains('js-hit')) perbaruiPanelPiutang();
+  });
+
+  barisBaru(); hitung(); perbaruiPanelPiutang();
 </script>
 @endpush

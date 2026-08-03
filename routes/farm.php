@@ -51,6 +51,12 @@ Route::get('/admin/farm/stock-in/{stockIn}/receipt', [StockInController::class, 
 Route::get('/admin/farm/stock-in/{stockIn}/pdf', [StockInController::class, 'pdf'])->name('farm.stock-in.pdf');
 Route::post('/admin/farm/stock-in/{stockIn}/photo', [StockInController::class, 'uploadPhoto'])->name('farm.stock-in.photo');
 Route::delete('/admin/farm/stock-in/{stockIn}/photo', [StockInController::class, 'deletePhoto'])->name('farm.stock-in.photo.delete');
+// Realisasi (kekurangan barang dari supplier) & piutang supplier
+Route::post('/admin/farm/stock-in/{stockIn}/realization', [StockInController::class, 'storeRealization'])->name('farm.stock-in.realization');
+Route::delete('/admin/farm/stock-in/{stockIn}/realization/{realization}', [StockInController::class, 'destroyRealization'])->name('farm.stock-in.realization.delete');
+Route::post('/admin/farm/stock-in/{stockIn}/apply-credit', [StockInController::class, 'applyCredit'])->name('farm.stock-in.apply-credit');
+Route::post('/admin/farm/stock-in/{stockIn}/revoke-credit', [StockInController::class, 'revokeCredit'])->name('farm.stock-in.revoke-credit');
+Route::post('/admin/farm/stock-in/{stockIn}/payment', [StockInController::class, 'setPayment'])->name('farm.stock-in.payment');
 
 // ---------- STOCK OUT ----------
 Route::get('/admin/farm/stock-out', [StockOutController::class, 'index'])->name('farm.stock-out.index');

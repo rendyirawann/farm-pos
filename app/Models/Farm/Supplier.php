@@ -18,4 +18,25 @@ class Supplier extends Model
     {
         return $this->hasMany(StockIn::class, 'supplier_id');
     }
+
+    public function realizations()
+    {
+        return $this->hasMany(StockInRealization::class, 'supplier_id');
+    }
+
+    /**
+     * PIUTANG SUPPLIER — nilai barang yang ternyata kurang dan belum ditutup
+     * pembelian berikutnya. Positif berarti supplier masih berutang kepada kita.
+     */
+    public function creditOutstanding(): float
+    {
+        return (float) $this->realizations()
+            ->selectRaw('COALESCE(SUM(value - settled_amount), 0) as sisa')
+            ->value('sisa');
+    }
+
+    public function hasCredit(): bool
+    {
+        return $this->creditOutstanding() > 0.01;
+    }
 }
