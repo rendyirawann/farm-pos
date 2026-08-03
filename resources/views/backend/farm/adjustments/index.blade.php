@@ -69,7 +69,9 @@
 </div>
 
 <div class="modal fade" id="m-adj" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  {{-- modal-lg: pilihan lot memuat tanggal + supplier + sisa + harga, terlalu panjang
+       untuk lebar bawaan sehingga teksnya terpotong. --}}
+  <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <form method="POST" action="{{ route('farm.adjustments.store') }}">
         @csrf

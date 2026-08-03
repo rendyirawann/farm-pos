@@ -75,10 +75,13 @@ class AdjustmentController extends Controller
             StockLot::where('item_id', $item->id)->available()->fifo()->with('supplier')->get()
                 ->map(fn (StockLot $l) => [
                     'id'    => $l->id,
-                    'label' => sprintf('%s — sisa %d ekor / %s kg @ Rp%s',
+                    // Nama supplier ikut ditampilkan: beberapa lot sering bertanggal sama,
+                    // sehingga tanpa nama supplier petugas tidak bisa membedakannya.
+                    'label' => sprintf('%s · %s — sisa %d ekor / %s kg @ Rp%s/kg',
                         $l->date->format('d/m/Y'),
+                        $l->supplier?->name ?: 'tanpa supplier',
                         $l->qty_ekor_left,
-                        number_format((float) $l->weight_kg_left, 2),
+                        number_format((float) $l->weight_kg_left, 2, ',', '.'),
                         number_format((float) $l->cost_per_kg, 0, ',', '.')),
                 ])
         );
