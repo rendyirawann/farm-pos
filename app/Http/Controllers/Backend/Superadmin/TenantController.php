@@ -387,18 +387,64 @@ class TenantController extends Controller
             return response()->json(['error' => 'Konfirmasi nama tenant tidak cocok. Reset dibatalkan.'], 422);
         }
 
-        // order_details & menu_addons ikut terhapus otomatis (FK CASCADE).
-        // Urutan: hapus menus SEBELUM categories (FK menus.category_id).
-        $tables = ['orders', 'menus', 'categories', 'promos', 'shifts', 'expenses', 'daily_sales_targets', 'dining_tables'];
+        /**
+         * Daftar tabel yang dibersihkan MENGIKUTI VERTICAL tenant.
+         *
+         * Sebelumnya daftar ini hanya memuat tabel F&B, sehingga reset pada tenant
+         * laundry/peternakan melaporkan "berhasil" padahal tidak menghapus apa pun.
+         *
+         * Urutan penting: anak lebih dulu, induk kemudian (mis. baris & lot sebelum
+         * nota, menus sebelum categories) agar tidak menyisakan baris menggantung.
+         */
+        $umum = ['expenses', 'shifts', 'daily_sales_targets'];
+
+        $perVertical = [
+            'fnb' => [
+                'orders',                       // order_details & menu_addons ikut via FK CASCADE
+                'stock_opname_details', 'stock_opnames', 'stock_movements',
+                'menu_ingredients', 'ingredient_batches', 'ingredients', 'suppliers',
+                'menus', 'categories', 'promos', 'dining_tables',
+            ],
+            'laundry' => [
+                'laundry_status_logs', 'laundry_order_items', 'laundry_orders',
+                'laundry_services', 'laundry_customers',
+            ],
+            'farm' => [
+                'farm_stock_out_lot_usages', 'farm_stock_out_lines', 'farm_stock_outs',
+                'farm_supplier_settlements', 'farm_stock_in_realizations',
+                'farm_stock_lots', 'farm_stock_in_lines', 'farm_stock_ins',
+                'farm_agent_payments', 'farm_egg_productions', 'farm_stock_adjustments',
+                'farm_warehouse_sessions',
+                'farm_items', 'farm_agents', 'farm_suppliers',
+            ],
+        ];
+
+        $vertical = $tenant->vertical();
+        $tables = array_merge($perVertical[$vertical] ?? [], $umum);
 
         try {
             DB::beginTransaction();
 
-            // Hapus file gambar menu dari storage.
-            $imgs = DB::table('menus')->where('tenant_id', $id)->whereNotNull('image')->pluck('image');
-            foreach ($imgs as $im) {
-                if (\Illuminate\Support\Facades\Storage::disk('public')->exists('menus/' . $im)) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete('menus/' . $im);
+            // Hapus file gambar menu dari storage (F&B).
+            if (\Illuminate\Support\Facades\Schema::hasTable('menus')) {
+                $imgs = DB::table('menus')->where('tenant_id', $id)->whereNotNull('image')->pluck('image');
+                foreach ($imgs as $im) {
+                    if (\Illuminate\Support\Facades\Storage::disk('public')->exists('menus/' . $im)) {
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete('menus/' . $im);
+                    }
+                }
+            }
+
+            // Hapus foto/berkas bon supplier (peternakan) — berkasnya ikut dibuang,
+            // bukan hanya rujukannya di basis data.
+            if (\Illuminate\Support\Facades\Schema::hasTable('farm_stock_ins')) {
+                $bons = DB::table('farm_stock_ins')->where('tenant_id', $id)->whereNotNull('photos')->pluck('photos');
+                foreach ($bons as $json) {
+                    foreach ((array) json_decode((string) $json, true) as $path) {
+                        if ($path && \Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+                            \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
+                        }
+                    }
                 }
             }
 
@@ -412,10 +458,14 @@ class TenantController extends Controller
             DB::commit();
 
             activity()->useLog('tenant')->causedBy(Auth::user())->performedOn($tenant)
-                ->withProperties(['tenant' => $tenant->name, 'deleted' => $deleted])
+                ->withProperties(['tenant' => $tenant->name, 'vertical' => $vertical, 'deleted' => $deleted])
                 ->log('RESET DATA tenant: ' . $tenant->name);
 
-            return response()->json(['success' => 'Data tenant "' . $tenant->name . '" berhasil direset (bersih). Akun, langganan, & setelan tetap.']);
+            $jumlah = array_sum($deleted);
+
+            return response()->json(['success' => 'Data tenant "' . $tenant->name . '" direset: '
+                . number_format($jumlah, 0, ',', '.') . ' baris dihapus dari '
+                . count(array_filter($deleted)) . ' tabel. Akun, langganan, & setelan tetap.']);
         } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json(['error' => 'Gagal reset: ' . $e->getMessage()], 500);
