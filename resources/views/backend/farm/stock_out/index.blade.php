@@ -20,17 +20,27 @@
 
     <div class="card card-flush">
       <div class="card-header pt-5">
-        <h3 class="card-title fw-bold fs-4 mb-0">Barang Keluar</h3>
-        <div class="card-toolbar gap-2">
-          <form method="GET" class="d-flex gap-2 align-items-center">
+        <div>
+          <h3 class="card-title fw-bold fs-4 mb-0">Barang Keluar</h3>
+          <span class="text-muted fs-8">
+            {{ $disaring ? 'Hasil filter' : 'Seluruh riwayat' }}:
+            <b class="text-gray-800">{{ number_format($jumlah, 0, ',', '.') }} nota</b>
+          </span>
+        </div>
+        <div class="card-toolbar gap-2 flex-wrap">
+          <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
             <input type="date" name="from" value="{{ $from }}" class="form-control form-control-sm form-control-solid" style="width:150px">
             <span class="text-muted">s/d</span>
             <input type="date" name="to" value="{{ $to }}" class="form-control form-control-sm form-control-solid" style="width:150px">
             <select name="status" class="form-select form-select-sm form-select-solid" style="width:150px">
               <option value="">Semua status</option>
               <option value="unpaid" {{ $status === 'unpaid' ? 'selected' : '' }}>Belum Lunas</option>
+              <option value="paid" {{ $status === 'paid' ? 'selected' : '' }}>Lunas</option>
             </select>
             <button class="btn btn-sm btn-light-primary fw-bold">Filter</button>
+            @if ($disaring)
+              <a href="{{ route('farm.stock-out.index') }}" class="btn btn-sm btn-light fw-bold">Tampilkan Semua</a>
+            @endif
           </form>
           <a href="{{ route('farm.stock-out.create') }}" class="btn btn-warning fw-bold">
             <i class="ki-outline ki-plus fs-3"></i> Barang Keluar</a>
@@ -72,7 +82,15 @@
                 </td>
               </tr>
             @empty
-              <tr><td colspan="7" class="text-center text-muted py-10">Belum ada penjualan pada periode ini.</td></tr>
+              <tr><td colspan="7" class="text-center text-muted py-10">
+                @if ($disaring)
+                  Tidak ada nota yang cocok dengan filter ini.
+                  <a href="{{ route('farm.stock-out.index') }}" class="fw-bold">Tampilkan semua</a>.
+                @else
+                  Belum ada penjualan yang tercatat.
+                  <a href="{{ route('farm.stock-out.create') }}" class="fw-bold">Catat barang keluar</a>.
+                @endif
+              </td></tr>
             @endforelse
             </tbody>
           </table>

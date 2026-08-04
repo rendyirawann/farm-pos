@@ -28,28 +28,40 @@ class StockOutController extends Controller
 
     public function index(Request $request)
     {
-        $from = $request->filled('from') ? Carbon::parse($request->from) : Carbon::now()->startOfMonth();
-        $to   = $request->filled('to') ? Carbon::parse($request->to) : Carbon::now();
+        // Sama seperti barang masuk: bawaan TAMPIL SEMUA, tanggal hanya bila diisi.
+        $from = $request->filled('from') ? Carbon::parse($request->from) : null;
+        $to   = $request->filled('to') ? Carbon::parse($request->to) : null;
 
-        $q = StockOut::with(['agent', 'lines.item'])
-            ->whereBetween('date', [$from->toDateString(), $to->toDateString()]);
+        $filter = function ($q) use ($from, $to, $request) {
+            if ($from) {
+                $q->whereDate('date', '>=', $from->toDateString());
+            }
+            if ($to) {
+                $q->whereDate('date', '<=', $to->toDateString());
+            }
+            if (in_array($request->input('status'), ['paid', 'unpaid'], true)) {
+                $q->where('payment_status', $request->input('status'));
+            }
 
-        if ($request->input('status') === 'unpaid') {
-            $q->where('payment_status', 'unpaid');
-        }
+            return $q;
+        };
 
-        $rows = $q->orderByDesc('date')->orderByDesc('id')->paginate(25)->withQueryString();
+        $rows = $filter(StockOut::with(['agent', 'lines.item']))
+            ->orderByDesc('date')->orderByDesc('id')
+            ->paginate(10)->withQueryString();
 
-        $rekap = StockOut::whereBetween('date', [$from->toDateString(), $to->toDateString()])
+        $rekap = $filter(StockOut::query())
             ->selectRaw('COALESCE(SUM(total_sale),0) jual, COALESCE(SUM(total_cost),0) modal, COALESCE(SUM(gross_profit),0) laba')
             ->first();
 
         return view('backend.farm.stock_out.index', [
             'rows'  => $rows,
-            'from'  => $from->format('Y-m-d'),
-            'to'    => $to->format('Y-m-d'),
+            'from'  => $from?->format('Y-m-d'),
+            'to'    => $to?->format('Y-m-d'),
             'rekap' => $rekap,
             'status' => $request->input('status'),
+            'jumlah'   => $rows->total(),
+            'disaring' => (bool) ($from || $to || $request->filled('status')),
         ]);
     }
 

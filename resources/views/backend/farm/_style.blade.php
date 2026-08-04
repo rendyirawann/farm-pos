@@ -113,6 +113,55 @@
       .farm-list-table thead th:first-child { background: #f9f9f9; }
   }
 
+  /* =========================================================================
+     4b. TABEL DAFTAR YANG AKSINYA SERING DIPAKAI (mis. Deposit)
+     Kalau daftarnya dibiarkan menggeser ke samping, tombol aksi di kolom
+     terakhir baru terjangkau setelah menggeser — padahal justru itu yang paling
+     sering ditekan. Di bawah 768px barisnya diubah jadi KARTU bertumpuk.
+     ========================================================================= */
+  @media (max-width: 767.98px) {
+      .farm-card-table { font-size: 13px; }
+      .farm-card-table thead { display: none; }
+      .farm-card-table tbody tr {
+          display: block;
+          border: 1px solid #e4e6ef;
+          border-radius: 12px;
+          padding: 12px 14px;
+          margin-bottom: 14px;
+          background: #fff;
+      }
+      .farm-card-table tbody td {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          width: 100%;
+          border: 0 !important;
+          padding: 5px 0 !important;
+          text-align: right !important;
+          white-space: normal !important;
+      }
+      .farm-card-table tbody td::before {
+          content: attr(data-label);
+          flex: 0 0 42%;
+          text-align: left;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: .04em;
+          text-transform: uppercase;
+          color: #7e8299;
+      }
+      .farm-card-table tbody td:not([data-label])::before { content: none; }
+      /* Sel kosong (mis. kolom yang tidak terpakai) tidak perlu memakan tempat */
+      .farm-card-table tbody td:empty { display: none; }
+      /* Baris aksi: tombolnya melebar penuh supaya mudah ditekan dengan jempol */
+      .farm-card-table tbody td[data-label="Aksi"] { display: block; margin-top: 8px; }
+      .farm-card-table tbody td[data-label="Aksi"]::before { display: none; }
+      .farm-card-table tbody td[data-label="Aksi"] .btn,
+      .farm-card-table tbody td[data-label="Aksi"] form { width: 100%; margin-bottom: 6px; }
+      .farm-card-table tbody td[data-label="Aksi"] .btn { min-height: 42px; }
+  }
+
   /* Kartu KPI: 2 kolom di HP sudah diatur grid; rapikan jarak & ukuran angka */
   @media (max-width: 575.98px) {
       .farm-kpi .card-body { padding: 1rem !important; }

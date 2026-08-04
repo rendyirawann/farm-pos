@@ -53,8 +53,15 @@
                 </div>
               </div>
               @if ($s['supplier_id'])
-                <a href="{{ route('farm.warehouse.stock.detail', $s['supplier_id']) }}"
-                   class="btn btn-sm btn-light-primary fw-bold">Rincian HPP</a>
+                <div class="d-flex flex-wrap gap-2">
+                  <a href="{{ route('farm.warehouse.stock.detail', $s['supplier_id']) }}"
+                     class="btn btn-sm btn-light-primary fw-bold">Rincian HPP</a>
+                  {{-- Dari halaman stok orang sering langsung ingin menyetor uang ke
+                       supplier yang sama; tautannya disediakan di sini. --}}
+                  <a href="{{ route('farm.deposits.show', $s['supplier_id']) }}"
+                     class="btn btn-sm btn-light-success fw-bold">
+                    <i class="ki-outline ki-wallet fs-5"></i> Deposit</a>
+                </div>
               @endif
             </div>
 

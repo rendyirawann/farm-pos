@@ -54,7 +54,7 @@
         @endunless
 
         <div class="table-responsive">
-          <table class="table table-row-bordered align-middle gy-3 mb-0 farm-list-table">
+          <table class="table table-row-bordered align-middle gy-3 mb-0 farm-card-table">
             <thead><tr class="fw-bold text-muted bg-light fs-8">
               <th class="ps-4">Supplier</th>
               <th class="text-end">Total Setoran</th>
@@ -84,8 +84,17 @@
                   @endif
                 </td>
                 <td class="text-end pe-4" data-label="Aksi">
+                  {{-- Setor langsung dari daftar: menambah saldo adalah pekerjaan
+                       paling sering di halaman ini, jadi tidak perlu masuk detail dulu. --}}
+                  @if ($bolehIsi)
+                    <button class="btn btn-sm btn-success py-1 px-3 fs-8 fw-bold js-topup"
+                            data-bs-toggle="modal" data-bs-target="#m-topup"
+                            data-aksi="{{ route('farm.deposits.topup', $s->id) }}"
+                            data-nama="{{ $s->name }}" data-saldo="{{ (float) $s->saldo }}">
+                      <i class="ki-outline ki-plus fs-5"></i> Setor</button>
+                  @endif
                   <a href="{{ route('farm.deposits.show', $s->id) }}" class="btn btn-sm btn-light-primary py-1 px-3 fs-8">
-                    Detail &amp; Setor</a>
+                    Riwayat</a>
                 </td>
               </tr>
             @empty
@@ -100,4 +109,8 @@
     </div>
   </div>
 </div>
+
+@if ($bolehIsi)
+  @include('backend.farm.deposits._topup_modal', ['supplier' => null])
+@endif
 @endsection

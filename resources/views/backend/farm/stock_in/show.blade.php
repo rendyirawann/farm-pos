@@ -597,15 +597,8 @@
       tabel.addEventListener('input', hitung);
       hitung();
 
-      // Kunci tombol setelah diklik: di gudang bersinyal lemah, tombol Simpan
-      // sering ditekan berulang karena spinner terlihat menggantung.
-      var form = document.getElementById('f-real');
-      if (form) {
-          form.addEventListener('submit', function () {
-              var b = document.getElementById('btn-real');
-              if (b) { b.disabled = true; b.textContent = 'Menyimpan…'; }
-          });
-      }
+      // Sekali-kirim & spinner ditangani penjaga global (partials/_submit_guard);
+      // di sini tombol hanya dimatikan selama belum ada selisih.
   })();
 </script>
 @endif

@@ -19,7 +19,9 @@
           <div class="fs-8 text-muted">Total yang masih harus dibayar:
             <b class="text-danger">{{ $rp($sisaBelum) }}</b></div>
         </div>
-        <a href="{{ route('farm.stock-in.index', ['status' => 'unpaid', 'from' => $from, 'to' => $to]) }}"
+        {{-- Tanpa tanggal: kalau rentang yang sedang dipakai ikut dibawa, nota lama
+             yang belum lunas tetap tidak muncul dan tombol ini terasa "tidak bisa diklik". --}}
+        <a href="{{ route('farm.stock-in.index', ['status' => 'unpaid']) }}"
            class="btn btn-sm btn-warning fw-bold">Lihat yang Belum Lunas</a>
       </div>
     @endif
@@ -28,19 +30,30 @@
       <div class="card-header pt-5">
         <div>
           <h3 class="card-title fw-bold fs-4 mb-0">Barang Masuk</h3>
-          <span class="text-muted fs-8">Total periode ini: <b class="text-gray-800">{{ $rp($total) }}</b></span>
+          <span class="text-muted fs-8">
+            {{ $disaring ? 'Hasil filter' : 'Seluruh riwayat' }}:
+            <b class="text-gray-800">{{ number_format($jumlah, 0, ',', '.') }} nota</b> ·
+            <b class="text-gray-800">{{ $rp($total) }}</b>
+          </span>
         </div>
-        <div class="card-toolbar gap-2">
-          <form method="GET" class="d-flex gap-2 align-items-center">
-            <input type="date" name="from" value="{{ $from }}" class="form-control form-control-sm form-control-solid" style="width:150px">
+        <div class="card-toolbar gap-2 flex-wrap">
+          <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
+            <input type="date" name="from" value="{{ $from }}" class="form-control form-control-sm form-control-solid"
+                   style="width:150px" title="Dari tanggal (boleh dikosongkan)">
             <span class="text-muted">s/d</span>
-            <input type="date" name="to" value="{{ $to }}" class="form-control form-control-sm form-control-solid" style="width:150px">
+            <input type="date" name="to" value="{{ $to }}" class="form-control form-control-sm form-control-solid"
+                   style="width:150px" title="Sampai tanggal (boleh dikosongkan)">
             <select name="status" class="form-select form-select-sm form-select-solid" style="width:160px">
               <option value="">Semua status</option>
               <option value="unpaid" {{ $status === 'unpaid' ? 'selected' : '' }}>Belum Lunas</option>
               <option value="paid" {{ $status === 'paid' ? 'selected' : '' }}>Lunas</option>
             </select>
             <button class="btn btn-sm btn-light-primary fw-bold">Filter</button>
+            @if ($disaring)
+              {{-- Jalan keluar dari filter: tanpa ini orang harus mengosongkan tiga
+                   kolom satu-satu untuk kembali melihat semua data. --}}
+              <a href="{{ route('farm.stock-in.index') }}" class="btn btn-sm btn-light fw-bold">Tampilkan Semua</a>
+            @endif
           </form>
           <a href="{{ route('farm.stock-in.create') }}" class="btn btn-success fw-bold">
             <i class="ki-outline ki-plus fs-3"></i> Barang Masuk</a>
@@ -88,7 +101,15 @@
                 </td>
               </tr>
             @empty
-              <tr><td colspan="6" class="text-center text-muted py-10">Belum ada pembelian pada periode ini.</td></tr>
+              <tr><td colspan="6" class="text-center text-muted py-10">
+                @if ($disaring)
+                  Tidak ada nota yang cocok dengan filter ini.
+                  <a href="{{ route('farm.stock-in.index') }}" class="fw-bold">Tampilkan semua</a>.
+                @else
+                  Belum ada pembelian yang tercatat.
+                  <a href="{{ route('farm.stock-in.create') }}" class="fw-bold">Catat barang masuk</a>.
+                @endif
+              </td></tr>
             @endforelse
             </tbody>
           </table>

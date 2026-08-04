@@ -42,24 +42,37 @@ class FarmStockService
                 break;
             }
 
-            $ambilKg   = min($sisaKg, (float) $lot->weight_kg_left);
-            $ambilEkor = min($sisaEkor, (int) $lot->qty_ekor_left);
+            [$ambilKg, $ambilEkor, $cost, $lewati] = $this->alokasiLot($lot, $sisaKg, $sisaEkor);
 
-            // Lot yang sudah kosong di kedua besaran dilewati.
-            if ($ambilKg <= 0 && $ambilEkor <= 0) {
+            if ($lewati) {
                 continue;
             }
 
-            // Biaya dihitung dari kg bila ada bobotnya, kalau tidak jatuh ke per ekor
-            // (mis. penjualan yang benar-benar dihitung per ekor).
-            $cost = $ambilKg > 0
-                ? $ambilKg * (float) $lot->cost_per_kg
-                : $ambilEkor * (float) $lot->cost_per_ekor;
+            $sisaKgLot   = round((float) $lot->weight_kg_left - $ambilKg, 2);
+            $sisaEkorLot = (int) $lot->qty_ekor_left - $ambilEkor;
+
+            // Bobot lot habis tapi ekor masih tersisa: sisa ekor itu tidak punya
+            // nilai lagi (seluruh nilai lot dinilai per kg dan sudah terpakai).
+            // Dibiarkan menggantung, ia akan ikut antrean FIFO dengan harga pokok 0
+            // dan menciptakan laba palsu — jadi ditutup di sini.
+            $ekorHantu = 0;
+            if ($this->dinilaiPerKg($lot) && $sisaKgLot <= 0.001 && $sisaEkorLot > 0) {
+                $ekorHantu   = $sisaEkorLot;
+                $sisaEkorLot = 0;
+            }
 
             $lot->update([
-                'weight_kg_left' => round((float) $lot->weight_kg_left - $ambilKg, 2),
-                'qty_ekor_left'  => (int) $lot->qty_ekor_left - $ambilEkor,
+                'weight_kg_left' => max(0, $sisaKgLot),
+                'qty_ekor_left'  => max(0, $sisaEkorLot),
             ]);
+
+            if ($ekorHantu > 0) {
+                $this->warnings[] = sprintf(
+                    'Lot #%d: bobot habis tetapi %d ekor masih tercatat — selisih ekor ini ditutup '
+                    . '(nilainya sudah terhitung pada kilogram yang terjual).',
+                    $lot->id, $ekorHantu
+                );
+            }
 
             $usages[] = [
                 'lot_id'    => $lot->id,
@@ -86,6 +99,52 @@ class FarmStockService
         }
 
         return ['cost' => round($totalCost, 2), 'usages' => $usages];
+    }
+
+    /**
+     * Berapa yang diambil dari satu lot, dan berapa nilainya.
+     *
+     * KILOGRAM adalah satuan penilai; jumlah ekor hanyalah keterangan. Sebabnya:
+     * kalau nilai boleh dihitung dari salah satu besaran mana pun yang tersedia,
+     * satu lot bisa "mengeluarkan" nilai lewat ekor sementara kilogramnya masih
+     * utuh dan tetap dihitung sebagai persediaan — nilai keluar jadi lebih besar
+     * daripada nilai masuk, dan laporan HPP tidak akan pernah bisa ditutup.
+     *
+     * Hanya lot yang benar-benar tanpa bobot (mis. telur yang dihitung per butir)
+     * yang dinilai per ekor/butir.
+     *
+     * @return array{0: float, 1: int, 2: float, 3: bool}  [ambilKg, ambilEkor, biaya, lewati]
+     */
+    private function alokasiLot(StockLot $lot, float $sisaKg, int $sisaEkor): array
+    {
+        if (! $this->dinilaiPerKg($lot)) {
+            $ambilEkor = min($sisaEkor, (int) $lot->qty_ekor_left);
+
+            return [0.0, $ambilEkor, $ambilEkor * (float) $lot->cost_per_ekor, $ambilEkor <= 0];
+        }
+
+        $ambilKg = min($sisaKg, (float) $lot->weight_kg_left);
+
+        // Kebutuhan kilogram sudah terpenuhi sementara lot ini masih berbobot:
+        // jangan mengambil ekornya. Mengambil ekor tanpa kilogram akan memisahkan
+        // jumlah fisik dari nilainya.
+        if ($ambilKg <= 0) {
+            return [0.0, 0, 0.0, true];
+        }
+
+        // Ekor mengikuti kilogram yang diambil, sebatas isi lot dan sebatas yang
+        // memang dijual. Sisa ekor yang menggantung setelah bobot lot habis
+        // ditutup oleh pemanggil (bukan dijual), supaya angka "terjual" pada
+        // laporan tetap sama dengan yang benar-benar keluar.
+        $ambilEkor = max(0, min($sisaEkor, (int) $lot->qty_ekor_left));
+
+        return [$ambilKg, $ambilEkor, $ambilKg * (float) $lot->cost_per_kg, false];
+    }
+
+    /** Lot berbobot dinilai per kilogram; yang tanpa bobot dinilai per ekor/butir. */
+    private function dinilaiPerKg(StockLot $lot): bool
+    {
+        return (float) $lot->weight_kg_initial > 0;
     }
 
     /** Catat pemakaian lot untuk satu baris penjualan. */
@@ -159,14 +218,13 @@ class FarmStockService
                 if (! $lot) {
                     throw new RuntimeException('Lot tidak ditemukan.');
                 }
-                $ambilKg   = min($kg, (float) $lot->weight_kg_left);
-                $ambilEkor = min($ekor, (int) $lot->qty_ekor_left);
+                // Aturan penilaian sama dengan FIFO: kilogram yang menentukan nilai.
+                [$ambilKg, $ambilEkor, $biaya] = $this->alokasiLot($lot, $kg, $ekor);
                 $lot->update([
-                    'weight_kg_left' => round((float) $lot->weight_kg_left - $ambilKg, 2),
-                    'qty_ekor_left'  => (int) $lot->qty_ekor_left - $ambilEkor,
+                    'weight_kg_left' => max(0, round((float) $lot->weight_kg_left - $ambilKg, 2)),
+                    'qty_ekor_left'  => max(0, (int) $lot->qty_ekor_left - $ambilEkor),
                 ]);
-                $dampak = round($ambilKg > 0 ? $ambilKg * (float) $lot->cost_per_kg
-                                             : $ambilEkor * (float) $lot->cost_per_ekor, 2);
+                $dampak = round($biaya, 2);
 
                 $pemakaian = [[
                     'lot_id' => $lot->id, 'qty_ekor' => $ambilEkor,
@@ -234,17 +292,18 @@ class FarmStockService
         $total = 0.0;
         $lots = [];
 
+        // Aturan alokasi HARUS sama dengan consumeFifo. Kalau pratinjau memakai
+        // rumus lain, angka margin yang dilihat penjual bukan angka yang tersimpan.
         foreach (StockLot::where('item_id', $itemId)->available()->fifo()->get() as $lot) {
             if ($sisaKg <= 0 && $sisaEkor <= 0) {
                 break;
             }
-            $ambilKg   = min($sisaKg, (float) $lot->weight_kg_left);
-            $ambilEkor = min($sisaEkor, (int) $lot->qty_ekor_left);
-            if ($ambilKg <= 0 && $ambilEkor <= 0) {
+
+            [$ambilKg, $ambilEkor, $cost, $lewati] = $this->alokasiLot($lot, $sisaKg, $sisaEkor);
+            if ($lewati) {
                 continue;
             }
-            $cost = $ambilKg > 0 ? $ambilKg * (float) $lot->cost_per_kg
-                                 : $ambilEkor * (float) $lot->cost_per_ekor;
+
             $total += $cost;
             $lots[] = [
                 'lot_id'      => $lot->id,

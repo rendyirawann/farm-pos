@@ -26,30 +26,45 @@ class StockInController extends Controller
 {
     public function index(Request $request)
     {
-        $from = $request->filled('from') ? Carbon::parse($request->from) : Carbon::now()->startOfMonth();
-        $to   = $request->filled('to') ? Carbon::parse($request->to) : Carbon::now();
+        // Bawaan: TAMPIL SEMUA. Rentang tanggal dulu dipaksa "bulan ini", sehingga
+        // nota bulan lalu tidak kelihatan dan orang menyangka datanya hilang.
+        // Tanggal kini hanya dipakai bila memang diisi.
+        $from = $request->filled('from') ? Carbon::parse($request->from) : null;
+        $to   = $request->filled('to') ? Carbon::parse($request->to) : null;
 
-        $q = StockIn::with(['supplier', 'lines.item', 'realization'])
-            ->whereBetween('date', [$from->toDateString(), $to->toDateString()]);
+        $filter = function ($q) use ($from, $to, $request) {
+            if ($from) {
+                $q->whereDate('date', '>=', $from->toDateString());
+            }
+            if ($to) {
+                $q->whereDate('date', '<=', $to->toDateString());
+            }
+            if (in_array($request->input('status'), ['paid', 'unpaid'], true)) {
+                $q->where('payment_status', $request->input('status'));
+            }
 
-        // Filter status pembayaran KITA ke supplier.
-        if (in_array($request->input('status'), ['paid', 'unpaid'], true)) {
-            $q->where('payment_status', $request->input('status'));
-        }
+            return $q;
+        };
 
-        $rows = $q->orderByDesc('date')->orderByDesc('id')->paginate(25)->withQueryString();
+        $rows = $filter(StockIn::with(['supplier', 'lines.item', 'realization']))
+            ->orderByDesc('date')->orderByDesc('id')
+            ->paginate(10)->withQueryString();
 
-        // Ringkasan seluruh nota BELUM LUNAS — tidak dibatasi rentang tanggal,
+        // Ringkasan seluruh nota BELUM LUNAS — tidak pernah dibatasi filter,
         // karena nota lama yang menggantung justru yang paling perlu terlihat.
         $belum = StockIn::with('realization')->where('payment_status', 'unpaid')->get();
         $sisaBelum = $belum->sum(fn (StockIn $r) => $r->remainingToPay());
 
         return view('backend.farm.stock_in.index', [
             'rows'   => $rows,
-            'from'   => $from->format('Y-m-d'),
-            'to'     => $to->format('Y-m-d'),
+            'from'   => $from?->format('Y-m-d'),
+            'to'     => $to?->format('Y-m-d'),
             'status' => $request->input('status'),
-            'total'  => (float) StockIn::whereBetween('date', [$from->toDateString(), $to->toDateString()])->sum('total'),
+            // Total mengikuti filter yang sedang dipakai, bukan seluruh riwayat,
+            // supaya angkanya cocok dengan daftar yang sedang dilihat.
+            'total'   => (float) $filter(StockIn::query())->sum('total'),
+            'jumlah'  => $rows->total(),
+            'disaring' => (bool) ($from || $to || $request->filled('status')),
             'jumlahBelum' => $belum->count(),
             'sisaBelum'   => round((float) $sisaBelum, 2),
         ]);
