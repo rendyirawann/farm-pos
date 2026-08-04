@@ -7,6 +7,7 @@ use App\Http\Controllers\Backend\Farm\EggProductionController;
 use App\Http\Controllers\Backend\Farm\FarmDashboardController;
 use App\Http\Controllers\Backend\Farm\ItemController;
 use App\Http\Controllers\Backend\Farm\ReceivableController;
+use App\Http\Controllers\Backend\Farm\ReportController;
 use App\Http\Controllers\Backend\Farm\StockInController;
 use App\Http\Controllers\Backend\Farm\StockOutController;
 use App\Http\Controllers\Backend\Farm\SupplierController;
@@ -82,6 +83,10 @@ Route::get('/admin/farm/adjustments', [AdjustmentController::class, 'index'])->n
 Route::post('/admin/farm/adjustments', [AdjustmentController::class, 'store'])->name('farm.adjustments.store');
 Route::post('/admin/farm/adjustments/{adjustment}/approve', [AdjustmentController::class, 'approve'])->name('farm.adjustments.approve');
 Route::get('/admin/farm/items/{item}/lots', [AdjustmentController::class, 'lots'])->name('farm.items.lots');
+
+// ---------- LAPORAN ----------
+Route::get('/admin/farm/reports', [ReportController::class, 'index'])->name('farm.reports.index');
+Route::get('/admin/farm/reports/pdf', [ReportController::class, 'pdf'])->name('farm.reports.pdf');
 
 // ---------- PIUTANG ----------
 Route::get('/admin/farm/receivables', [ReceivableController::class, 'index'])->name('farm.receivables.index');

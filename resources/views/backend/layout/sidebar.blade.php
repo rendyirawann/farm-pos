@@ -271,6 +271,7 @@
                                 ['Produksi Telur', 'farm.eggs.index',        'ki-abstract-26',    'warning'],
                                 ['Penyesuaian',    'farm.adjustments.index', 'ki-arrows-circle',  'danger'],
                                 ['Piutang',        'farm.receivables.index', 'ki-dollar',         'danger'],
+                                ['Laporan',        'farm.reports.index',     'ki-document',       'primary'],
                             ];
                         @endphp
                         @foreach ($farmCards as [$judul, $rute, $ikon, $warna])

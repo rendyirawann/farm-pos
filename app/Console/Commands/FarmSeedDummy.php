@@ -465,7 +465,7 @@ class FarmSeedDummy extends Command
 
             $adj = StockAdjustment::create([
                 'ref_no'    => 'ADJ-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5)),
-                'date'      => $lot->date->copy()->addDays(mt_rand(1, 5))->toDateString(),
+                'date'      => min($lot->date->copy()->addDays(mt_rand(1, 5)), Carbon::today())->toDateString(),
                 'item_id'   => $lot->item_id,
                 'lot_id'    => $lot->id,
                 'reason'    => ['mati', 'susut', 'rusak'][mt_rand(0, 2)],
@@ -531,7 +531,7 @@ class FarmSeedDummy extends Command
             AgentPayment::create([
                 'agent_id'     => $out->agent_id,
                 'stock_out_id' => $out->id,
-                'date'         => $out->date->copy()->addDays(mt_rand(1, 10))->toDateString(),
+                'date'         => min($out->date->copy()->addDays(mt_rand(1, 10)), Carbon::today())->toDateString(),
                 'amount'       => $bayar,
                 'method'       => ['cash', 'transfer'][mt_rand(0, 1)],
                 'user_id'      => Auth::id(),

@@ -30,13 +30,22 @@
 
         {{-- ===== MENU NAVBAR PETERNAKAN (vertical 'farm') ===== --}}
         @if ($navIsFarm)
-            <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('farm.stock-in.*') ? 'here show ' : '' }}">
-                <a href="{{ route('farm.stock-in.index') }}" class="menu-link px-4 {{ request()->routeIs('farm.stock-in.*') ? 'active ' : '' }}">
-                    <span class="menu-title">Barang Masuk</span></a>
-            </div>
-            <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('farm.stock-out.*') ? 'here show ' : '' }}">
-                <a href="{{ route('farm.stock-out.index') }}" class="menu-link px-4 {{ request()->routeIs('farm.stock-out.*') ? 'active ' : '' }}">
-                    <span class="menu-title">Barang Keluar</span></a>
+            {{-- Inventori: barang masuk & keluar adalah dua sisi dari pekerjaan yang sama,
+                 jadi disatukan dalam satu tarikan menu. --}}
+            <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
+                class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
+                <span class="menu-link px-4 {{ request()->routeIs('farm.stock-in.*', 'farm.stock-out.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Inventori</span><span class="menu-arrow d-lg-none"></span></span>
+                <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-210px">
+                    <div class="menu-item {{ request()->routeIs('farm.stock-in.*') ? 'here show ' : '' }}">
+                        <a class="menu-link py-3" href="{{ route('farm.stock-in.index') }}">
+                            <span class="menu-icon"><i class="ki-outline ki-entrance-left fs-2"></i></span>
+                            <span class="menu-title">Barang Masuk</span></a></div>
+                    <div class="menu-item {{ request()->routeIs('farm.stock-out.*') ? 'here show ' : '' }}">
+                        <a class="menu-link py-3" href="{{ route('farm.stock-out.index') }}">
+                            <span class="menu-icon"><i class="ki-outline ki-entrance-right fs-2"></i></span>
+                            <span class="menu-title">Barang Keluar</span></a></div>
+                </div>
             </div>
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
                 class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
@@ -53,9 +62,13 @@
                         <span class="menu-icon"><i class="ki-outline ki-package fs-2"></i></span><span class="menu-title">Item</span></a></div>
                 </div>
             </div>
+            <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('farm.reports.*') ? 'here show ' : '' }}">
+                <a href="{{ route('farm.reports.index') }}" class="menu-link px-4 {{ request()->routeIs('farm.reports.*') ? 'active ' : '' }}">
+                    <span class="menu-title">Laporan</span></a>
+            </div>
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
                 class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
-                <span class="menu-link px-4 {{ request()->routeIs('farm.eggs.*', 'farm.adjustments.*', 'farm.warehouse.*', 'farm.receivables.*') ? 'active ' : '' }}">
+                <span class="menu-link px-4 {{ request()->routeIs('farm.eggs.*', 'farm.adjustments.*', 'farm.warehouse.*', 'farm.receivables.*', 'expenses.*') ? 'active ' : '' }}">
                     <span class="menu-title">Operasional</span><span class="menu-arrow d-lg-none"></span></span>
                 <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-210px">
                     <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.warehouse.index') }}">
@@ -68,6 +81,14 @@
                         <span class="menu-icon"><i class="ki-outline ki-arrows-circle fs-2"></i></span><span class="menu-title">Penyesuaian Stok</span></a></div>
                     <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.receivables.index') }}">
                         <span class="menu-icon"><i class="ki-outline ki-dollar fs-2"></i></span><span class="menu-title">Piutang Agen</span></a></div>
+                    @if (auth()->user()->tenant_id)
+                        @can('view_expense')
+                            <div class="menu-item {{ request()->routeIs('expenses.*') ? 'here show ' : '' }}">
+                                <a class="menu-link py-3" href="{{ route('expenses.index') }}">
+                                    <span class="menu-icon"><i class="ki-outline ki-wallet fs-2"></i></span>
+                                    <span class="menu-title">Pengeluaran</span></a></div>
+                        @endcan
+                    @endif
                 </div>
             </div>
         @endif
@@ -176,8 +197,10 @@
         @endcan
         @endif
 
-        {{-- PENGELUARAN: owner/admin/kasir tenant (Superadmin tanpa tenant tidak tampil) --}}
-        @if (auth()->user()->tenant_id)
+        {{-- PENGELUARAN: owner/admin/kasir tenant (Superadmin tanpa tenant tidak tampil).
+             Pada tampilan peternakan menu ini sudah berada di dalam dropdown Operasional,
+             jadi di sini tidak ditampilkan lagi agar tidak muncul dua kali. --}}
+        @if (auth()->user()->tenant_id && ! $navIsFarm)
             @can('view_expense')
                 <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('expenses.*') ? 'here show ' : '' }}">
                     <a href="{{ route('expenses.index') }}" class="menu-link px-4 {{ request()->routeIs('expenses.*') ? 'active ' : '' }}">
@@ -313,49 +336,39 @@
             </div>
         @endcan
 
-        {{-- LANGGANAN / BILLING: owner & admin tenant (bukan Superadmin yang tanpa tenant) --}}
-        @if (auth()->user()->tenant_id && auth()->user()->can('view_billing'))
-            <div
-                class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('billing.*') ? 'here show ' : '' }}">
-                <a href="{{ route('billing.index') }}"
-                    class="menu-link px-4 {{ request()->routeIs('billing.*') ? 'active ' : '' }}">
-                    <span class="menu-title">Langganan</span>
-                </a>
-            </div>
+        {{-- PENGATURAN SISTEM — Langganan, Aplikasi, dan Log Activity disatukan.
+             Ketiganya jarang dibuka dan bukan pekerjaan harian, jadi tidak perlu
+             memakan tempat di baris menu utama. Tiap isinya tetap memakai
+             pembatasan hak akses masing-masing seperti sebelumnya. --}}
+        @php($bolehBilling = auth()->user()->tenant_id && auth()->user()->can('view_billing'))
+        @php($aturAktif = request()->routeIs('billing.*', 'download-app', 'log-activity.index'))
+        <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
+            class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention menu-here-bg me-0 me-lg-2 {{ $aturAktif ? 'here show ' : '' }}">
+            <span class="menu-link px-4 {{ $aturAktif ? 'active ' : '' }}">
+                <span class="menu-title">Pengaturan Sistem</span>
+                <span class="menu-arrow d-lg-none"></span>
+            </span>
+            <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-220px">
+                @if ($bolehBilling)
+                    <div class="menu-item {{ request()->routeIs('billing.*') ? 'here show ' : '' }}">
+                        <a class="menu-link py-3" href="{{ route('billing.index') }}">
+                            <span class="menu-icon"><i class="ki-outline ki-crown fs-2"></i></span>
+                            <span class="menu-title">Langganan</span></a></div>
+                @endif
 
-            {{-- PLAN DEPOSIT / POIN — DIHAPUS di farm.mooda.id.
-                 Instance satu-tenant memakai paket Customize tetap, bukan pay-as-you-go. --}}
-        @endif
+                <div class="menu-item {{ request()->routeIs('download-app') ? 'here show ' : '' }}">
+                    <a class="menu-link py-3" href="{{ route('download-app') }}">
+                        <span class="menu-icon"><i class="ki-outline ki-tablet fs-2"></i></span>
+                        <span class="menu-title">Aplikasi</span></a></div>
 
-        {{-- APLIKASI TABLET (semua user login) --}}
-        <div class="menu-item menu-here-bg me-0 me-lg-2 {{ request()->routeIs('download-app') ? 'here show ' : '' }}">
-            <a href="{{ route('download-app') }}"
-                class="menu-link px-4 {{ request()->routeIs('download-app') ? 'active ' : '' }}">
-                <span class="menu-title">Aplikasi</span>
-            </a>
-        </div>
-
-        {{-- HELP: Superadmin + admin + owner (yang punya view_help) --}}
-        @can('view_help')
-            <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
-                class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
-                <span class="menu-link py-3  {{ request()->routeIs('log-activity.index') ? 'active ' : '' }}">
-                    <span class="menu-title">Help</span>
-                    <span class="menu-arrow d-lg-none">
-                    </span>
-                </span>
-                <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-200px">
+                @can('view_help')
                     <div class="menu-item {{ request()->routeIs('log-activity.index') ? 'here show ' : '' }}">
-                        <a class="menu-link py-3 " href="{{ route('log-activity.index') }}">
-                            <span class="menu-icon">
-                                <i class="ki-outline ki-rocket fs-2"></i>
-                            </span>
-                            <span class="menu-title">Log Activity</span>
-                        </a>
-                    </div>
-                </div>
+                        <a class="menu-link py-3" href="{{ route('log-activity.index') }}">
+                            <span class="menu-icon"><i class="ki-outline ki-rocket fs-2"></i></span>
+                            <span class="menu-title">Log Activity</span></a></div>
+                @endcan
             </div>
-        @endcan
+        </div>
 
         {{-- TOGGLE MODE (Superadmin): Analitik <-> Kasir + pemilih toko utk mode POS --}}
         @if ($isSuperadminView ?? false)
