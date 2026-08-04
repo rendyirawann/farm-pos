@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Backend\Farm\AdjustmentController;
 use App\Http\Controllers\Backend\Farm\AgentController;
+use App\Http\Controllers\Backend\Farm\DepositController;
 use App\Http\Controllers\Backend\Farm\EggProductionController;
 use App\Http\Controllers\Backend\Farm\FarmDashboardController;
 use App\Http\Controllers\Backend\Farm\ItemController;
@@ -51,12 +52,17 @@ Route::get('/admin/farm/stock-in/{stockIn}/receipt', [StockInController::class, 
 Route::get('/admin/farm/stock-in/{stockIn}/pdf', [StockInController::class, 'pdf'])->name('farm.stock-in.pdf');
 Route::post('/admin/farm/stock-in/{stockIn}/photo', [StockInController::class, 'uploadPhoto'])->name('farm.stock-in.photo');
 Route::delete('/admin/farm/stock-in/{stockIn}/photo', [StockInController::class, 'deletePhoto'])->name('farm.stock-in.photo.delete');
-// Realisasi (kekurangan barang dari supplier) & piutang supplier
+// Realisasi = hasil timbang ulang barang yang benar-benar diterima. Satu nota satu realisasi.
 Route::post('/admin/farm/stock-in/{stockIn}/realization', [StockInController::class, 'storeRealization'])->name('farm.stock-in.realization');
-Route::delete('/admin/farm/stock-in/{stockIn}/realization/{realization}', [StockInController::class, 'destroyRealization'])->name('farm.stock-in.realization.delete');
-Route::post('/admin/farm/stock-in/{stockIn}/apply-credit', [StockInController::class, 'applyCredit'])->name('farm.stock-in.apply-credit');
-Route::post('/admin/farm/stock-in/{stockIn}/revoke-credit', [StockInController::class, 'revokeCredit'])->name('farm.stock-in.revoke-credit');
+Route::delete('/admin/farm/stock-in/{stockIn}/realization', [StockInController::class, 'destroyRealization'])->name('farm.stock-in.realization.delete');
 Route::post('/admin/farm/stock-in/{stockIn}/payment', [StockInController::class, 'setPayment'])->name('farm.stock-in.payment');
+
+// ---------- DEPOSIT SUPPLIER ----------
+Route::get('/admin/farm/deposits', [DepositController::class, 'index'])->name('farm.deposits.index');
+Route::get('/admin/farm/deposits/{supplier}', [DepositController::class, 'show'])->name('farm.deposits.show');
+Route::post('/admin/farm/deposits/{supplier}/topup', [DepositController::class, 'topup'])->name('farm.deposits.topup');
+Route::post('/admin/farm/deposits/{supplier}/adjust', [DepositController::class, 'adjust'])->name('farm.deposits.adjust');
+Route::delete('/admin/farm/deposits/entry/{deposit}', [DepositController::class, 'reverse'])->name('farm.deposits.reverse');
 
 // ---------- STOCK OUT ----------
 Route::get('/admin/farm/stock-out', [StockOutController::class, 'index'])->name('farm.stock-out.index');
@@ -84,5 +90,8 @@ Route::post('/admin/farm/receivables/{stockOut}/pay', [ReceivableController::cla
 
 // ---------- BUKA / TUTUP GUDANG ----------
 Route::get('/admin/farm/warehouse', [WarehouseController::class, 'index'])->name('farm.warehouse.index');
+// Stok per supplier + rincian HPP — hanya untuk dilihat.
+Route::get('/admin/farm/warehouse/stock', [WarehouseController::class, 'stock'])->name('farm.warehouse.stock');
+Route::get('/admin/farm/warehouse/stock/{supplier}', [WarehouseController::class, 'stockDetail'])->name('farm.warehouse.stock.detail');
 Route::post('/admin/farm/warehouse/open', [WarehouseController::class, 'open'])->name('farm.warehouse.open');
 Route::post('/admin/farm/warehouse/{session}/close', [WarehouseController::class, 'close'])->name('farm.warehouse.close');

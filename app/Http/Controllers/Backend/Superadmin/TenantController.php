@@ -411,7 +411,8 @@ class TenantController extends Controller
             ],
             'farm' => [
                 'farm_stock_out_lot_usages', 'farm_stock_out_lines', 'farm_stock_outs',
-                'farm_supplier_settlements', 'farm_stock_in_realizations',
+                'farm_stock_in_realization_lines', 'farm_stock_in_realizations',
+                'farm_adjustment_lot_usages', 'farm_supplier_deposits',
                 'farm_stock_lots', 'farm_stock_in_lines', 'farm_stock_ins',
                 'farm_agent_payments', 'farm_egg_productions', 'farm_stock_adjustments',
                 'farm_warehouse_sessions',

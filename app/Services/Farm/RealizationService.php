@@ -3,212 +3,207 @@
 namespace App\Services\Farm;
 
 use App\Models\Farm\StockIn;
-use App\Models\Farm\StockInLine;
 use App\Models\Farm\StockInRealization;
+use App\Models\Farm\StockInRealizationLine;
 use App\Models\Farm\StockLot;
-use App\Models\Farm\SupplierSettlement;
+use App\Models\Farm\StockOutLotUsage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * REALISASI barang masuk & PIUTANG SUPPLIER.
+ * REALISASI barang masuk — hasil timbang ulang saat barang benar-benar diterima.
  *
- * Alur: barang datang dicatat sesuai surat jalan supplier. Saat ditimbang ulang
- * ternyata kurang (susut perjalanan, ada yang mati, atau timbangan supplier beda).
- * Kekurangan itu:
- *   1) mengurangi STOK ke angka nyata — lewat lot pembelian yang bersangkutan,
- *      bukan FIFO, karena yang kurang adalah barang dari lot ITU;
- *   2) menjadi PIUTANG SUPPLIER senilai selisih x harga satuan nota.
- *
- * Piutang tersebut kemudian bisa ditutup oleh pembelian berikutnya dari supplier
- * yang sama — dialokasikan ke realisasi TERTUA lebih dulu agar tidak ada yang
- * menggantung terlalu lama.
+ * Aturan yang dipegang:
+ *   1. SATU NOTA = SATU REALISASI. Tidak ada tumpukan baris; koreksi berikutnya
+ *      hanya lewat batal + catat ulang.
+ *   2. Yang diminta ke petugas adalah ANGKA NYATA ("diterima berapa ekor / berapa
+ *      kg"), bukan selisih dan bukan pilihan kurang/lebih. Arah uang dihitung
+ *      sistem, sebab menyuruh petugas menyimpulkan arah adalah sumber salah tanda.
+ *   3. Selisih menyesuaikan SALDO DEPOSIT supplier (tidak ada lagi piutang supplier):
+ *      barang kurang -> saldo naik, barang lebih -> saldo turun.
+ *   4. Barang lebih TIDAK membuat lot baru — lot nota itu yang disesuaikan ke angka
+ *      nyata, dan keterangan "lebih x kg" tetap tersimpan pada baris realisasi.
+ *   5. Karena (4) mengubah isi & harga pokok lot, realisasi hanya boleh selama lot
+ *      BELUM terpakai (belum terjual, belum kena penyesuaian). Kalau sudah terpakai,
+ *      harga pokok yang sudah dibukukan akan berubah retroaktif — itu ditolak.
  */
 class RealizationService
 {
+    public function __construct(private DepositService $deposit) {}
+
     /**
-     * Catat realisasi pada satu baris nota pembelian.
+     * Catat realisasi satu nota sekaligus.
      *
-     * @throws RuntimeException bila kekurangan melebihi yang tercatat / stok lot habis
+     * @param  array  $data  ['date','reason','notes','lines' => [line_id => ['qty_ekor','weight_kg']]]
+     *
+     * @throws RuntimeException
      */
-    public function record(StockInLine $line, array $data): StockInRealization
+    public function record(StockIn $stockIn, array $data): StockInRealization
     {
-        return DB::transaction(function () use ($line, $data) {
-            $ekorKurang = max(0, (int) ($data['qty_ekor_short'] ?? 0));
-            $kgKurang   = max(0, round((float) ($data['weight_kg_short'] ?? 0), 2));
-
-            if ($ekorKurang <= 0 && $kgKurang <= 0) {
-                throw new RuntimeException('Isi kekurangan ekor atau kilogram.');
+        return DB::transaction(function () use ($stockIn, $data) {
+            if (StockInRealization::where('stock_in_id', $stockIn->id)->exists()) {
+                throw new RuntimeException('Nota ini sudah punya realisasi. Batalkan dulu bila ingin mengubahnya.');
             }
 
-            // Tidak boleh melebihi yang tercatat saat barang masuk — kalau melebihi,
-            // berarti yang salah adalah pencatatan awalnya, bukan realisasinya.
-            $sudah = StockInRealization::where('stock_in_line_id', $line->id)->get();
-            $sisaEkor = (int) $line->qty_ekor - (int) $sudah->sum('qty_ekor_short');
-            $sisaKg   = round((float) $line->weight_kg - (float) $sudah->sum('weight_kg_short'), 2);
-
-            if ($ekorKurang > $sisaEkor) {
-                throw new RuntimeException("Kekurangan ekor melebihi sisa yang bisa direalisasi ({$sisaEkor} ekor).");
-            }
-            if ($kgKurang > $sisaKg + 0.001) {
-                throw new RuntimeException('Kekurangan kg melebihi sisa yang bisa direalisasi (' . number_format($sisaKg, 2, ',', '.') . ' kg).');
+            $notaLines = $stockIn->lines()->with('item')->get();
+            if ($notaLines->isEmpty()) {
+                throw new RuntimeException('Nota ini tidak punya baris barang.');
             }
 
-            // Nilai kekurangan memakai DASAR HARGA nota, bukan menebak.
-            $nilai = $line->price_basis === 'ekor'
-                ? $ekorKurang * (float) $line->unit_price
-                : $kgKurang * (float) $line->unit_price;
-
-            // ---- Kurangi stok pada lot milik baris ini ----
-            $lot = StockLot::where('stock_in_line_id', $line->id)->lockForUpdate()->first();
-            if ($lot) {
-                $lot->update([
-                    'qty_ekor_left'  => max(0, (int) $lot->qty_ekor_left - $ekorKurang),
-                    'weight_kg_left' => max(0, round((float) $lot->weight_kg_left - $kgKurang, 2)),
-                    // Jumlah awal ikut dikoreksi supaya laporan stok tidak menampilkan
-                    // barang yang sebenarnya tidak pernah ada.
-                    'qty_ekor_initial'  => max(0, (int) $lot->qty_ekor_initial - $ekorKurang),
-                    'weight_kg_initial' => max(0, round((float) $lot->weight_kg_initial - $kgKurang, 2)),
-                ]);
-            }
-
-            $stockIn = $line->stockIn;
-
-            return StockInRealization::create([
-                'stock_in_id'      => $line->stock_in_id,
-                'stock_in_line_id' => $line->id,
-                'supplier_id'      => $stockIn?->supplier_id,
-                'date'             => $data['date'] ?? now()->toDateString(),
-                'reason'           => $data['reason'] ?? 'kurang_timbang',
-                'qty_ekor_short'   => $ekorKurang,
-                'weight_kg_short'  => $kgKurang,
-                'value'            => round($nilai, 2),
-                'settled_amount'   => 0,
-                'status'           => 'open',
-                'user_id'          => Auth::id(),
-                'notes'            => $data['notes'] ?? null,
+            $header = StockInRealization::create([
+                'stock_in_id' => $stockIn->id,
+                'supplier_id' => $stockIn->supplier_id,
+                'date'        => $data['date'] ?? now()->toDateString(),
+                'reason'      => $data['reason'] ?? 'kurang_timbang',
+                'user_id'     => Auth::id(),
+                'notes'       => $data['notes'] ?? null,
             ]);
+
+            $totalNilai = 0.0;
+            $totalEkor  = 0;
+            $totalKg    = 0.0;
+            $adaSelisih = false;
+
+            foreach ($notaLines as $line) {
+                $isi = $data['lines'][$line->id] ?? null;
+
+                // Baris yang dibiarkan kosong berarti diterima sesuai nota.
+                $nyataEkor = $this->angka($isi['qty_ekor'] ?? null) === null
+                    ? (int) $line->qty_ekor
+                    : max(0, (int) $isi['qty_ekor']);
+                $nyataKg = $this->angka($isi['weight_kg'] ?? null) === null
+                    ? round((float) $line->weight_kg, 2)
+                    : max(0, round((float) $isi['weight_kg'], 2));
+
+                $deltaEkor = $nyataEkor - (int) $line->qty_ekor;
+                $deltaKg   = round($nyataKg - (float) $line->weight_kg, 2);
+
+                // Nilai selisih memakai DASAR HARGA nota — kalau nota dihargai per
+                // ekor, selisih kg tidak boleh dinilai per kg (dan sebaliknya).
+                // Tanda dibalik supaya positif = saldo supplier NAIK (barang kurang).
+                $nilai = $line->price_basis === 'ekor'
+                    ? -1 * $deltaEkor * (float) $line->unit_price
+                    : -1 * $deltaKg * (float) $line->unit_price;
+
+                $lot = StockLot::where('stock_in_line_id', $line->id)->lockForUpdate()->first();
+
+                if ($deltaEkor !== 0 || abs($deltaKg) >= 0.005) {
+                    $adaSelisih = true;
+                    $this->pastikanLotBelumTerpakai($lot, $line->item?->name ?? 'barang ini');
+                    $this->sesuaikanLot($lot, $nyataEkor, $nyataKg, $line);
+                }
+
+                StockInRealizationLine::create([
+                    'realization_id'     => $header->id,
+                    'stock_in_line_id'   => $line->id,
+                    'lot_id'             => $lot?->id,
+                    'nota_qty_ekor'      => (int) $line->qty_ekor,
+                    'nota_weight_kg'     => round((float) $line->weight_kg, 2),
+                    'received_qty_ekor'  => $nyataEkor,
+                    'received_weight_kg' => $nyataKg,
+                    'delta_qty_ekor'     => $deltaEkor,
+                    'delta_weight_kg'    => $deltaKg,
+                    'price_basis'        => $line->price_basis,
+                    'unit_price'         => (float) $line->unit_price,
+                    'value'              => round($nilai, 2),
+                ]);
+
+                $totalNilai += $nilai;
+                $totalEkor  += $deltaEkor;
+                $totalKg    += $deltaKg;
+            }
+
+            if (! $adaSelisih) {
+                throw new RuntimeException('Semua barang sudah sesuai nota — tidak ada yang perlu direalisasi.');
+            }
+
+            $header->update([
+                'delta_qty_ekor'  => $totalEkor,
+                'delta_weight_kg' => round($totalKg, 2),
+                'value'           => round($totalNilai, 2),
+            ]);
+
+            // Selisihnya menyesuaikan saldo deposit supplier.
+            if ($stockIn->supplier_id) {
+                $this->deposit->adjustForRealization(
+                    $header->id,
+                    $stockIn->supplier_id,
+                    $header->date,
+                    round($totalNilai, 2),
+                    'Realisasi nota ' . $stockIn->invoice_no
+                );
+            }
+
+            return $header->fresh('lines');
         });
     }
 
-    /** Batalkan realisasi: stok dikembalikan ke lot, alokasi penutupan ikut dibatalkan. */
+    /**
+     * Batalkan realisasi: lot dikembalikan ke angka nota dan koreksi saldo dibalik.
+     * Baris buku besar lama tidak dihapus — dibukukan baris balik agar ada jejaknya.
+     */
     public function revert(StockInRealization $r): void
     {
         DB::transaction(function () use ($r) {
-            if ($r->settlements()->exists()) {
-                throw new RuntimeException('Realisasi ini sudah ditutup pembelian lain — batalkan penutupannya dulu.');
+            foreach ($r->lines()->with('line.item')->get() as $rl) {
+                $lot = $rl->lot_id ? StockLot::whereKey($rl->lot_id)->lockForUpdate()->first() : null;
+
+                if ($lot && ! $rl->isSesuai()) {
+                    $this->pastikanLotBelumTerpakai($lot, $rl->line?->item?->name ?? 'barang ini');
+                    $this->sesuaikanLot($lot, (int) $rl->nota_qty_ekor, (float) $rl->nota_weight_kg, $rl->line);
+                }
+
+                $rl->delete();
             }
 
-            $lot = StockLot::where('stock_in_line_id', $r->stock_in_line_id)->lockForUpdate()->first();
-            if ($lot) {
-                $lot->update([
-                    'qty_ekor_left'     => (int) $lot->qty_ekor_left + (int) $r->qty_ekor_short,
-                    'weight_kg_left'    => round((float) $lot->weight_kg_left + (float) $r->weight_kg_short, 2),
-                    'qty_ekor_initial'  => (int) $lot->qty_ekor_initial + (int) $r->qty_ekor_short,
-                    'weight_kg_initial' => round((float) $lot->weight_kg_initial + (float) $r->weight_kg_short, 2),
-                ]);
-            }
-
+            $this->deposit->reverseByReference('realization', $r->id, 'Realisasi dibatalkan');
             $r->delete();
         });
     }
 
     /**
-     * Pakai nota pembelian BARU untuk menutup piutang supplier.
-     * Dialokasikan ke realisasi tertua lebih dulu, maksimal sebesar nilai nota.
-     *
-     * @return array{terpakai: float, sisa_piutang: float, lunas: bool, rincian: array}
+     * Lot yang isinya sudah dipakai tidak boleh diubah: harga pokok penjualan yang
+     * sudah dibukukan akan berubah retroaktif dan laba periode lalu ikut bergeser.
      */
-    public function applyCredit(StockIn $stockIn, ?float $batas = null): array
+    private function pastikanLotBelumTerpakai(?StockLot $lot, string $namaBarang): void
     {
-        return DB::transaction(function () use ($stockIn, $batas) {
-            if (! $stockIn->supplier_id) {
-                return ['terpakai' => 0.0, 'sisa_piutang' => 0.0, 'lunas' => false, 'rincian' => []];
-            }
+        if (! $lot) {
+            return;
+        }
 
-            // Yang bisa ditutup paling banyak sebesar nilai nota ini yang belum tertutup.
-            $ruang = $batas !== null
-                ? min($batas, $stockIn->remainingToPay())
-                : $stockIn->remainingToPay();
+        $terjual = StockOutLotUsage::where('lot_id', $lot->id)->exists();
+        $susut   = DB::table('farm_adjustment_lot_usages')->where('lot_id', $lot->id)->exists();
 
-            if ($ruang <= 0.01) {
-                return ['terpakai' => 0.0, 'sisa_piutang' => $this->outstanding($stockIn->supplier_id),
-                        'lunas' => false, 'rincian' => []];
-            }
-
-            $terpakai = 0.0;
-            $rincian = [];
-
-            $daftar = StockInRealization::where('supplier_id', $stockIn->supplier_id)
-                ->whereColumn('settled_amount', '<', 'value')
-                ->orderBy('date')->orderBy('id')
-                ->lockForUpdate()->get();
-
-            foreach ($daftar as $r) {
-                if ($ruang <= 0.01) {
-                    break;
-                }
-                $ambil = min($r->remaining(), $ruang);
-                if ($ambil <= 0.01) {
-                    continue;
-                }
-
-                SupplierSettlement::create([
-                    'supplier_id'    => $stockIn->supplier_id,
-                    'realization_id' => $r->id,
-                    'stock_in_id'    => $stockIn->id,
-                    'date'           => $stockIn->date,
-                    'amount'         => round($ambil, 2),
-                    'user_id'        => Auth::id(),
-                    'notes'          => 'Ditutup nota pembelian ' . $stockIn->invoice_no,
-                ]);
-
-                $baru = round((float) $r->settled_amount + $ambil, 2);
-                $r->update([
-                    'settled_amount' => $baru,
-                    'status'         => $baru >= (float) $r->value - 0.01 ? 'settled' : 'open',
-                ]);
-
-                $rincian[] = [
-                    'realisasi' => $r->id,
-                    'tanggal'   => $r->date->format('d/m/Y'),
-                    'jumlah'    => round($ambil, 2),
-                ];
-
-                $terpakai += $ambil;
-                $ruang    -= $ambil;
-            }
-
-            if ($terpakai > 0) {
-                $stockIn->update(['credit_applied' => round((float) $stockIn->credit_applied + $terpakai, 2)]);
-                $this->syncPaymentStatus($stockIn->fresh());
-            }
-
-            return [
-                'terpakai'     => round($terpakai, 2),
-                'sisa_piutang' => $this->outstanding($stockIn->supplier_id),
-                'lunas'        => $stockIn->fresh()->remainingToPay() <= 0.01,
-                'rincian'      => $rincian,
-            ];
-        });
+        if ($terjual || $susut) {
+            throw new RuntimeException(
+                'Stok "' . $namaBarang . '" dari nota ini sudah dipakai (terjual atau kena penyesuaian), '
+                . 'jadi angkanya tidak bisa diubah lagi. Realisasi harus dicatat sebelum barang keluar. '
+                . 'Untuk selisih yang baru ketahuan sekarang, pakai menu Penyesuaian Stok.'
+            );
+        }
     }
 
-    /** Batalkan seluruh penutupan piutang oleh satu nota pembelian. */
-    public function revokeCredit(StockIn $stockIn): void
+    /** Setel lot ke angka NYATA (absolut) beserta harga pokoknya. */
+    private function sesuaikanLot(?StockLot $lot, int $ekor, float $kg, $line): void
     {
-        DB::transaction(function () use ($stockIn) {
-            foreach ($stockIn->settlements()->get() as $s) {
-                $r = $s->realization;
-                if ($r) {
-                    $baru = max(0, round((float) $r->settled_amount - (float) $s->amount, 2));
-                    $r->update(['settled_amount' => $baru, 'status' => $baru >= (float) $r->value - 0.01 ? 'settled' : 'open']);
-                }
-                $s->delete();
-            }
-            $stockIn->update(['credit_applied' => 0]);
-            $this->syncPaymentStatus($stockIn->fresh());
-        });
+        if (! $lot || ! $line) {
+            return;
+        }
+
+        // Subtotal nyata memakai dasar harga nota — inilah nilai lot sesungguhnya.
+        $subtotal = $line->price_basis === 'ekor'
+            ? $ekor * (float) $line->unit_price
+            : $kg * (float) $line->unit_price;
+
+        $lot->update([
+            'qty_ekor_initial'  => $ekor,
+            'weight_kg_initial' => round($kg, 2),
+            'qty_ekor_left'     => $ekor,
+            'weight_kg_left'    => round($kg, 2),
+            'cost_per_kg'       => $kg > 0 ? round($subtotal / $kg, 2) : 0,
+            'cost_per_ekor'     => $ekor > 0 ? round($subtotal / $ekor, 2) : 0,
+        ]);
     }
 
     /** Status lunas mengikuti sisa yang harus dibayar; tidak diisi manual agar tidak melenceng. */
@@ -221,10 +216,9 @@ class RealizationService
         ]);
     }
 
-    public function outstanding(int $supplierId): float
+    /** Nilai kosong ("" / null) dibedakan dari angka 0 yang memang diisi petugas. */
+    private function angka($v): ?string
     {
-        return (float) StockInRealization::where('supplier_id', $supplierId)
-            ->selectRaw('COALESCE(SUM(value - settled_amount), 0) as sisa')
-            ->value('sisa');
+        return ($v === null || $v === '') ? null : (string) $v;
     }
 }

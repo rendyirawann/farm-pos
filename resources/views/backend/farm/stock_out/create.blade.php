@@ -155,7 +155,7 @@
       <td data-label="Harga Jual"><input type="number" name="lines[${idx}][unit_price]" class="form-control form-control-solid text-center js-hit" min="0" step="100" value="0" required></td>
       <td data-label="Subtotal" class="text-end fw-bold js-sub">Rp 0</td>
       <td data-label="Modal (FIFO)" class="text-end js-modal text-muted fs-8">—</td>
-      <td data-label="Laba" class="text-end fw-bold js-laba">Rp 0</td>
+      <td data-label="Laba" class="text-end"><span class="fw-bold js-laba">Rp 0</span><div class="js-warn mt-1"></div></td>
       <td class="text-center farm-cell-action"><button type="button" class="btn btn-sm btn-icon btn-light-danger js-del"><i class="ki-outline ki-cross fs-4"></i></button></td>
     </tr>`);
     idx++;
@@ -176,7 +176,14 @@
       .then(r => r.json())
       .then(d => {
         tr.dataset.modal = d.cost || 0;
+        // Disimpan di baris supaya peringatan harga bisa dihitung ulang setiap kali
+        // harga jual diketik, tanpa memanggil server lagi.
+        tr.dataset.hppKg = d.hpp_per_kg || 0;
+        tr.dataset.hppEkor = d.hpp_per_ekor || 0;
+        tr.dataset.acuan = JSON.stringify(d.acuan || { state: 'none' });
+
         let ket = rupiah(d.cost || 0);
+        if (d.hpp_per_kg) ket += `<div class="fs-9 text-muted">HPP rata-rata ${rupiah(d.hpp_per_kg)}/kg</div>`;
         if (d.lots && d.lots.length) {
           ket += '<div class="fs-9 text-muted">' + d.lots.map(l =>
             `${l.tanggal}: ${l.weight_kg} kg @ ${rupiah(l.cost_per_kg)}`).join('<br>') + '</div>';
@@ -191,8 +198,71 @@
       .catch(() => { tr.querySelector('.js-modal').textContent = 'gagal memuat'; });
   }
 
+  /**
+   * PERIKSA HARGA JUAL terhadap dua angka yang arahnya berbeda:
+   *
+   *   1. HPP FIFO tertimbang  -> menjual di bawahnya = RUGI sekarang (kritis).
+   *   2. Harga beli terakhir  -> biaya mengganti stok; kalau naik, harga jual perlu
+   *                              ikut naik (informasi, BUKAN tuduhan kemahalan).
+   *
+   * Keduanya dibandingkan pada satuan yang SAMA (per kg dibanding per kg), dan
+   * selisih di bawah Rp100/0,5% diabaikan supaya peringatan tidak muncul di
+   * hampir setiap baris lalu berhenti dibaca.
+   */
+  const TOLERANSI_RP = 100, TOLERANSI_PERSEN = 0.005;
+
+  function periksaHarga(tr) {
+    const basis = tr.querySelector('[name*="[price_basis]"]').value;
+    const harga = angka(tr.querySelector('[name*="[unit_price]"]'));
+    const sel = tr.querySelector('.js-warn');
+    if (!sel) return null;
+
+    // Telur dijual per butir: tidak ada harga beli dan tidak ada HPP per kg/ekor
+    // yang setara — tidak dibandingkan daripada memunculkan angka palsu.
+    if (basis === 'butir' || harga <= 0) { sel.innerHTML = ''; return null; }
+
+    const hpp = basis === 'ekor' ? (+tr.dataset.hppEkor || 0) : (+tr.dataset.hppKg || 0);
+    let acuan = { state: 'none' };
+    try { acuan = JSON.parse(tr.dataset.acuan || '{}'); } catch (e) {}
+    const acuanHarga = basis === 'ekor' ? acuan.harga_ekor : acuan.harga_kg;
+
+    const satuan = basis === 'ekor' ? '/ekor' : '/kg';
+    let html = '', tingkat = null;
+
+    // (1) Di bawah harga pokok = rugi nyata. Ini satu-satunya yang menahan simpan.
+    if (hpp > 0 && harga < hpp - TOLERANSI_RP && harga < hpp * (1 - TOLERANSI_PERSEN)) {
+      tingkat = 'kritis';
+      html = `<div class="fs-9 text-danger fw-bold">RUGI ${rupiah(hpp - harga)}${satuan}
+              — harga pokok stok ini ${rupiah(hpp)}${satuan}</div>`;
+    }
+
+    // (2) Biaya mengganti stok. Nada pesannya mengikuti arah perubahan.
+    if (acuanHarga && acuan.state === 'ok') {
+      const beda = acuanHarga - hpp;
+      if (Math.abs(beda) > TOLERANSI_RP && hpp > 0 && Math.abs(beda) > hpp * TOLERANSI_PERSEN) {
+        if (beda > 0) {
+          html += `<div class="fs-9 text-warning fw-bold">Harga beli terakhir naik ke
+                   ${rupiah(acuanHarga)}${satuan} (${acuan.supplier}, ${acuan.tanggal}).
+                   Stok berikutnya lebih mahal — pertimbangkan naikkan harga jual.</div>`;
+          if (!tingkat) tingkat = 'info';
+        } else if (harga > 0) {
+          html += `<div class="fs-9 text-muted">Harga beli terakhir turun ke
+                   ${rupiah(acuanHarga)}${satuan} — margin stok berikutnya jadi lebih lega.</div>`;
+        }
+      }
+    } else if (acuan.state === 'stale' && acuanHarga) {
+      html += `<div class="fs-9 text-muted">Pembelian terakhir ${acuan.umur_hari} hari lalu
+               (${rupiah(acuanHarga)}${satuan}) — sudah lama, jangan dipakai sebagai patokan.</div>`;
+    }
+
+    sel.innerHTML = html;
+    return tingkat;
+  }
+
   function hitung() {
     let jual = 0, modal = 0;
+    const kritis = [];
+
     document.querySelectorAll('#t-lines tbody tr').forEach(tr => {
       const ekor = angka(tr.querySelector('[name*="[qty_ekor]"]'));
       const kg   = angka(tr.querySelector('[name*="[weight_kg]"]'));
@@ -205,10 +275,18 @@
       const laba = sub - m;
       const el = tr.querySelector('.js-laba');
       el.textContent = rupiah(laba);
-      el.className = 'text-end fw-bold js-laba ' + (laba >= 0 ? 'text-success' : 'text-danger');
+      el.className = 'fw-bold js-laba ' + (laba >= 0 ? 'text-success' : 'text-danger');
+
+      if (periksaHarga(tr) === 'kritis') {
+        const nama = tr.querySelector('.js-item').selectedOptions[0]?.textContent.split(' — ')[0] || 'barang';
+        kritis.push(nama);
+      }
 
       jual += sub; modal += m;
     });
+
+    // Dikumpulkan jadi satu daftar; satu dialog per nota, bukan per baris.
+    document.querySelector('#t-lines').dataset.kritis = kritis.join(', ');
     document.getElementById('g-jual').textContent = rupiah(jual);
     document.getElementById('g-modal').textContent = rupiah(modal);
     const laba = jual - modal;
@@ -254,6 +332,19 @@
     const b = e.target.closest('.js-del');
     if (b) { b.closest('tr').remove(); hitung(); }
   });
+
+  // Konfirmasi HANYA untuk yang benar-benar rugi (harga jual di bawah harga pokok).
+  // Peringatan "biaya ganti naik" tidak menahan simpan: kalau semua hal memunculkan
+  // dialog, petugas akan menekan "Yakin" tanpa membaca dan yang rugi ikut lolos.
+  document.getElementById('f-out')
+    ?.addEventListener('submit', function (e) {
+      const kritis = document.querySelector('#t-lines').dataset.kritis;
+      if (!kritis) return;
+      if (!confirm('Harga jual di bawah harga pokok untuk: ' + kritis
+          + '.\n\nNota ini akan tercatat RUGI. Lanjutkan menyimpan?')) {
+        e.preventDefault();
+      }
+    });
 
   barisBaru(); hitung(); aturTempo();
 </script>

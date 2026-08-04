@@ -167,15 +167,48 @@ class FarmStockService
                 ]);
                 $dampak = round($ambilKg > 0 ? $ambilKg * (float) $lot->cost_per_kg
                                              : $ambilEkor * (float) $lot->cost_per_ekor, 2);
+
+                $pemakaian = [[
+                    'lot_id' => $lot->id, 'qty_ekor' => $ambilEkor,
+                    'weight_kg' => round($ambilKg, 2), 'cost' => $dampak,
+                ]];
             } else {
                 $hasil  = $this->consumeFifo($adj->item_id, $kg, $ekor);
                 $dampak = $hasil['cost'];
+                $pemakaian = $hasil['usages'];
             }
+
+            // Jejak lot yang susut. Tanpa ini, kerugian penyesuaian tidak bisa
+            // dibebankan ke supplier mana pun sehingga HPP per supplier di menu
+            // Gudang jadi angka gantung.
+            $this->recordAdjustmentUsages($adj, $pemakaian);
 
             $adj->update(['cost_impact' => $dampak]);
 
             return $dampak;
         });
+    }
+
+    /** Simpan rincian lot mana saja yang berkurang karena satu penyesuaian. */
+    private function recordAdjustmentUsages(StockAdjustment $adj, array $usages): void
+    {
+        DB::table('farm_adjustment_lot_usages')->where('adjustment_id', $adj->id)->delete();
+
+        foreach ($usages as $u) {
+            if ($u['weight_kg'] <= 0 && $u['qty_ekor'] <= 0) {
+                continue;
+            }
+            DB::table('farm_adjustment_lot_usages')->insert([
+                'tenant_id'     => $adj->tenant_id,
+                'adjustment_id' => $adj->id,
+                'lot_id'        => $u['lot_id'],
+                'qty_ekor'      => $u['qty_ekor'],
+                'weight_kg'     => $u['weight_kg'],
+                'cost'          => $u['cost'],
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ]);
+        }
     }
 
     /** Harga pokok rata-rata per kg dari lot yang masih tersisa. */
@@ -216,6 +249,7 @@ class FarmStockService
             $lots[] = [
                 'lot_id'      => $lot->id,
                 'tanggal'     => optional($lot->date)->format('d/m/Y'),
+                'supplier_id' => $lot->supplier_id,
                 'supplier'    => $lot->supplier?->name,
                 'weight_kg'   => round($ambilKg, 2),
                 'qty_ekor'    => $ambilEkor,
@@ -225,11 +259,68 @@ class FarmStockService
             $sisaEkor -= $ambilEkor;
         }
 
+        // Harga pokok TERTIMBANG atas seluruh lot yang akan terpakai. Kalau hanya lot
+        // pertama yang ditampilkan, penjual bisa yakin marginnya Rp2.000 padahal
+        // rata-rata sebenarnya jauh lebih tinggi.
+        $terpakaiKg   = round(array_sum(array_column($lots, 'weight_kg')), 2);
+        $terpakaiEkor = (int) array_sum(array_column($lots, 'qty_ekor'));
+
         return [
-            'cost'      => round($total, 2),
-            'lots'      => $lots,
-            'kurang_kg' => max(0, $sisaKg),
+            'cost'        => round($total, 2),
+            'lots'        => $lots,
+            'kurang_kg'   => max(0, $sisaKg),
             'kurang_ekor' => max(0, $sisaEkor),
+            'hpp_per_kg'  => $terpakaiKg > 0.001 ? round($total / $terpakaiKg, 2) : null,
+            'hpp_per_ekor' => $terpakaiEkor > 0 ? round($total / $terpakaiEkor, 2) : null,
+            'terpakai_kg'   => $terpakaiKg,
+            'terpakai_ekor' => $terpakaiEkor,
+            // Acuan harga beli terakhir diambil dari supplier lot yang akan dipakai
+            // FIFO — bukan lintas supplier, karena harga tiap supplier bisa jauh beda
+            // (ayam kecil vs besar) dan salah acuan justru menekan harga jual.
+            'acuan' => $this->hargaBeliTerakhir($itemId, $lots[0]['supplier_id'] ?? null),
+        ];
+    }
+
+    /**
+     * Harga beli terakhir untuk (item, supplier) — sudah termasuk koreksi realisasi,
+     * karena angkanya diambil dari lot, bukan dari baris nota mentah.
+     *
+     * @return array{state:string, harga_kg:?float, harga_ekor:?float, tanggal:?string, supplier:?string, umur_hari:?int}
+     */
+    public function hargaBeliTerakhir(int $itemId, ?int $supplierId): array
+    {
+        $kosong = ['state' => 'none', 'harga_kg' => null, 'harga_ekor' => null,
+            'tanggal' => null, 'supplier' => null, 'umur_hari' => null];
+
+        if (! $supplierId) {
+            // Telur / barang produksi sendiri tidak punya harga beli — acuan pembelian
+            // tidak boleh dikarang 0, itu membuat peringatan jadi sampah.
+            return $kosong;
+        }
+
+        $lot = StockLot::with('supplier')
+            ->where('item_id', $itemId)
+            ->where('supplier_id', $supplierId)
+            ->where('source', 'purchase')
+            ->where(fn ($q) => $q->where('weight_kg_initial', '>', 0)->orWhere('qty_ekor_initial', '>', 0))
+            ->orderByDesc('date')->orderByDesc('id')
+            ->first();
+
+        if (! $lot) {
+            return $kosong;
+        }
+
+        $umur = (int) $lot->date->diffInDays(now());
+
+        return [
+            // Lebih dari 14 hari: harga ayam hidup berubah cepat, acuan sudah basi
+            // dan tidak layak dipakai menyarankan harga.
+            'state'      => $umur > 14 ? 'stale' : 'ok',
+            'harga_kg'   => (float) $lot->cost_per_kg > 0 ? (float) $lot->cost_per_kg : null,
+            'harga_ekor' => (float) $lot->cost_per_ekor > 0 ? (float) $lot->cost_per_ekor : null,
+            'tanggal'    => $lot->date->format('d/m/Y'),
+            'supplier'   => $lot->supplier?->name,
+            'umur_hari'  => $umur,
         ];
     }
 }

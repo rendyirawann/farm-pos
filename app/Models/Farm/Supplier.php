@@ -24,19 +24,25 @@ class Supplier extends Model
         return $this->hasMany(StockInRealization::class, 'supplier_id');
     }
 
-    /**
-     * PIUTANG SUPPLIER — nilai barang yang ternyata kurang dan belum ditutup
-     * pembelian berikutnya. Positif berarti supplier masih berutang kepada kita.
-     */
-    public function creditOutstanding(): float
+    public function deposits()
     {
-        return (float) $this->realizations()
-            ->selectRaw('COALESCE(SUM(value - settled_amount), 0) as sisa')
-            ->value('sisa');
+        return $this->hasMany(SupplierDeposit::class, 'supplier_id');
     }
 
-    public function hasCredit(): bool
+    /**
+     * SALDO DEPOSIT — uang milik kita yang masih dipegang supplier.
+     * Dihitung dari buku besar, bukan kolom tersimpan, agar tidak bisa
+     * menyimpang tanpa baris penjelas.
+     */
+    public function depositBalance(): float
     {
-        return $this->creditOutstanding() > 0.01;
+        return round((float) $this->deposits()->sum('amount'), 2);
     }
+
+    /** Saldo negatif = kita berutang ke supplier (barang masuk melebihi setoran). */
+    public function isOverdrawn(): bool
+    {
+        return $this->depositBalance() < -0.01;
+    }
+
 }

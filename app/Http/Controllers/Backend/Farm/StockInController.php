@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\Farm\DepositService;
 use App\Services\Farm\RealizationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -28,7 +29,7 @@ class StockInController extends Controller
         $from = $request->filled('from') ? Carbon::parse($request->from) : Carbon::now()->startOfMonth();
         $to   = $request->filled('to') ? Carbon::parse($request->to) : Carbon::now();
 
-        $q = StockIn::with(['supplier', 'lines.item', 'realizations'])
+        $q = StockIn::with(['supplier', 'lines.item', 'realization'])
             ->whereBetween('date', [$from->toDateString(), $to->toDateString()]);
 
         // Filter status pembayaran KITA ke supplier.
@@ -40,7 +41,7 @@ class StockInController extends Controller
 
         // Ringkasan seluruh nota BELUM LUNAS — tidak dibatasi rentang tanggal,
         // karena nota lama yang menggantung justru yang paling perlu terlihat.
-        $belum = StockIn::with('realizations')->where('payment_status', 'unpaid')->get();
+        $belum = StockIn::with('realization')->where('payment_status', 'unpaid')->get();
         $sisaBelum = $belum->sum(fn (StockIn $r) => $r->remainingToPay());
 
         return view('backend.farm.stock_in.index', [
@@ -58,9 +59,9 @@ class StockInController extends Controller
     {
         $suppliers = Supplier::where('is_active', true)->orderBy('name')->get()
             ->map(function (Supplier $s) {
-                // Piutang tiap supplier ikut dikirim supaya form bisa memberi tahu
-                // SEBELUM nota disimpan, bukan setelahnya.
-                $s->piutang = $s->creditOutstanding();
+                // Saldo deposit tiap supplier ikut dikirim supaya form bisa memberi tahu
+                // SEBELUM nota disimpan bahwa saldonya kurang, bukan setelahnya.
+                $s->saldo = $s->depositBalance();
 
                 return $s;
             });
@@ -84,8 +85,6 @@ class StockInController extends Controller
             'lines.*.weight_kg'     => ['nullable', 'numeric', 'min:0'],
             'lines.*.price_basis'   => ['required', 'in:kg,ekor'],
             'lines.*.unit_price'    => ['required', 'numeric', 'min:0'],
-            // Pilihan: pakai nota ini untuk menutup piutang supplier.
-            'apply_credit'          => ['nullable', 'boolean'],
         ]);
 
         try {
@@ -147,6 +146,10 @@ class StockInController extends Controller
 
                 $in->update(['total' => round($total, 2)]);
 
+                // Nota memotong SALDO DEPOSIT supplier. Dilakukan di dalam transaksi
+                // yang sama supaya stok dan saldo tidak pernah terpisah separuh jalan.
+                app(DepositService::class)->chargePurchase($in->fresh());
+
                 return $in->fresh(['lines.item', 'supplier']);
             });
         } catch (\Throwable $e) {
@@ -155,20 +158,18 @@ class StockInController extends Controller
 
         $pesan = 'Pembelian tersimpan.';
 
-        // Bila dipilih, nota ini langsung dipakai menutup piutang supplier.
-        if ($request->boolean('apply_credit') && $stockIn->supplier_id) {
-            $hasil = app(RealizationService::class)->applyCredit($stockIn->fresh());
-            if ($hasil['terpakai'] > 0) {
-                $pesan .= ' Piutang supplier ditutup Rp ' . number_format($hasil['terpakai'], 0, ',', '.') . '.';
-                $pesan .= $hasil['lunas']
-                    ? ' Nota ini otomatis LUNAS.'
-                    : ' Belum menutup seluruh nota — sisa Rp '
-                        . number_format($stockIn->fresh()->remainingToPay(), 0, ',', '.') . ' masih harus dibayar.';
-                if ($hasil['sisa_piutang'] > 0.01) {
-                    $pesan .= ' Sisa piutang supplier Rp ' . number_format($hasil['sisa_piutang'], 0, ',', '.') . '.';
-                }
+        if ($stockIn->supplier_id) {
+            $saldo = $stockIn->supplier->depositBalance();
+            $pesan .= ' Saldo deposit ' . $stockIn->supplier->name . ' terpotong Rp '
+                . number_format((float) $stockIn->total, 0, ',', '.') . '.';
+
+            if ($saldo < -0.01) {
+                // Saldo minus artinya uang yang disetor belum menutup nota ini —
+                // disebut apa adanya supaya tidak dibaca sebagai supplier berutang.
+                $pesan .= ' Perhatian: saldo minus, KITA BELUM BAYAR Rp '
+                    . number_format(abs($saldo), 0, ',', '.') . ' ke supplier ini.';
             } else {
-                $pesan .= ' Tidak ada piutang supplier yang bisa ditutup.';
+                $pesan .= ' Sisa saldo Rp ' . number_format($saldo, 0, ',', '.') . '.';
             }
         }
 
@@ -239,78 +240,51 @@ class StockInController extends Controller
     }
 
 
-    /* ==================== REALISASI & PIUTANG SUPPLIER ==================== */
+    /* ==================== REALISASI (timbang ulang barang diterima) ==================== */
 
-    /** Catat kekurangan barang pada satu baris nota (jadi piutang supplier). */
+    /**
+     * Catat realisasi satu nota — SATU KALI saja per nota.
+     * Petugas mengisi angka NYATA yang diterima; arah uang dihitung sistem.
+     */
     public function storeRealization(Request $request, StockIn $stockIn, RealizationService $svc)
     {
         $data = $request->validate([
-            'stock_in_line_id' => ['required', 'integer'],
-            'date'             => ['required', 'date'],
-            'reason'           => ['required', 'in:' . implode(',', array_keys(\App\Models\Farm\StockInRealization::REASONS))],
-            'qty_ekor_short'   => ['nullable', 'integer', 'min:0'],
-            'weight_kg_short'  => ['nullable', 'numeric', 'min:0'],
-            'notes'            => ['nullable', 'string', 'max:255'],
+            'date'                  => ['required', 'date'],
+            'reason'                => ['required', 'in:' . implode(',', array_keys(\App\Models\Farm\StockInRealization::REASONS))],
+            'lines'                 => ['required', 'array', 'min:1'],
+            'lines.*.qty_ekor'      => ['nullable', 'integer', 'min:0'],
+            'lines.*.weight_kg'     => ['nullable', 'numeric', 'min:0'],
+            'notes'                 => ['nullable', 'string', 'max:255'],
         ]);
 
-        $line = $stockIn->lines()->whereKey($data['stock_in_line_id'])->first();
-        if (! $line) {
-            return back()->with('error', 'Baris barang tidak ditemukan pada nota ini.');
-        }
-
         try {
-            $r = $svc->record($line, $data);
+            $r = $svc->record($stockIn, $data);
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
 
-        $svc->syncPaymentStatus($stockIn->fresh());
-
-        return back()->with('success', 'Realisasi tercatat. Piutang supplier bertambah Rp '
-            . number_format((float) $r->value, 0, ',', '.') . '.');
+        return back()->with('success', 'Realisasi tercatat. ' . $r->effectLabel() . '.');
     }
 
-    public function destroyRealization(StockIn $stockIn, \App\Models\Farm\StockInRealization $realization, RealizationService $svc)
+    /** Batalkan realisasi nota ini (lot dikembalikan ke angka nota, saldo dibalik). */
+    public function destroyRealization(StockIn $stockIn, RealizationService $svc)
     {
+        $r = $stockIn->realization;
+        if (! $r) {
+            return back()->with('error', 'Nota ini belum punya realisasi.');
+        }
+
         try {
-            $svc->revert($realization);
+            $svc->revert($r);
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
-        $svc->syncPaymentStatus($stockIn->fresh());
 
-        return back()->with('success', 'Realisasi dibatalkan, stok dikembalikan.');
-    }
-
-    /** Pakai nota ini untuk menutup piutang supplier. */
-    public function applyCredit(StockIn $stockIn, RealizationService $svc)
-    {
-        $hasil = $svc->applyCredit($stockIn);
-
-        if ($hasil['terpakai'] <= 0) {
-            return back()->with('error', 'Tidak ada piutang supplier yang bisa ditutup nota ini.');
-        }
-
-        $pesan = 'Piutang supplier ditutup Rp ' . number_format($hasil['terpakai'], 0, ',', '.') . '. ';
-        $pesan .= $hasil['lunas']
-            ? 'Nota ini otomatis LUNAS.'
-            : 'Belum menutup seluruh nota — sisa Rp ' . number_format($stockIn->fresh()->remainingToPay(), 0, ',', '.') . ' masih harus dibayar.';
-        if ($hasil['sisa_piutang'] > 0.01) {
-            $pesan .= ' Sisa piutang supplier Rp ' . number_format($hasil['sisa_piutang'], 0, ',', '.') . '.';
-        }
-
-        return back()->with('success', $pesan);
-    }
-
-    public function revokeCredit(StockIn $stockIn, RealizationService $svc)
-    {
-        $svc->revokeCredit($stockIn);
-
-        return back()->with('success', 'Penutupan piutang dibatalkan.');
+        return back()->with('success', 'Realisasi dibatalkan — stok dan saldo supplier dikembalikan.');
     }
 
     /** Ubah status bayar KITA ke supplier (lunas / belum lunas). */
-    public function setPayment(Request $request, StockIn $stockIn, RealizationService $svc)
+    public function setPayment(Request $request, StockIn $stockIn)
     {
         $data = $request->validate([
             'payment_status' => ['required', 'in:paid,unpaid'],
@@ -318,9 +292,8 @@ class StockInController extends Controller
         ]);
 
         if ($data['payment_status'] === 'paid') {
-            // Ditandai lunas: sisa yang belum tertutup piutang dianggap dibayar tunai.
             $stockIn->update([
-                'paid_amount'    => round($stockIn->netTotal() - (float) $stockIn->credit_applied, 2),
+                'paid_amount'    => $stockIn->netTotal(),
                 'payment_status' => 'paid',
                 'paid_at'        => $data['paid_at'] ?? now()->toDateString(),
             ]);
@@ -333,12 +306,12 @@ class StockInController extends Controller
 
     public function show(StockIn $stockIn)
     {
-        $stockIn->load(['lines.item', 'supplier', 'user', 'realizations.line.item', 'settlements.realization']);
+        $stockIn->load(['lines.item', 'supplier', 'user', 'realization.lines.line.item']);
 
         return view('backend.farm.stock_in.show', [
-            'row'      => $stockIn,
-            'piutang'  => $stockIn->supplier?->creditOutstanding() ?? 0,
-            'alasan'   => \App\Models\Farm\StockInRealization::REASONS,
+            'row'     => $stockIn,
+            'saldo'   => $stockIn->supplier?->depositBalance() ?? 0,
+            'alasan'  => \App\Models\Farm\StockInRealization::REASONS,
         ]);
     }
 

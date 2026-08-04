@@ -30,9 +30,9 @@
               <select name="supplier_id" id="in-supplier" class="form-select form-select-solid form-select-lg">
                 <option value="">— tanpa supplier —</option>
                 @foreach ($suppliers as $s)
-                  <option value="{{ $s->id }}" data-piutang="{{ (float) $s->piutang }}"
+                  <option value="{{ $s->id }}" data-saldo="{{ (float) $s->saldo }}" data-nama="{{ $s->name }}"
                           {{ old('supplier_id') == $s->id ? 'selected' : '' }}>
-                    {{ $s->name }}@if ($s->piutang > 0.01) — piutang Rp {{ number_format($s->piutang, 0, ',', '.') }}@endif
+                    {{ $s->name }} — saldo Rp {{ number_format($s->saldo, 0, ',', '.') }}
                   </option>
                 @endforeach
               </select>
@@ -46,26 +46,21 @@
             </div>
           </div>
 
-          {{-- Notifikasi piutang supplier — muncul HANYA bila supplier terpilih
-               masih punya piutang dari realisasi terdahulu. --}}
-          <div class="alert alert-danger d-none mb-4" id="panel-piutang">
+          {{-- SALDO DEPOSIT dipajang sebelum baris nota diisi: nota ini akan memotong
+               saldo itu, jadi angkanya harus terlihat lebih dulu — bukan setelah simpan. --}}
+          <div class="alert d-none mb-4" id="panel-saldo">
             <div class="d-flex align-items-start">
-              <i class="ki-outline ki-information-5 fs-2x me-3"></i>
+              <i class="ki-outline ki-wallet fs-2x me-3"></i>
               <div class="flex-grow-1">
                 <div class="fw-bold fs-6 text-gray-800">
-                  Supplier ini masih punya piutang <span id="nilai-piutang"></span>
+                  Saldo deposit <span id="saldo-nama"></span>: <span id="saldo-nilai" class="fs-4"></span>
                 </div>
-                <div class="fs-8 text-muted mt-1">
-                  Berasal dari realisasi terdahulu — barang yang ternyata kurang saat ditimbang.
-                  Nota ini bisa dipakai untuk menutup piutang tersebut.
+                <div class="fs-8 text-muted mt-1" id="saldo-ket">
+                  Nilai nota ini akan memotong saldo tersebut.
                 </div>
-                <label class="form-check form-check-custom form-check-solid mt-3">
-                  <input class="form-check-input" type="checkbox" name="apply_credit" value="1" id="cb-piutang">
-                  <span class="form-check-label fw-bold text-gray-800 ms-2">
-                    Gunakan nota ini untuk menutupi piutang supplier
-                  </span>
-                </label>
-                <div class="fs-8 text-muted mt-2" id="ket-piutang"></div>
+                <a href="{{ route('farm.deposits.index') }}" target="_blank"
+                   class="btn btn-sm btn-light-primary fw-bold mt-3 py-1 px-3 fs-8" id="saldo-tombol">
+                  Buka Menu Deposit</a>
               </div>
             </div>
           </div>
@@ -176,29 +171,29 @@
 
 
   /**
-   * Notifikasi piutang supplier.
+   * Panel SALDO DEPOSIT supplier.
    *
-   * Ditampilkan saat supplier dipilih, dan keterangannya diperbarui mengikuti total
-   * nota yang sedang diketik — supaya petugas tahu SEBELUM menyimpan apakah nota ini
-   * cukup menutup piutang atau hanya sebagian.
+   * Ditampilkan sejak supplier dipilih dan ikut berubah mengikuti total nota yang
+   * sedang diketik: petugas melihat sisa saldo setelah nota ini SEBELUM menyimpan,
+   * bukan mengetahuinya belakangan saat saldo sudah minus.
    */
-  function perbaruiPanelPiutang() {
+  function perbaruiPanelSaldo() {
       var sel = document.getElementById('in-supplier');
-      var panel = document.getElementById('panel-piutang');
+      var panel = document.getElementById('panel-saldo');
       if (!sel || !panel) return;
 
-      var piutang = parseFloat(sel.selectedOptions[0]?.dataset.piutang || 0) || 0;
-      if (piutang <= 0.01) {
+      var opt = sel.selectedOptions[0];
+      if (!opt || !opt.value) {          // tanpa supplier -> tidak menyentuh deposit
           panel.classList.add('d-none');
-          var cb = document.getElementById('cb-piutang');
-          if (cb) cb.checked = false;
           return;
       }
 
+      var saldo = parseFloat(opt.dataset.saldo || 0) || 0;
       panel.classList.remove('d-none');
-      document.getElementById('nilai-piutang').textContent = rupiah(piutang);
+      document.getElementById('saldo-nama').textContent = opt.dataset.nama || '';
+      document.getElementById('saldo-nilai').textContent = rupiah(saldo);
 
-      // Total nota saat ini dipakai untuk memperkirakan hasilnya.
+      // Total nota saat ini dipakai untuk memperkirakan sisa saldo.
       var total = 0;
       document.querySelectorAll('#t-lines tbody tr').forEach(function (tr) {
           var ekor = angka(tr.querySelector('[name*="[qty_ekor]"]'));
@@ -208,24 +203,33 @@
           total += basis === 'ekor' ? harga * ekor : harga * kg;
       });
 
-      var ket = document.getElementById('ket-piutang');
+      var sisa = saldo - total;
+      var ket = document.getElementById('saldo-ket');
+
+      panel.classList.remove('alert-success', 'alert-warning', 'alert-danger');
+
       if (total <= 0) {
-          ket.textContent = 'Isi barang dulu untuk melihat perkiraan penutupan.';
-      } else if (total >= piutang) {
-          ket.innerHTML = 'Nota ' + rupiah(total) + ' <b>cukup menutup seluruh piutang</b>. '
-              + 'Sisa yang tetap harus dibayar: <b>' + rupiah(total - piutang) + '</b>.';
+          panel.classList.add(saldo < 0 ? 'alert-danger' : 'alert-success');
+          ket.innerHTML = saldo < 0
+              ? 'Saldo sudah minus — <b>kita belum bayar ' + rupiah(-saldo) + '</b> ke supplier ini.'
+              : 'Nilai nota ini akan memotong saldo tersebut.';
+      } else if (sisa >= 0) {
+          panel.classList.add('alert-success');
+          ket.innerHTML = 'Nota ' + rupiah(total) + ' <b>tertutup saldo</b>. Sisa saldo setelah nota ini: <b>'
+              + rupiah(sisa) + '</b>.';
       } else {
-          ket.innerHTML = 'Nota ' + rupiah(total) + ' <b>belum menutup seluruh piutang</b>. '
-              + 'Nota ini akan LUNAS tanpa pembayaran tunai, sisa piutang supplier: <b>'
-              + rupiah(piutang - total) + '</b>.';
+          panel.classList.add('alert-danger');
+          ket.innerHTML = 'Saldo <b>kurang ' + rupiah(-sisa) + '</b> untuk nota ' + rupiah(total) + '. '
+              + 'Nota tetap bisa disimpan, tapi saldo jadi minus — artinya <b>kita belum bayar</b> '
+              + 'sebesar itu. Setor deposit dulu bila memang sudah ditransfer.';
       }
   }
 
-  document.getElementById('in-supplier')?.addEventListener('change', perbaruiPanelPiutang);
+  document.getElementById('in-supplier')?.addEventListener('change', perbaruiPanelSaldo);
   document.addEventListener('input', function (e) {
-      if (e.target.classList.contains('js-hit')) perbaruiPanelPiutang();
+      if (e.target.classList.contains('js-hit')) perbaruiPanelSaldo();
   });
 
-  barisBaru(); hitung(); perbaruiPanelPiutang();
+  barisBaru(); hitung(); perbaruiPanelSaldo();
 </script>
 @endpush

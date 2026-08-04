@@ -7,46 +7,71 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * REALISASI — barang dari supplier ternyata kurang saat ditimbang ulang.
- * Nilai kekurangannya menjadi PIUTANG SUPPLIER (supplier berutang ke kita)
- * dan bisa ditutup oleh pembelian berikutnya dari supplier yang sama.
+ * REALISASI — hasil timbang ulang barang yang benar-benar diterima dari supplier.
  *
- * Berbeda dari StockAdjustment yang mencatat kerugian kita sendiri di gudang.
+ * SATU NOTA HANYA PUNYA SATU REALISASI. Isinya angka NYATA per barang, bukan
+ * selisih, sehingga menyimpan dua kali tidak pernah menggandakan koreksi.
+ *
+ * Tidak ada lagi istilah "piutang supplier": selisihnya langsung menyesuaikan
+ * SALDO DEPOSIT supplier —
+ *   barang kurang -> saldo NAIK  (kita kelebihan potong saat nota dicatat)
+ *   barang lebih  -> saldo TURUN (potongan tadi kurang)
+ *
+ * Berbeda dari StockAdjustment: penyesuaian terjadi setelah barang ada di gudang
+ * (ayam mati, susut kandang) — itu kerugian kita sendiri dan TIDAK pernah
+ * menyentuh saldo supplier.
  */
 class StockInRealization extends Model
 {
     use BelongsToTenant;
 
     public const REASONS = [
-        'kurang_timbang' => 'Kurang Timbang',
+        'kurang_timbang' => 'Selisih Timbangan',
         'mati'           => 'Mati saat Diterima',
         'susut'          => 'Susut Perjalanan',
+        'lebih'          => 'Barang Lebih dari Nota',
         'lainnya'        => 'Lainnya',
     ];
 
     protected $table = 'farm_stock_in_realizations';
-    protected $fillable = ['tenant_id', 'stock_in_id', 'stock_in_line_id', 'supplier_id', 'date',
-        'reason', 'qty_ekor_short', 'weight_kg_short', 'value', 'settled_amount', 'status',
-        'user_id', 'notes'];
-    protected $casts = ['date' => 'date', 'weight_kg_short' => 'decimal:2',
-        'value' => 'decimal:2', 'settled_amount' => 'decimal:2'];
+    protected $fillable = ['tenant_id', 'stock_in_id', 'supplier_id', 'date', 'reason',
+        'delta_qty_ekor', 'delta_weight_kg', 'value', 'user_id', 'notes'];
+    protected $casts = ['date' => 'date', 'delta_weight_kg' => 'decimal:2', 'value' => 'decimal:2'];
 
-    public function stockIn()    { return $this->belongsTo(StockIn::class, 'stock_in_id'); }
-    public function line()       { return $this->belongsTo(StockInLine::class, 'stock_in_line_id'); }
-    public function supplier()   { return $this->belongsTo(Supplier::class, 'supplier_id'); }
-    public function user()       { return $this->belongsTo(User::class, 'user_id'); }
-    public function settlements(){ return $this->hasMany(SupplierSettlement::class, 'realization_id'); }
+    public function stockIn()  { return $this->belongsTo(StockIn::class, 'stock_in_id'); }
+    public function supplier() { return $this->belongsTo(Supplier::class, 'supplier_id'); }
+    public function user()     { return $this->belongsTo(User::class, 'user_id'); }
+    public function lines()    { return $this->hasMany(StockInRealizationLine::class, 'realization_id'); }
 
-    public function reasonLabel(): string { return self::REASONS[$this->reason] ?? $this->reason; }
-
-    /** Sisa piutang yang belum ditutup pembelian berikutnya. */
-    public function remaining(): float
+    public function reasonLabel(): string
     {
-        return max(0, round((float) $this->value - (float) $this->settled_amount, 2));
+        return self::REASONS[$this->reason] ?? $this->reason;
     }
 
-    public function isSettled(): bool
+    /** Barang kurang dari nota — nilai koreksi menambah saldo supplier. */
+    public function isShort(): bool
     {
-        return $this->remaining() <= 0.01;
+        return (float) $this->value > 0.01;
+    }
+
+    /** Barang lebih dari nota — saldo supplier ikut terpotong lagi. */
+    public function isOver(): bool
+    {
+        return (float) $this->value < -0.01;
+    }
+
+    /** Kalimat awam untuk layar & nota, supaya arah uangnya tidak perlu ditafsirkan. */
+    public function effectLabel(): string
+    {
+        $rp = 'Rp ' . number_format(abs((float) $this->value), 0, ',', '.');
+
+        if ($this->isShort()) {
+            return 'Barang kurang — saldo supplier NAIK ' . $rp;
+        }
+        if ($this->isOver()) {
+            return 'Barang lebih — saldo supplier TURUN ' . $rp;
+        }
+
+        return 'Sesuai nota — saldo supplier tidak berubah';
     }
 }

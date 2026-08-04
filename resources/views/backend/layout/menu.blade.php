@@ -40,11 +40,13 @@
             </div>
             <div data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-placement="bottom-start"
                 class="menu-item menu-lg-down-accordion menu-sub-lg-down-indention me-0 me-lg-2">
-                <span class="menu-link px-4 {{ request()->routeIs('farm.suppliers.*', 'farm.agents.*', 'farm.items.*') ? 'active ' : '' }}">
+                <span class="menu-link px-4 {{ request()->routeIs('farm.suppliers.*', 'farm.deposits.*', 'farm.agents.*', 'farm.items.*') ? 'active ' : '' }}">
                     <span class="menu-title">Data Master</span><span class="menu-arrow d-lg-none"></span></span>
                 <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-210px">
                     <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.suppliers.index') }}">
                         <span class="menu-icon"><i class="ki-outline ki-truck fs-2"></i></span><span class="menu-title">Supplier</span></a></div>
+                    <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.deposits.index') }}">
+                        <span class="menu-icon"><i class="ki-outline ki-wallet fs-2"></i></span><span class="menu-title">Deposit Supplier</span></a></div>
                     <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.agents.index') }}">
                         <span class="menu-icon"><i class="ki-outline ki-profile-user fs-2"></i></span><span class="menu-title">Agen</span></a></div>
                     <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.items.index') }}">
@@ -58,6 +60,8 @@
                 <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-210px">
                     <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.warehouse.index') }}">
                         <span class="menu-icon"><i class="ki-outline ki-tablet-ok fs-2"></i></span><span class="menu-title">Buka/Tutup Gudang</span></a></div>
+                    <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.warehouse.stock') }}">
+                        <span class="menu-icon"><i class="ki-outline ki-chart-simple fs-2"></i></span><span class="menu-title">Stok per Supplier</span></a></div>
                     <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.eggs.index') }}">
                         <span class="menu-icon"><i class="ki-outline ki-abstract-26 fs-2"></i></span><span class="menu-title">Produksi Telur</span></a></div>
                     <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.adjustments.index') }}">

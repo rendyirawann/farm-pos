@@ -13,9 +13,9 @@ class StockIn extends Model
 
     protected $table = 'farm_stock_ins';
     protected $fillable = ['tenant_id', 'invoice_no', 'date', 'supplier_id', 'user_id', 'total', 'notes',
-        'photos', 'payment_status', 'paid_amount', 'paid_at', 'credit_applied'];
+        'photos', 'payment_status', 'paid_amount', 'paid_at'];
     protected $casts = ['date' => 'date', 'paid_at' => 'date', 'total' => 'decimal:2',
-        'photos' => 'array', 'paid_amount' => 'decimal:2', 'credit_applied' => 'decimal:2'];
+        'photos' => 'array', 'paid_amount' => 'decimal:2'];
 
     /** Daftar foto bon (bisa lebih dari satu lembar). */
     public function photoList(): array
@@ -37,8 +37,14 @@ class StockIn extends Model
     public function lines()   { return $this->hasMany(StockInLine::class, 'stock_in_id'); }
     public function supplier(){ return $this->belongsTo(Supplier::class, 'supplier_id'); }
     public function user()        { return $this->belongsTo(User::class, 'user_id'); }
-    public function realizations(){ return $this->hasMany(StockInRealization::class, 'stock_in_id'); }
-    public function settlements() { return $this->hasMany(SupplierSettlement::class, 'stock_in_id'); }
+    /** Satu nota hanya punya satu realisasi (hasil timbang ulang). */
+    public function realization(){ return $this->hasOne(StockInRealization::class, 'stock_in_id'); }
+
+    /** Baris buku besar deposit yang lahir dari nota ini (potongan + pembalikannya). */
+    public function depositEntries()
+    {
+        return $this->hasMany(SupplierDeposit::class, 'reference_id')->where('reference_type', 'stock_in');
+    }
 
     /* ---------- Pembayaran KITA ke supplier ---------- */
 
@@ -48,17 +54,22 @@ class StockIn extends Model
     }
 
     /**
-     * Nilai nota SETELAH dikurangi realisasi (barang yang ternyata kurang).
-     * Inilah yang sebenarnya wajib dibayar, bukan angka nota mentah.
+     * Nilai nota SETELAH koreksi realisasi — inilah nilai yang benar-benar
+     * memotong saldo deposit supplier, bukan angka nota mentah.
+     *
+     * Nilai realisasi bertanda: positif = barang kurang (nilai nota jadi lebih
+     * kecil), negatif = barang lebih (nilai nota jadi lebih besar).
      */
     public function netTotal(): float
     {
-        return max(0, round((float) $this->total - (float) $this->realizations()->sum('value'), 2));
+        $koreksi = (float) ($this->realization?->value ?? 0);
+
+        return max(0, round((float) $this->total - $koreksi, 2));
     }
 
-    /** Sisa yang harus dibayar tunai: nilai bersih - uang dibayar - piutang yang dipakai. */
+    /** Sisa yang belum kita bayar tunai untuk nota ini. */
     public function remainingToPay(): float
     {
-        return max(0, round($this->netTotal() - (float) $this->paid_amount - (float) $this->credit_applied, 2));
+        return max(0, round($this->netTotal() - (float) $this->paid_amount, 2));
     }
 }

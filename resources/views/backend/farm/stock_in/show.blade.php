@@ -64,9 +64,10 @@
 
         {{-- ============ STATUS PEMBAYARAN KE SUPPLIER ============ --}}
         @php
+          $real    = $row->realization;
           $netto   = $row->netTotal();
           $sisa    = $row->remainingToPay();
-          $nilaiRl = (float) $row->realizations->sum('value');
+          $nilaiRl = (float) ($real->value ?? 0);
         @endphp
         <div class="card border-0 mt-5 {{ $row->isPaid() ? 'bg-light-success' : 'bg-light-warning' }}">
           <div class="card-body p-5">
@@ -79,11 +80,8 @@
                 </div>
                 <div class="fs-8 text-muted mt-1">
                   Nota {{ $rp($row->total) }}
-                  @if ($nilaiRl > 0)
-                    − realisasi {{ $rp($nilaiRl) }} = <b>{{ $rp($netto) }}</b>
-                  @endif
-                  @if ((float) $row->credit_applied > 0)
-                    · ditutup piutang {{ $rp($row->credit_applied) }}
+                  @if (abs($nilaiRl) > 0.01)
+                    {{ $nilaiRl > 0 ? '−' : '+' }} realisasi {{ $rp(abs($nilaiRl)) }} = <b>{{ $rp($netto) }}</b>
                   @endif
                   @if ((float) $row->paid_amount > 0)
                     · dibayar {{ $rp($row->paid_amount) }}
@@ -105,118 +103,114 @@
           </div>
         </div>
 
-        {{-- ============ PIUTANG SUPPLIER ============ --}}
-        @if ($row->supplier && ($piutang > 0.01 || (float) $row->credit_applied > 0))
-          <div class="card border-0 mt-4 {{ $piutang > 0.01 ? 'bg-light-danger' : 'bg-light-success' }}">
+        {{-- ============ SALDO DEPOSIT SUPPLIER ============ --}}
+        @if ($row->supplier)
+          <div class="card border-0 mt-4 {{ $saldo < -0.01 ? 'bg-light-danger' : 'bg-light-primary' }}">
             <div class="card-body p-5">
               <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div>
                   <div class="fw-bold fs-6 text-gray-800">
-                    <i class="ki-outline ki-information-5 fs-3 me-1"></i>
-                    Piutang Supplier — {{ $row->supplier->name }}
+                    <i class="ki-outline ki-wallet fs-3 me-1"></i>
+                    Saldo Deposit — {{ $row->supplier->name }}
                   </div>
                   <div class="fs-8 text-muted mt-1">
-                    @if ($piutang > 0.01)
-                      Supplier ini masih berutang <b class="text-danger">{{ $rp($piutang) }}</b>
-                      dari realisasi terdahulu (barang kurang).
-                    @else
-                      Tidak ada piutang tersisa dari supplier ini.
-                    @endif
-                    @if ((float) $row->credit_applied > 0)
-                      <br>Nota ini sudah memakai <b>{{ $rp($row->credit_applied) }}</b> piutang supplier.
+                    Nota ini memotong saldo <b>{{ $rp($row->total) }}</b>.
+                    Saldo sekarang <b class="{{ $saldo < -0.01 ? 'text-danger' : 'text-gray-800' }}">{{ $rp($saldo) }}</b>.
+                    @if ($saldo < -0.01)
+                      <br><span class="text-danger fw-bold">Saldo minus — kita belum bayar {{ $rp(abs($saldo)) }} ke supplier ini.</span>
                     @endif
                   </div>
                 </div>
-                <div class="d-flex gap-2">
-                  @if ((float) $row->credit_applied > 0)
-                    <form method="POST" action="{{ route('farm.stock-in.revoke-credit', $row->id) }}" class="m-0"
-                          onsubmit="return confirm('Batalkan penutupan piutang oleh nota ini?')">
-                      @csrf
-                      <button class="btn btn-sm btn-light fw-bold">Batalkan Penutupan</button>
-                    </form>
-                  @endif
-                  @if ($piutang > 0.01 && $sisa > 0.01)
-                    <form method="POST" action="{{ route('farm.stock-in.apply-credit', $row->id) }}" class="m-0">
-                      @csrf
-                      <button class="btn btn-sm btn-danger fw-bold">
-                        <i class="ki-outline ki-arrows-circle fs-5"></i> Tutupi dengan Piutang</button>
-                    </form>
-                  @endif
-                </div>
+                <a href="{{ route('farm.deposits.show', $row->supplier->id) }}" class="btn btn-sm btn-primary fw-bold">
+                  Buka Kartu Deposit</a>
               </div>
-
-              @if ($row->settlements->count())
-                <div class="mt-3 fs-8">
-                  <div class="fw-bold text-gray-700 mb-1">Piutang yang ditutup nota ini:</div>
-                  @foreach ($row->settlements as $st)
-                    <div class="d-flex justify-content-between border-bottom py-1">
-                      <span>Realisasi #{{ $st->realization_id }} · {{ $st->date->format('d/m/Y') }}</span>
-                      <span class="fw-bold">{{ $rp($st->amount) }}</span>
-                    </div>
-                  @endforeach
-                </div>
-              @endif
             </div>
           </div>
         @endif
 
-        {{-- ============ REALISASI ============ --}}
+        {{-- ============ REALISASI (satu nota satu realisasi) ============ --}}
         <div class="card bg-light border-0 mt-4">
           <div class="card-body p-5">
             <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
               <div>
                 <div class="fw-bold fs-6 text-gray-800">Realisasi Barang</div>
-                <div class="fs-8 text-muted">Jika hasil timbang ternyata <b>kurang</b> dari surat jalan supplier.
-                  Stok ikut dikoreksi dan kekurangannya menjadi <b>piutang supplier</b>.<br>
+                <div class="fs-8 text-muted">Hasil timbang ulang: barang yang <b>benar-benar diterima</b>.
+                  Stok dikoreksi ke angka nyata dan selisihnya menyesuaikan <b>saldo deposit supplier</b> —
+                  kurang berarti saldo naik, lebih berarti saldo turun.<br>
                   Berbeda dengan <a href="{{ route('farm.adjustments.index') }}" class="fw-bold">Penyesuaian Stok</a>
-                  yang mencatat kerugian sendiri di gudang, tanpa melibatkan supplier.</div>
+                  yang mencatat kerugian sendiri di gudang (ayam mati/susut), tanpa melibatkan supplier.<br>
+                  <b>Satu nota hanya bisa punya satu realisasi</b> — bila salah, batalkan lalu catat ulang.</div>
               </div>
-              <button class="btn btn-sm btn-danger fw-bold" data-bs-toggle="modal" data-bs-target="#m-real">
-                <i class="ki-outline ki-plus fs-4"></i> Catat Realisasi</button>
+              @if (! $real)
+                <button class="btn btn-sm btn-danger fw-bold" data-bs-toggle="modal" data-bs-target="#m-real">
+                  <i class="ki-outline ki-plus fs-4"></i> Catat Realisasi</button>
+              @endif
             </div>
 
-            @if ($row->realizations->count())
+            @if ($real)
+              <div class="alert {{ $real->isShort() ? 'alert-success' : ($real->isOver() ? 'alert-warning' : 'alert-light') }} py-3 fs-7 fw-bold">
+                {{ $real->effectLabel() }}
+                <span class="fw-normal fs-8 text-muted d-block mt-1">
+                  Dicatat {{ $real->date->format('d/m/Y') }} · {{ $real->reasonLabel() }}
+                  @if ($real->user) · oleh {{ $real->user->name }} @endif
+                </span>
+              </div>
+
               <div class="table-responsive">
                 <table class="table table-row-bordered align-middle gy-2 mb-0 farm-list-table">
                   <thead><tr class="fw-bold text-muted bg-white fs-8">
-                    <th class="ps-3">Tanggal</th><th>Barang</th><th>Alasan</th>
-                    <th class="text-end">Kurang</th><th class="text-end">Nilai</th>
-                    <th class="text-end">Sudah Ditutup</th><th class="text-end pe-3">Aksi</th>
+                    <th class="ps-3">Barang</th>
+                    <th class="text-end">Nota</th>
+                    <th class="text-end">Nyata Diterima</th>
+                    <th class="text-end">Selisih</th>
+                    <th class="text-end pe-3">Nilai</th>
                   </tr></thead>
                   <tbody>
-                  @foreach ($row->realizations as $r)
+                  @foreach ($real->lines as $rl)
                     <tr>
-                      <td class="ps-3">{{ $r->date->format('d/m/Y') }}</td>
-                      <td class="fw-bold text-gray-800">{{ $r->line?->item?->name ?? '-' }}</td>
-                      <td><span class="badge badge-light-danger fs-9">{{ $r->reasonLabel() }}</span></td>
-                      <td class="text-end">{{ $num($r->qty_ekor_short) }} ekor
-                        <div class="fs-9 text-muted">{{ $num($r->weight_kg_short, 2) }} kg</div></td>
-                      <td class="text-end fw-bold text-danger">{{ $rp($r->value) }}</td>
-                      <td class="text-end">
-                        {{ $rp($r->settled_amount) }}
-                        <div class="fs-9 {{ $r->isSettled() ? 'text-success' : 'text-muted' }}">
-                          {{ $r->isSettled() ? 'lunas' : 'sisa ' . $rp($r->remaining()) }}</div>
+                      <td class="ps-3 fw-bold text-gray-800" data-label="Barang">{{ $rl->line?->item?->name ?? '-' }}
+                        <div class="fs-9 text-muted fw-normal">{{ $rp($rl->unit_price) }}/{{ $rl->price_basis }}</div>
                       </td>
-                      <td class="text-end pe-3">
-                        <form method="POST" action="{{ route('farm.stock-in.realization.delete', [$row->id, $r->id]) }}"
-                              onsubmit="return confirm('Batalkan realisasi ini? Stok akan dikembalikan.')" class="m-0">
-                          @csrf @method('DELETE')
-                          <button class="btn btn-sm btn-light-danger py-1 px-3 fs-8">Batalkan</button>
-                        </form>
+                      <td class="text-end" data-label="Nota">{{ $num($rl->nota_qty_ekor) }} ekor
+                        <div class="fs-9 text-muted">{{ $num($rl->nota_weight_kg, 2) }} kg</div></td>
+                      <td class="text-end fw-bold" data-label="Nyata Diterima">{{ $num($rl->received_qty_ekor) }} ekor
+                        <div class="fs-9 text-muted fw-normal">{{ $num($rl->received_weight_kg, 2) }} kg</div></td>
+                      <td class="text-end" data-label="Selisih">
+                        @if ($rl->isSesuai())
+                          <span class="badge badge-light-secondary fs-9">Sesuai nota</span>
+                        @else
+                          <span class="badge badge-light-{{ (float) $rl->value > 0 ? 'success' : 'warning' }} fs-9">
+                            {{ $rl->deltaLabel() }}</span>
+                        @endif
+                      </td>
+                      <td class="text-end pe-3 fw-bold {{ (float) $rl->value > 0 ? 'text-success' : ((float) $rl->value < 0 ? 'text-danger' : 'text-muted') }}"
+                          data-label="Nilai">
+                        {{ (float) $rl->value == 0 ? '—' : ((float) $rl->value > 0 ? '+' : '−') . ' ' . $rp(abs((float) $rl->value)) }}
                       </td>
                     </tr>
                   @endforeach
                   </tbody>
                   <tfoot><tr class="fw-bold">
-                    <td colspan="4" class="text-end">TOTAL KEKURANGAN</td>
-                    <td class="text-end text-danger">{{ $rp($nilaiRl) }}</td>
-                    <td colspan="2"></td>
+                    <td colspan="4" class="text-end">KORESPONDENSI KE SALDO SUPPLIER</td>
+                    <td class="text-end pe-3 {{ $real->isShort() ? 'text-success' : 'text-danger' }}">
+                      {{ $nilaiRl > 0 ? '+' : '−' }} {{ $rp(abs($nilaiRl)) }}</td>
                   </tr></tfoot>
                 </table>
               </div>
+
+              @if ($real->notes)
+                <div class="fs-8 text-muted mt-3"><b>Catatan:</b> {{ $real->notes }}</div>
+              @endif
+
+              <form method="POST" action="{{ route('farm.stock-in.realization.delete', $row->id) }}"
+                    onsubmit="return confirm('Batalkan realisasi ini? Stok kembali ke angka nota dan saldo supplier dibalik.')"
+                    class="mt-4 m-0">
+                @csrf @method('DELETE')
+                <button class="btn btn-sm btn-light-danger fw-bold">Batalkan Realisasi</button>
+              </form>
             @else
               <div class="text-center text-muted py-5 fs-8 border border-dashed rounded bg-white">
-                Belum ada realisasi. Barang diterima sesuai surat jalan supplier.
+                Belum ada realisasi. Barang dianggap diterima sesuai surat jalan supplier.
               </div>
             @endif
           </div>
@@ -306,76 +300,104 @@
   </div>
 </div>
 
-{{-- ============ MODAL CATAT REALISASI ============ --}}
+{{-- ============ MODAL CATAT REALISASI ============
+     Yang ditanyakan hanya ANGKA NYATA yang diterima. Tidak ada pilihan
+     "kurang / lebih": arah uang disimpulkan sistem, karena meminta petugas
+     menyimpulkannya sendiri adalah sumber salah tanda yang paling sering. --}}
+@if (! $real)
 <div class="modal fade" id="m-real" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
     <div class="modal-content">
-      <form method="POST" action="{{ route('farm.stock-in.realization', $row->id) }}">
+      <form method="POST" action="{{ route('farm.stock-in.realization', $row->id) }}" id="f-real">
         @csrf
         <div class="modal-header py-4">
           <div>
             <h3 class="fw-bold mb-0">Catat Realisasi</h3>
-            <span class="text-muted fs-8">Selisih antara surat jalan supplier dan hasil timbang di gudang.</span>
+            <span class="text-muted fs-8">Isi berapa yang <b>benar-benar diterima</b> setelah ditimbang di gudang.</span>
           </div>
           <div class="btn btn-icon btn-sm btn-active-light" data-bs-dismiss="modal"><i class="ki-outline ki-cross fs-1"></i></div>
         </div>
         <div class="modal-body">
-          <div class="alert alert-danger d-flex align-items-start py-3 fs-8">
+          <div class="alert alert-light-primary border border-primary d-flex align-items-start py-3 fs-8">
             <i class="ki-outline ki-information-5 fs-2 me-2"></i>
-            <div>Kekurangan ini <b>mengurangi stok</b> dan menjadi <b>piutang supplier</b> —
-              nilainya dihitung dari harga satuan pada nota ini.</div>
-          </div>
-          <div class="row g-3">
-            <div class="col-12">
-              <label class="form-label fw-semibold fs-7 required">Baris Barang</label>
-              <select name="stock_in_line_id" class="form-select form-select-solid" required>
-                @foreach ($row->lines as $l)
-                  @php
-                    $sudahEkor = (int) $row->realizations->where('stock_in_line_id', $l->id)->sum('qty_ekor_short');
-                    $sudahKg   = (float) $row->realizations->where('stock_in_line_id', $l->id)->sum('weight_kg_short');
-                  @endphp
-                  <option value="{{ $l->id }}">
-                    {{ $l->item?->name }} — tercatat {{ $num($l->qty_ekor) }} ekor / {{ $num($l->weight_kg, 2) }} kg
-                    @ {{ $rp($l->unit_price) }}/{{ $l->price_basis }}
-                    @if ($sudahEkor || $sudahKg)
-                      (sudah direalisasi {{ $num($sudahEkor) }} ekor / {{ $num($sudahKg, 2) }} kg)
-                    @endif
-                  </option>
-                @endforeach
-              </select>
+            <div>
+              Angka di bawah sudah terisi <b>sesuai nota</b>. Ubah hanya baris yang berbeda.
+              Stok akan disetel ke angka nyata dan selisihnya menyesuaikan saldo deposit supplier.
+              <br><b>Catat sebelum barang dijual</b> — setelah stok terpakai, angkanya tidak bisa diubah lagi.
             </div>
-            <div class="col-6 col-md-4">
-              <label class="form-label fw-semibold fs-7 required">Tanggal</label>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-4">
+              <label class="form-label fw-semibold fs-7 required">Tanggal timbang</label>
               <input type="date" name="date" class="form-control form-control-solid" value="{{ now()->format('Y-m-d') }}" required>
             </div>
-            <div class="col-6 col-md-8">
-              <label class="form-label fw-semibold fs-7 required">Alasan</label>
+            <div class="col-12 col-md-4">
+              <label class="form-label fw-semibold fs-7 required">Alasan selisih</label>
               <select name="reason" class="form-select form-select-solid" required>
                 @foreach ($alasan as $k => $v)<option value="{{ $k }}">{{ $v }}</option>@endforeach
               </select>
             </div>
-            <div class="col-6">
-              <label class="form-label fw-semibold fs-7">Kurang (ekor)</label>
-              <input type="number" name="qty_ekor_short" class="form-control form-control-solid js-no-format" min="0" value="0">
-            </div>
-            <div class="col-6">
-              <label class="form-label fw-semibold fs-7">Kurang (kg)</label>
-              <input type="number" name="weight_kg_short" class="form-control form-control-solid js-no-format" min="0" step="0.01" value="0">
-            </div>
-            <div class="col-12">
+            <div class="col-12 col-md-4">
               <label class="form-label fw-semibold fs-7">Catatan</label>
-              <input name="notes" class="form-control form-control-solid" maxlength="255" placeholder="mis. timbangan supplier beda 3 kg">
+              <input name="notes" class="form-control form-control-solid" maxlength="255"
+                     placeholder="mis. timbangan supplier beda 3 kg">
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-row-bordered align-middle gy-2 mb-0 farm-form-table" id="t-real">
+              <thead><tr class="fw-bold text-muted bg-light fs-8">
+                <th style="min-width:170px">Barang</th>
+                <th class="text-center" style="min-width:120px">Nota</th>
+                <th class="text-center" style="min-width:120px">Diterima (ekor)</th>
+                <th class="text-center" style="min-width:130px">Diterima (kg)</th>
+                <th class="text-end" style="min-width:190px">Akibat ke saldo supplier</th>
+              </tr></thead>
+              <tbody>
+              @foreach ($row->lines as $l)
+                <tr data-basis="{{ $l->price_basis }}" data-harga="{{ (float) $l->unit_price }}"
+                    data-ekor="{{ (int) $l->qty_ekor }}" data-kg="{{ (float) $l->weight_kg }}">
+                  <td data-label="Barang" class="fw-bold text-gray-800">
+                    {{ $l->item?->name }}
+                    <div class="fs-9 text-muted fw-normal">{{ $rp($l->unit_price) }}/{{ $l->price_basis }}</div>
+                  </td>
+                  <td data-label="Nota" class="text-center fs-8 text-muted">
+                    {{ $num($l->qty_ekor) }} ekor<br>{{ $num($l->weight_kg, 2) }} kg
+                  </td>
+                  <td data-label="Diterima (ekor)">
+                    <input type="number" name="lines[{{ $l->id }}][qty_ekor]" min="0" step="1"
+                           class="form-control form-control-solid text-center js-real js-no-format"
+                           value="{{ (int) $l->qty_ekor }}">
+                  </td>
+                  <td data-label="Diterima (kg)">
+                    <input type="number" name="lines[{{ $l->id }}][weight_kg]" min="0" step="0.01"
+                           class="form-control form-control-solid text-center js-real js-no-format"
+                           value="{{ number_format((float) $l->weight_kg, 2, '.', '') }}">
+                  </td>
+                  <td data-label="Akibat ke saldo supplier" class="text-end fs-8 js-akibat text-muted">Sesuai nota</td>
+                </tr>
+              @endforeach
+              </tbody>
+            </table>
+          </div>
+
+          <div class="alert alert-light border mt-4 mb-0 py-3" id="real-ringkas">
+            <div class="fw-bold fs-6 text-gray-800" id="real-judul">Belum ada selisih</div>
+            <div class="fs-8 text-muted mt-1" id="real-ket">
+              Ubah angka yang diterima bila hasil timbang berbeda dari nota.
             </div>
           </div>
         </div>
         <div class="modal-footer py-3">
           <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
-          <button class="btn btn-danger fw-bold">Simpan Realisasi</button>
+          <button class="btn btn-danger fw-bold" id="btn-real">Simpan Realisasi</button>
         </div>
       </form>
     </div>
   </div>
 </div>
+@endif
 @endsection
 
 @push('scripts')
@@ -481,4 +503,110 @@
     });
   }
 </script>
+
+@if (! $real)
+<script>
+  /**
+   * Pratinjau realisasi.
+   *
+   * Petugas mengisi angka nyata; kalimat akibatnya ditulis lengkap ("saldo NAIK
+   * Rp1.400.000") sebelum tombol Simpan ditekan. Tanpa kalimat itu, satu digit
+   * salah ketik hanya terlihat setelah saldo sudah bergeser.
+   */
+  (function () {
+      var tabel = document.getElementById('t-real');
+      if (!tabel) return;
+
+      function rupiah(n) {
+          return 'Rp ' + Math.round(Math.abs(n)).toLocaleString('id-ID');
+      }
+
+      function hitung() {
+          var totalNilai = 0, adaSelisih = false, rincian = [];
+
+          tabel.querySelectorAll('tbody tr').forEach(function (tr) {
+              var basis = tr.dataset.basis;
+              var harga = parseFloat(tr.dataset.harga) || 0;
+              var notaEkor = parseInt(tr.dataset.ekor, 10) || 0;
+              var notaKg = parseFloat(tr.dataset.kg) || 0;
+
+              var inputs = tr.querySelectorAll('.js-real');
+              var nyataEkor = inputs[0].value === '' ? notaEkor : (parseInt(inputs[0].value, 10) || 0);
+              var nyataKg = inputs[1].value === '' ? notaKg : (parseFloat(inputs[1].value) || 0);
+
+              var dEkor = nyataEkor - notaEkor;
+              var dKg = Math.round((nyataKg - notaKg) * 100) / 100;
+
+              // Nilai memakai dasar harga nota, sama seperti perhitungan di server.
+              var nilai = basis === 'ekor' ? -1 * dEkor * harga : -1 * dKg * harga;
+              totalNilai += nilai;
+
+              var sel = tr.querySelector('.js-akibat');
+              if (dEkor === 0 && Math.abs(dKg) < 0.005) {
+                  sel.className = 'text-end fs-8 js-akibat text-muted';
+                  sel.textContent = 'Sesuai nota';
+                  return;
+              }
+
+              adaSelisih = true;
+              var bagian = [];
+              if (dEkor !== 0) bagian.push(Math.abs(dEkor) + ' ekor');
+              if (Math.abs(dKg) >= 0.005) bagian.push(Math.abs(dKg).toLocaleString('id-ID') + ' kg');
+
+              var dasar = basis === 'ekor' ? dEkor : dKg;
+              var arah = dasar < 0 ? 'Kurang' : 'Lebih';
+
+              sel.className = 'text-end fs-8 js-akibat fw-bold ' + (nilai > 0 ? 'text-success' : 'text-danger');
+              sel.innerHTML = arah + ' ' + bagian.join(' / ') + '<br>saldo '
+                  + (nilai > 0 ? 'NAIK ' : 'TURUN ') + rupiah(nilai);
+
+              rincian.push(arah.toLowerCase() + ' ' + bagian.join(' / '));
+          });
+
+          var kotak = document.getElementById('real-ringkas');
+          var judul = document.getElementById('real-judul');
+          var ket = document.getElementById('real-ket');
+          var tombol = document.getElementById('btn-real');
+
+          kotak.className = 'alert mt-4 mb-0 py-3 ' +
+              (!adaSelisih ? 'alert-light border' : (totalNilai > 0 ? 'alert-success' : 'alert-warning'));
+
+          if (!adaSelisih) {
+              judul.textContent = 'Belum ada selisih';
+              ket.textContent = 'Ubah angka yang diterima bila hasil timbang berbeda dari nota.';
+              if (tombol) tombol.disabled = true;
+              return;
+          }
+
+          if (tombol) tombol.disabled = false;
+
+          if (Math.abs(totalNilai) < 0.01) {
+              judul.textContent = 'Ada selisih barang, tapi nilainya saling menutup';
+              ket.textContent = 'Stok tetap dikoreksi ke angka nyata; saldo supplier tidak berubah.';
+          } else if (totalNilai > 0) {
+              judul.textContent = 'Saldo supplier NAIK ' + rupiah(totalNilai);
+              ket.textContent = 'Barang ' + rincian.join(', ') + ' — potongan saat nota dicatat ternyata kelebihan, '
+                  + 'jadi selisihnya dikembalikan ke saldo.';
+          } else {
+              judul.textContent = 'Saldo supplier TURUN ' + rupiah(totalNilai);
+              ket.textContent = 'Barang ' + rincian.join(', ') + ' — potongan saat nota dicatat ternyata kurang, '
+                  + 'jadi saldo dipotong lagi sebesar selisihnya.';
+          }
+      }
+
+      tabel.addEventListener('input', hitung);
+      hitung();
+
+      // Kunci tombol setelah diklik: di gudang bersinyal lemah, tombol Simpan
+      // sering ditekan berulang karena spinner terlihat menggantung.
+      var form = document.getElementById('f-real');
+      if (form) {
+          form.addEventListener('submit', function () {
+              var b = document.getElementById('btn-real');
+              if (b) { b.disabled = true; b.textContent = 'Menyimpan…'; }
+          });
+      }
+  })();
+</script>
+@endif
 @endpush

@@ -67,9 +67,10 @@
                   @endforeach
                 </td>
                 <td class="text-end fw-bold">{{ $rp($r->total) }}
-                  @php $nilaiRl = (float) $r->realizations->sum('value'); @endphp
-                  @if ($nilaiRl > 0)
-                    <div class="fs-9 text-danger">realisasi −{{ $rp($nilaiRl) }}</div>
+                  @php $nilaiRl = (float) ($r->realization->value ?? 0); @endphp
+                  @if (abs($nilaiRl) > 0.01)
+                    <div class="fs-9 {{ $nilaiRl > 0 ? 'text-success' : 'text-danger' }}">
+                      realisasi {{ $nilaiRl > 0 ? '−' : '+' }}{{ $rp(abs($nilaiRl)) }}</div>
                     <div class="fs-9 text-muted">bersih {{ $rp($r->netTotal()) }}</div>
                   @endif
                 </td>
@@ -77,15 +78,12 @@
                   @if ($r->isPaid())
                     <span class="badge badge-light-success fw-bold">Lunas</span>
                     @if ($r->paid_at)<div class="fs-9 text-muted">{{ $r->paid_at->format('d/m/Y') }}</div>@endif
-                    @if ((float) $r->credit_applied > 0)
-                      <div class="fs-9 text-muted">via piutang {{ $rp($r->credit_applied) }}</div>
-                    @endif
                   @else
                     <span class="badge badge-light-danger fw-bold">Belum Lunas</span>
                     <div class="fs-9 text-danger fw-bold">sisa {{ $rp($r->remainingToPay()) }}</div>
-                    @if ((float) $r->credit_applied > 0)
-                      <div class="fs-9 text-muted">sebagian via piutang</div>
-                    @endif
+                  @endif
+                  @if ($r->realization)
+                    <div class="fs-9 text-muted">sudah direalisasi</div>
                   @endif
                 </td>
               </tr>
