@@ -614,6 +614,8 @@ class ReportService
         $blok = [];
         $tAwal = $tMasuk = $tKeluar = $tSusut = $tAkhir = 0.0;
 
+        $tLebih = 0.0;
+
         foreach ($items as $item) {
             $masukSblm  = $this->masukKg($item->id, null, $a->copy()->subDay());
             $keluarSblm = $this->keluarKg($item->id, null, $a->copy()->subDay());
@@ -623,6 +625,8 @@ class ReportService
             $masuk  = $this->masukKg($item->id, $a, $b);
             $keluar = $this->keluarKg($item->id, $a, $b);
             $susut  = $this->susutKg($item->id, $a, $b);
+            $lebih  = round($this->lebihJualKg($item->id, $a, $b)
+                            + $this->susutGagalKg($item->id, $a, $b), 2);
             $akhir  = round($awal + $masuk - $keluar - $susut, 2);
 
             // Barang tanpa mutasi dan tanpa saldo tidak perlu memenuhi halaman.
@@ -630,8 +634,9 @@ class ReportService
                 continue;
             }
 
-            $blok[] = [$item->name, $awal, $masuk, $keluar, $susut, $akhir];
-            $tAwal += $awal; $tMasuk += $masuk; $tKeluar += $keluar; $tSusut += $susut; $tAkhir += $akhir;
+            $blok[] = [$item->name, $awal, $masuk, $keluar, $susut, $lebih, $akhir];
+            $tAwal += $awal; $tMasuk += $masuk; $tKeluar += $keluar; $tSusut += $susut;
+            $tLebih += $lebih; $tAkhir += $akhir;
         }
 
         $baris = array_map(fn ($r) => [
@@ -640,7 +645,8 @@ class ReportService
             $this->angka($r[2], 2),
             $this->angka($r[3], 2),
             $this->angka($r[4], 2),
-            $this->angka($r[5], 2),
+            $r[5] > 0.001 ? $this->angka($r[5], 2) : '—',
+            $this->angka($r[6], 2),
         ], $blok);
 
         return [
@@ -650,24 +656,33 @@ class ReportService
                 ['label' => 'Saldo Awal', 'nilai' => $tAwal, 'jenis' => 'kg'],
                 ['label' => 'Masuk', 'nilai' => $tMasuk, 'jenis' => 'kg'],
                 ['label' => 'Keluar', 'nilai' => $tKeluar, 'jenis' => 'kg'],
-                ['label' => 'Saldo Akhir', 'nilai' => $tAkhir, 'jenis' => 'kg', 'ket' => 'susut ' . $this->angka($tSusut, 2) . ' kg'],
+                ['label' => 'Saldo Akhir', 'nilai' => $tAkhir, 'jenis' => 'kg',
+                    'ket' => $tLebih > 0.001
+                        ? 'susut ' . $this->angka($tSusut, 2) . ' kg · ' . $this->angka($tLebih, 2) . ' kg tidak menemukan stok'
+                        : 'susut ' . $this->angka($tSusut, 2) . ' kg'],
             ],
             'blok' => [[
                 'judul' => 'Mutasi Barang (kilogram)',
                 'kolom' => [
                     ['label' => 'Barang', 'align' => 'left'],
-                    ['label' => 'Saldo Awal', 'align' => 'right', 'lebar' => '15%'],
-                    ['label' => 'Masuk', 'align' => 'right', 'lebar' => '15%'],
-                    ['label' => 'Keluar', 'align' => 'right', 'lebar' => '15%'],
-                    ['label' => 'Susut', 'align' => 'right', 'lebar' => '15%'],
-                    ['label' => 'Saldo Akhir', 'align' => 'right', 'lebar' => '15%'],
+                    ['label' => 'Saldo Awal', 'align' => 'right', 'lebar' => '13%'],
+                    ['label' => 'Masuk', 'align' => 'right', 'lebar' => '13%'],
+                    ['label' => 'Keluar', 'align' => 'right', 'lebar' => '13%'],
+                    ['label' => 'Susut', 'align' => 'right', 'lebar' => '12%'],
+                    ['label' => 'Tidak Menemukan Stok', 'align' => 'right', 'lebar' => '15%'],
+                    ['label' => 'Saldo Akhir', 'align' => 'right', 'lebar' => '13%'],
                 ],
                 'baris' => $baris,
                 'total' => ['TOTAL', $this->angka($tAwal, 2), $this->angka($tMasuk, 2),
-                    $this->angka($tKeluar, 2), $this->angka($tSusut, 2), $this->angka($tAkhir, 2)],
+                    $this->angka($tKeluar, 2), $this->angka($tSusut, 2),
+                    $tLebih > 0.001 ? $this->angka($tLebih, 2) : '—', $this->angka($tAkhir, 2)],
             ]],
-            'catatan' => 'Saldo akhir = saldo awal + masuk − keluar − susut. Bila saldo akhir berbeda dengan '
-                . 'hitungan fisik di gudang, luruskan lewat menu Penyesuaian Stok agar keduanya kembali sama.',
+            'catatan' => 'Saldo akhir = saldo awal + masuk − keluar − susut, dan angkanya selalu sama dengan '
+                . 'sisa lot di gudang. Kolom "Terjual Tanpa Stok" adalah bagian nota keluar yang tidak menemukan '
+                . 'stok saat disimpan — biasanya karena ada NOTA BARANG MASUK YANG BELUM DICATAT. Bagian itu '
+                . 'tercatat berharga pokok 0 sehingga labanya terlihat lebih besar dari kenyataan; segera catat '
+                . 'pembelian yang tertinggal, lalu periksa laporan ini lagi.'
+                . ($tLebih > 0.001 ? ' Saat ini ada ' . $this->angka($tLebih, 2) . ' kg pada keadaan itu.' : ''),
         ];
     }
 
@@ -680,24 +695,68 @@ class ReportService
             ->sum('weight_kg_initial');
     }
 
+    /**
+     * Yang BENAR-BENAR keluar dari lot — bukan yang tertulis di nota.
+     *
+     * Bila nota menjual lebih banyak daripada stok yang ada, FIFO hanya bisa
+     * mengambil sebatas yang tersedia. Memakai angka nota membuat kartu stok
+     * menghasilkan saldo minus yang tidak pernah cocok dengan gudang; kelebihannya
+     * dilaporkan terpisah lewat lebihJualKg().
+     */
     private function keluarKg(int $itemId, ?Carbon $a, Carbon $b): float
     {
-        return (float) DB::table('farm_stock_out_lines as l')
+        return (float) DB::table('farm_stock_out_lot_usages as u')
+            ->join('farm_stock_out_lines as l', 'l.id', '=', 'u.stock_out_line_id')
+            ->join('farm_stock_outs as o', 'o.id', '=', 'l.stock_out_id')
+            ->where('l.item_id', $itemId)
+            ->when($a, fn ($q) => $q->where('o.date', '>=', $a->toDateString()))
+            ->where('o.date', '<=', $b->toDateString())
+            ->sum('u.weight_kg');
+    }
+
+    /** Bagian nota keluar yang tidak menemukan stok — pertanda pembelian belum dicatat. */
+    private function lebihJualKg(int $itemId, ?Carbon $a, Carbon $b): float
+    {
+        $nota = (float) DB::table('farm_stock_out_lines as l')
             ->join('farm_stock_outs as o', 'o.id', '=', 'l.stock_out_id')
             ->where('l.item_id', $itemId)
             ->when($a, fn ($q) => $q->where('o.date', '>=', $a->toDateString()))
             ->where('o.date', '<=', $b->toDateString())
             ->sum('l.weight_kg');
+
+        return max(0, round($nota - $this->keluarKg($itemId, $a, $b), 2));
     }
 
+    /**
+     * Susut yang BENAR-BENAR terpotong dari lot.
+     *
+     * Penyesuaian yang dicatat saat stoknya sudah habis tidak memotong apa pun —
+     * kalau angka permintaannya tetap dihitung sebagai susut, saldo kartu stok
+     * tidak akan pernah sama dengan sisa lot di gudang. Selisih semacam itu
+     * dilaporkan pada kolom "Tidak Menemukan Stok", bukan disembunyikan.
+     */
     private function susutKg(int $itemId, ?Carbon $a, Carbon $b): float
     {
-        return (float) DB::table('farm_stock_adjustments')
+        return (float) DB::table('farm_adjustment_lot_usages as au')
+            ->join('farm_stock_adjustments as adj', 'adj.id', '=', 'au.adjustment_id')
+            ->where('adj.item_id', $itemId)
+            ->where('adj.reason', '!=', 'koreksi_tambah')
+            ->when($a, fn ($q) => $q->where('adj.date', '>=', $a->toDateString()))
+            ->where('adj.date', '<=', $b->toDateString())
+            ->sum('au.weight_kg');
+    }
+
+    /** Penyesuaian yang diminta tetapi tidak menemukan stok untuk dipotong. */
+    private function susutGagalKg(int $itemId, ?Carbon $a, Carbon $b): float
+    {
+        $diminta = (float) DB::table('farm_stock_adjustments')
             ->where('item_id', $itemId)
             ->where('reason', '!=', 'koreksi_tambah')
             ->when($a, fn ($q) => $q->where('date', '>=', $a->toDateString()))
             ->where('date', '<=', $b->toDateString())
             ->sum('weight_kg');
+
+        return max(0, round($diminta - $this->susutKg($itemId, $a, $b), 2));
     }
 
     /* ===================================================================

@@ -43,7 +43,8 @@ class WarehouseController extends Controller
 
         $rows = [];
         $total = ['masuk_kg' => 0.0, 'masuk_ekor' => 0, 'keluar_kg' => 0.0, 'keluar_ekor' => 0,
-            'susut_kg' => 0.0, 'susut_ekor' => 0, 'sisa_kg' => 0.0, 'sisa_ekor' => 0, 'nilai' => 0.0];
+            'susut_kg' => 0.0, 'susut_ekor' => 0, 'sisa_kg' => 0.0, 'sisa_ekor' => 0, 'nilai' => 0.0,
+            'tanpa_stok' => 0.0];
 
         foreach (Item::where('is_active', true)->orderBy('name')->get() as $item) {
             $masuk = DB::table('farm_stock_lots')->where('item_id', $item->id)
@@ -51,15 +52,29 @@ class WarehouseController extends Controller
                 ->selectRaw('COALESCE(SUM(weight_kg_initial),0) kg, COALESCE(SUM(qty_ekor_initial),0) ekor')
                 ->first();
 
-            $keluar = DB::table('farm_stock_out_lines as l')
+            // Yang keluar diambil dari PEMAKAIAN LOT, bukan dari angka nota. Bila nota
+            // menjual lebih banyak daripada stok yang ada, hanya sebatas stok itu yang
+            // benar-benar keluar — memakai angka nota membuat halaman ini tidak cocok
+            // dengan Kartu Stok maupun dengan sisa lot.
+            $keluar = DB::table('farm_stock_out_lot_usages as u')
+                ->join('farm_stock_out_lines as l', 'l.id', '=', 'u.stock_out_line_id')
                 ->join('farm_stock_outs as o', 'o.id', '=', 'l.stock_out_id')
                 ->where('l.item_id', $item->id)->whereBetween('o.date', [$a, $b])
-                ->selectRaw('COALESCE(SUM(l.weight_kg),0) kg, COALESCE(SUM(l.qty_ekor),0) ekor')
+                ->selectRaw('COALESCE(SUM(u.weight_kg),0) kg, COALESCE(SUM(u.qty_ekor),0) ekor')
                 ->first();
 
-            $susut = DB::table('farm_stock_adjustments')->where('item_id', $item->id)
-                ->where('reason', '!=', 'koreksi_tambah')->whereBetween('date', [$a, $b])
-                ->selectRaw('COALESCE(SUM(weight_kg),0) kg, COALESCE(SUM(qty_ekor),0) ekor')
+            $nota = DB::table('farm_stock_out_lines as l')
+                ->join('farm_stock_outs as o', 'o.id', '=', 'l.stock_out_id')
+                ->where('l.item_id', $item->id)->whereBetween('o.date', [$a, $b])
+                ->selectRaw('COALESCE(SUM(l.weight_kg),0) kg')
+                ->first();
+            $tanpaStok = max(0, round((float) $nota->kg - (float) $keluar->kg, 2));
+
+            $susut = DB::table('farm_adjustment_lot_usages as au')
+                ->join('farm_stock_adjustments as adj', 'adj.id', '=', 'au.adjustment_id')
+                ->where('adj.item_id', $item->id)
+                ->where('adj.reason', '!=', 'koreksi_tambah')->whereBetween('adj.date', [$a, $b])
+                ->selectRaw('COALESCE(SUM(au.weight_kg),0) kg, COALESCE(SUM(au.qty_ekor),0) ekor')
                 ->first();
 
             // Sisa & nilainya diambil dari lot: itulah kebenaran stok saat ini,
@@ -81,6 +96,7 @@ class WarehouseController extends Controller
                 'keluar_ekor' => (int) $keluar->ekor,
                 'susut_kg'    => round((float) $susut->kg, 2),
                 'susut_ekor'  => (int) $susut->ekor,
+                'tanpa_stok'  => $tanpaStok,
                 'sisa_kg'     => round((float) $sisa->kg, 2),
                 'sisa_ekor'   => (int) $sisa->ekor,
                 'nilai'       => round((float) $sisa->nilai, 2),
@@ -95,12 +111,12 @@ class WarehouseController extends Controller
 
             $rows[] = $baris;
             foreach (['masuk_kg', 'masuk_ekor', 'keluar_kg', 'keluar_ekor', 'susut_kg', 'susut_ekor',
-                      'sisa_kg', 'sisa_ekor', 'nilai'] as $k) {
+                      'sisa_kg', 'sisa_ekor', 'nilai', 'tanpa_stok'] as $k) {
                 $total[$k] += $baris[$k];
             }
         }
 
-        foreach (['masuk_kg', 'keluar_kg', 'susut_kg', 'sisa_kg', 'nilai'] as $k) {
+        foreach (['masuk_kg', 'keluar_kg', 'susut_kg', 'sisa_kg', 'nilai', 'tanpa_stok'] as $k) {
             $total[$k] = round($total[$k], 2);
         }
 

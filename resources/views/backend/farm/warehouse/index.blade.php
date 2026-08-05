@@ -136,6 +136,17 @@
           </table>
         </div>
 
+        @if ($total['tanpa_stok'] > 0.001)
+          <div class="alert alert-danger fs-8 py-3 mt-4 mb-0">
+            <b>{{ $num($total['tanpa_stok'], 2) }} kg tidak menemukan stok</b> pada periode ini — ada nota keluar
+            (atau penyesuaian) yang jumlahnya melebihi stok yang tercatat. Biasanya karena
+            <b>nota barang masuk belum dicatat</b>. Bagian itu tersimpan berharga pokok 0, jadi labanya terlihat
+            lebih besar dari kenyataan. Catat pembelian yang tertinggal, lalu buka
+            <a href="{{ route('farm.reports.index', ['jenis' => 'kartu-stok']) }}" class="fw-bold">Kartu Stok</a>
+            untuk memastikan sudah beres.
+          </div>
+        @endif
+
         <div class="alert alert-light-primary border border-primary fs-8 py-3 mt-4 mb-0">
           Stok berkurang otomatis saat <b>Barang Keluar</b> disimpan (FIFO) dan saat ada
           <a href="{{ route('farm.adjustments.index') }}" class="fw-bold">Penyesuaian Stok</a>.
