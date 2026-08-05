@@ -72,10 +72,14 @@ Route::post('/admin/farm/stock-out/preview', [StockOutController::class, 'previe
 Route::post('/admin/farm/stock-out', [StockOutController::class, 'store'])->name('farm.stock-out.store');
 Route::get('/admin/farm/stock-out/{stockOut}', [StockOutController::class, 'show'])->name('farm.stock-out.show');
 Route::get('/admin/farm/stock-out/{stockOut}/receipt', [StockOutController::class, 'receipt'])->name('farm.stock-out.receipt');
+// Batalkan nota: stok dikembalikan ke lot asalnya. Satu-satunya cara meluruskan
+// nota yang dulu tersimpan tanpa menemukan stok (harga pokoknya 0).
+Route::delete('/admin/farm/stock-out/{stockOut}', [StockOutController::class, 'destroy'])->name('farm.stock-out.destroy');
 
 // ---------- PRODUKSI TELUR ----------
 Route::get('/admin/farm/eggs', [EggProductionController::class, 'index'])->name('farm.eggs.index');
 Route::post('/admin/farm/eggs', [EggProductionController::class, 'store'])->name('farm.eggs.store');
+Route::post('/admin/farm/eggs/recalc', [EggProductionController::class, 'recalc'])->name('farm.eggs.recalc');
 Route::get('/admin/farm/eggs/{eggProduction}/detail', [EggProductionController::class, 'detail'])->name('farm.eggs.detail');
 Route::delete('/admin/farm/eggs/{eggProduction}', [EggProductionController::class, 'destroy'])->name('farm.eggs.destroy');
 
@@ -83,6 +87,7 @@ Route::delete('/admin/farm/eggs/{eggProduction}', [EggProductionController::clas
 Route::get('/admin/farm/adjustments', [AdjustmentController::class, 'index'])->name('farm.adjustments.index');
 Route::post('/admin/farm/adjustments', [AdjustmentController::class, 'store'])->name('farm.adjustments.store');
 Route::post('/admin/farm/adjustments/{adjustment}/approve', [AdjustmentController::class, 'approve'])->name('farm.adjustments.approve');
+Route::delete('/admin/farm/adjustments/{adjustment}', [AdjustmentController::class, 'destroy'])->name('farm.adjustments.destroy');
 Route::get('/admin/farm/items/{item}/lots', [AdjustmentController::class, 'lots'])->name('farm.items.lots');
 
 // ---------- LAPORAN ----------

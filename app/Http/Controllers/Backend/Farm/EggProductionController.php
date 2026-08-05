@@ -123,6 +123,59 @@ class EggProductionController extends Controller
         return back()->with('success', 'Catatan produksi & stoknya dihapus.');
     }
 
+    /**
+     * HITUNG ULANG HPP TELUR pada lot yang belum terjual.
+     *
+     * Harga pokok telur dibekukan ke lot saat produksi dicatat, padahal biaya
+     * operasional bulan itu baru lengkap di akhir bulan. Akibatnya produksi awal
+     * bulan sering tersimpan berharga pokok Rp 0 dan labanya terlihat 100%.
+     *
+     * Yang diperbarui HANYA lot yang belum tersentuh penjualan. Lot yang sudah
+     * terjual sebagian tidak disentuh: harga pokok pada nota lama mengambil dari
+     * lot itu, dan mengubahnya akan menggeser laba yang sudah dilaporkan.
+     */
+    public function recalc()
+    {
+        $diperbarui = 0;
+        $dilewati   = 0;
+
+        DB::transaction(function () use (&$diperbarui, &$dilewati) {
+            $daftar = EggProduction::whereNotNull('lot_id')->with('lot')->get();
+
+            foreach ($daftar as $prod) {
+                $lot = $prod->lot;
+                if (! $lot) {
+                    continue;
+                }
+
+                // Sudah terpakai penjualan/penyesuaian -> jangan diubah.
+                if ((int) $lot->qty_ekor_left !== (int) $lot->qty_ekor_initial) {
+                    $dilewati++;
+                    continue;
+                }
+
+                $baru = $this->eggCost->costPerButir(Carbon::parse($prod->date));
+                if (abs((float) $lot->cost_per_ekor - $baru) < 0.01) {
+                    continue;
+                }
+
+                $lot->update(['cost_per_ekor' => $baru]);
+                $diperbarui++;
+            }
+        });
+
+        $pesan = $diperbarui > 0
+            ? "Harga pokok {$diperbarui} lot telur diperbarui mengikuti biaya operasional terbaru."
+            : 'Tidak ada yang perlu diperbarui — harga pokoknya sudah sesuai biaya operasional saat ini.';
+
+        if ($dilewati > 0) {
+            $pesan .= " {$dilewati} lot dilewati karena telurnya sudah terjual sebagian "
+                . '(harga pokok nota lama tidak boleh berubah).';
+        }
+
+        return back()->with('success', $pesan);
+    }
+
     /** Rincian satu catatan produksi: dipakai ke mana saja butirnya. */
     public function detail(EggProduction $eggProduction)
     {

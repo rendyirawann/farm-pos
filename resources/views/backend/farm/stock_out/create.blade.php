@@ -106,9 +106,30 @@
             </table>
           </div>
 
-          <button type="button" class="btn btn-light-warning fw-bold mt-3" id="btn-add">
-            <i class="ki-outline ki-plus fs-3"></i> Tambah Baris
-          </button>
+          <div class="d-flex flex-wrap gap-2 mt-3 align-items-center">
+            <button type="button" class="btn btn-light-warning fw-bold" id="btn-add"
+                    @if ($items->isEmpty()) disabled @endif>
+              <i class="ki-outline ki-plus fs-3"></i> Tambah Baris
+            </button>
+
+            @if ($habis->count())
+              {{-- Barang habis sengaja TIDAK ada di dropdown (memilihnya hanya
+                   menghasilkan nota berharga pokok 0 dan stok minus), tetapi tetap
+                   bisa dilihat di sini supaya petugas tahu apa yang perlu dibeli. --}}
+              <button type="button" class="btn btn-light fw-bold" data-bs-toggle="modal" data-bs-target="#m-habis">
+                <i class="ki-outline ki-information-5 fs-4"></i>
+                {{ $habis->count() }} item stoknya habis
+              </button>
+            @endif
+          </div>
+
+          @if ($items->isEmpty())
+            <div class="alert alert-danger d-flex align-items-start py-3 fs-8 mt-3 mb-0">
+              <i class="ki-outline ki-information-5 fs-2 me-2"></i>
+              <div><b>Semua barang stoknya habis</b>, jadi belum ada yang bisa dijual.
+                Catat <a href="{{ route('farm.stock-in.create') }}" class="fw-bold">Barang Masuk</a> dulu.</div>
+            </div>
+          @endif
 
           <div class="mb-3 mt-4">
             <label class="form-label fw-semibold fs-7">Catatan</label>
@@ -130,6 +151,62 @@
     </form>
   </div>
 </div>
+{{-- Daftar barang habis — informasi saja, tidak bisa dipilih dari sini. --}}
+@if ($habis->count())
+<div class="modal fade" id="m-habis" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header py-4">
+        <div>
+          <h3 class="fw-bold mb-0">Item yang Stoknya Habis</h3>
+          <span class="text-muted fs-8">Tidak muncul di pilihan Barang Keluar sampai stoknya masuk lagi.</span>
+        </div>
+        <div class="btn btn-icon btn-sm btn-active-light" data-bs-dismiss="modal">
+          <i class="ki-outline ki-cross fs-1"></i></div>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-row-bordered align-middle gy-2 mb-0 fs-8">
+            <thead><tr class="fw-bold text-muted bg-light">
+              <th class="ps-3">Barang</th><th>Jenis</th><th>Satuan</th>
+              <th>Terakhir Masuk</th><th class="text-end pe-3">Sisa</th>
+            </tr></thead>
+            <tbody>
+            @foreach ($habis as $h)
+              <tr>
+                <td class="ps-3 fw-bold text-gray-800">{{ $h->name }}</td>
+                <td>{{ $h->is_produced ? 'Produksi sendiri' : 'Dibeli dari supplier' }}</td>
+                <td>{{ $h->primary_unit }}</td>
+                <td>
+                  @if ($h->terakhir_masuk)
+                    {{ \Carbon\Carbon::parse($h->terakhir_masuk)->format('d/m/Y') }}
+                    <div class="fs-9 text-muted">
+                      {{ \Carbon\Carbon::parse($h->terakhir_masuk)->locale('id')->diffForHumans() }}</div>
+                  @else
+                    <span class="text-muted">belum pernah</span>
+                  @endif
+                </td>
+                <td class="text-end pe-3"><span class="badge badge-light-danger">0</span></td>
+              </tr>
+            @endforeach
+            </tbody>
+          </table>
+        </div>
+        <div class="alert alert-light-primary border border-primary fs-8 py-3 mt-4 mb-0">
+          Barang yang dibeli dari supplier akan muncul kembali begitu
+          <a href="{{ route('farm.stock-in.create') }}" class="fw-bold">Barang Masuk</a> dicatat.
+          Telur muncul kembali setelah
+          <a href="{{ route('farm.eggs.index') }}" class="fw-bold">Produksi Telur</a> dicatat.
+        </div>
+      </div>
+      <div class="modal-footer py-3">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Tutup</button>
+        <a href="{{ route('farm.stock-in.create') }}" class="btn btn-success fw-bold">Catat Barang Masuk</a>
+      </div>
+    </div>
+  </div>
+</div>
+@endif
 @endsection
 
 @push('scripts')
@@ -405,6 +482,7 @@
       }
     });
 
-  barisBaru(); hitung(); aturJenisJual();
+  if (ITEMS.length) { barisBaru(); }
+  hitung(); aturJenisJual();
 </script>
 @endpush

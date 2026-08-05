@@ -9,6 +9,8 @@ use App\Models\Farm\StockLot;
 use App\Services\Farm\FarmStockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -81,6 +83,80 @@ class AdjustmentController extends Controller
         }
 
         return back()->with('success', 'Penyesuaian tercatat. Dampak nilai: Rp ' . number_format($dampak, 0, ',', '.'));
+    }
+
+    /**
+     * HAPUS PENYESUAIAN — stok dikembalikan sebanyak yang benar-benar terpotong.
+     *
+     * Penyesuaian yang dicatat saat stoknya sudah habis tidak memotong apa pun,
+     * tetapi tetap menghitung diri sebagai susut dan membuat laporan tidak bisa
+     * ditutup. Baris seperti itu harus bisa dibuang tanpa mengubah stok.
+     */
+    public function destroy(StockAdjustment $adjustment)
+    {
+        // Penyesuaian yang sudah disetujui adalah keputusan resmi; membatalkannya
+        // harus lewat persetujuan baru, bukan dihapus sepihak.
+        if ($adjustment->isApproved()) {
+            return back()->with('error',
+                'Penyesuaian ini sudah disetujui, jadi tidak bisa dihapus. '
+                . 'Buat penyesuaian baru sebagai koreksi bila angkanya salah.');
+        }
+
+        $kembali = [];
+
+        try {
+            DB::transaction(function () use ($adjustment, &$kembali) {
+                if ($adjustment->isAddition()) {
+                    // Koreksi TAMBAH membuat lot baru. Lot itu hanya boleh dibuang
+                    // bila belum terpakai — kalau sudah terjual, harga pokok nota
+                    // lama mengambil dari lot ini.
+                    $lot = StockLot::whereNull('stock_in_line_id')
+                        ->where('item_id', $adjustment->item_id)
+                        ->where('date', $adjustment->date)
+                        ->where('qty_ekor_initial', abs((int) $adjustment->qty_ekor))
+                        ->orderByDesc('id')->first();
+
+                    if ($lot) {
+                        $terpakai = (int) $lot->qty_ekor_initial - (int) $lot->qty_ekor_left;
+                        if ($terpakai > 0) {
+                            throw new \RuntimeException(
+                                'Stok dari koreksi tambah ini sudah terpakai penjualan, jadi tidak bisa dihapus.');
+                        }
+                        $lot->delete();
+                        $kembali[] = 'lot koreksi tambah dibuang';
+                    }
+                } else {
+                    // Pengurangan: kembalikan tepat sebanyak yang tercatat terpotong.
+                    $pemakaian = DB::table('farm_adjustment_lot_usages')
+                        ->where('adjustment_id', $adjustment->id)->get();
+
+                    foreach ($pemakaian as $u) {
+                        $lot = StockLot::find($u->lot_id);
+                        if ($lot) {
+                            $lot->update([
+                                'weight_kg_left' => round((float) $lot->weight_kg_left + (float) $u->weight_kg, 2),
+                                'qty_ekor_left'  => (int) $lot->qty_ekor_left + (int) $u->qty_ekor,
+                            ]);
+                            $kembali[] = number_format((float) $u->weight_kg, 2, ',', '.') . ' kg';
+                        }
+                    }
+
+                    DB::table('farm_adjustment_lot_usages')->where('adjustment_id', $adjustment->id)->delete();
+                }
+
+                if ($adjustment->hasPhoto()) {
+                    Storage::disk('public')->delete($adjustment->photo_path);
+                }
+
+                $adjustment->delete();
+            });
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Penyesuaian dihapus.'
+            . ($kembali ? ' Stok dikembalikan: ' . implode(', ', $kembali) . '.'
+                        : ' Penyesuaian ini dulu tidak memotong stok apa pun, jadi stok tidak berubah.'));
     }
 
     /** Persetujuan supervisor/admin. */

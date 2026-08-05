@@ -73,12 +73,25 @@ class StockOutController extends Controller
                 $i->stok_ekor = $s['ekor'];
                 $i->stok_kg   = $s['kg'];
 
+                // Kapan terakhir barang ini masuk — supaya daftar "item habis"
+                // memberi petunjuk, bukan cuma memberitahu bahwa stoknya nol.
+                $i->terakhir_masuk = \Illuminate\Support\Facades\DB::table('farm_stock_lots')
+                    ->where('item_id', $i->id)->max('date');
+
                 return $i;
             });
 
+        // Barang berstok nol TIDAK ikut ke dropdown: memilihnya hanya menghasilkan
+        // nota berharga pokok 0 dan stok minus. Daftarnya tetap ditampilkan lewat
+        // tombol tersendiri sebagai informasi.
+        [$tersedia, $habis] = $items->partition(
+            fn (Item $i) => (int) $i->stok_ekor > 0 || (float) $i->stok_kg > 0.001
+        );
+
         return view('backend.farm.stock_out.create', [
             'agents' => Agent::where('is_active', true)->orderBy('name')->get(),
-            'items'  => $items,
+            'items'  => $tersedia->values(),
+            'habis'  => $habis->values(),
             'hppTelur' => $this->eggCost->costPerButir(),
         ]);
     }
@@ -217,7 +230,9 @@ class StockOutController extends Controller
 
         return redirect()->route('farm.stock-out.show', $out->id)
             ->with('success', $pesan)
-            ->with('autoprint', true);
+            // Cetak otomatis hanya untuk nota lunas; nota berhutang dicetak nanti
+            // setelah pembayarannya masuk.
+            ->with('autoprint', $out->isPaid());
     }
 
     public function show(StockOut $stockOut)
@@ -229,6 +244,17 @@ class StockOutController extends Controller
 
     public function receipt(StockOut $stockOut)
     {
+        // Nota hanya boleh dicetak setelah LUNAS. Struk yang tercetak dipegang agen
+        // sebagai bukti transaksi selesai; mencetaknya saat masih berutang membuat
+        // bukti itu menyesatkan. Aturan ini ditegakkan di sini, bukan hanya dengan
+        // menyembunyikan tombol — supaya tidak bisa dilewati dari alamat langsung.
+        if (! $stockOut->isPaid()) {
+            return response()->json([
+                'message' => 'Nota ' . $stockOut->invoice_no . ' belum lunas, jadi belum bisa dicetak. '
+                    . 'Catat pembayarannya dulu (sisa ' . number_format($stockOut->remaining(), 0, ',', '.') . ').',
+            ], 422);
+        }
+
         $stockOut->load(['lines.item', 'agent']);
 
         return response()->json([
@@ -250,6 +276,64 @@ class StockOutController extends Controller
             'due_date'       => $stockOut->due_date?->format('d/m/Y'),
             'notes'          => $stockOut->notes,
         ]);
+    }
+
+    /**
+     * BATALKAN NOTA BARANG KELUAR — stok dikembalikan ke lot asalnya.
+     *
+     * Diperlukan untuk memperbaiki salah input yang tidak bisa dibetulkan cara lain:
+     * nota yang jumlahnya melebihi stok tersimpan berharga pokok 0 pada bagian yang
+     * tidak menemukan lot, sehingga labanya terlihat lebih besar dari kenyataan.
+     * Satu-satunya cara meluruskannya adalah membatalkan nota itu, mencatat
+     * pembelian yang tertinggal, lalu memasukkan notanya kembali.
+     *
+     * Yang dikembalikan hanya yang BENAR-BENAR terpotong dari lot (baris pemakaian),
+     * jadi stok tidak pernah bertambah lebih dari yang pernah keluar.
+     */
+    public function destroy(StockOut $stockOut)
+    {
+        // Nota yang sudah ada pembayarannya jangan dibatalkan diam-diam: uangnya
+        // sudah tercatat masuk dan kartu piutang agen akan ikut melenceng.
+        if ($stockOut->payments()->exists()) {
+            return back()->with('error',
+                'Nota ini sudah punya catatan pembayaran agen. Hapus dulu pembayarannya, '
+                . 'baru notanya bisa dibatalkan.');
+        }
+
+        $no = $stockOut->invoice_no;
+
+        try {
+            $ringkas = DB::transaction(function () use ($stockOut) {
+                $kembali = [];
+
+                foreach ($stockOut->lines()->with('item')->get() as $line) {
+                    $balik = (float) $line->lotUsages()->sum('weight_kg');
+                    $balikEkor = (int) $line->lotUsages()->sum('qty_ekor');
+
+                    $this->stock->restoreFromStockOut($line);
+
+                    if ($balik > 0.001 || $balikEkor > 0) {
+                        $kembali[] = sprintf('%s %s kg / %d ekor',
+                            $line->item?->name ?? 'barang',
+                            number_format($balik, 2, ',', '.'), $balikEkor);
+                    }
+                    $line->delete();
+                }
+
+                $stockOut->delete();
+
+                return $kembali;
+            });
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal membatalkan nota: ' . $e->getMessage());
+        }
+
+        $pesan = 'Nota ' . $no . ' dibatalkan.';
+        $pesan .= $ringkas
+            ? ' Stok dikembalikan: ' . implode(', ', $ringkas) . '.'
+            : ' Tidak ada stok yang perlu dikembalikan (nota ini dulu tidak menemukan stok sama sekali).';
+
+        return redirect()->route('farm.stock-out.index')->with('success', $pesan);
     }
 
     /** Nomor nota jual: JUAL-YYYYMMDD-XXXXXX */

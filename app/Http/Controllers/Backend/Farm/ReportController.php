@@ -25,10 +25,7 @@ class ReportController extends Controller
 
     public function index(Request $request)
     {
-        $jenis = $request->input('jenis', 'ringkasan');
-        if (! isset(ReportService::JENIS[$jenis])) {
-            $jenis = 'ringkasan';
-        }
+        $jenis = $this->normalkan($request->input('jenis'));
 
         $konf = ReportService::JENIS[$jenis];
         $periode = $request->input('periode', 'bulan-ini');
@@ -68,12 +65,8 @@ class ReportController extends Controller
     /** Unduh laporan sebagai PDF dengan filter yang sedang dipakai di layar. */
     public function pdf(Request $request)
     {
-        $jenis = $request->input('jenis', 'ringkasan');
-        if (! isset(ReportService::JENIS[$jenis])) {
-            abort(404);
-        }
-
-        $konf = ReportService::JENIS[$jenis];
+        $jenis = $this->normalkan($request->input('jenis'));
+        $konf  = ReportService::JENIS[$jenis];
         $periode = $request->input('periode', 'bulan-ini');
         [$a, $b, $labelPeriode] = $this->laporan->rentang(
             $periode, $request->input('dari'), $request->input('sampai')
@@ -83,7 +76,7 @@ class ReportController extends Controller
 
         // Laporan dengan banyak kolom dicetak mendatar supaya angkanya tidak
         // berdesakan; sisanya tegak karena lebih enak dibaca & diarsipkan.
-        $mendatar = in_array($jenis, ['pembelian', 'penjualan', 'laba', 'piutang', 'susut'], true);
+        $mendatar = in_array($jenis, ['pembelian', 'penjualan', 'laba', 'uang', 'stok'], true);
 
         $pdf = Pdf::loadView('backend.farm.reports.pdf', [
             'data'         => $data,
@@ -131,15 +124,26 @@ class ReportController extends Controller
         $itemId     = $request->filled('item_id') ? (int) $request->input('item_id') : null;
 
         return match ($jenis) {
-            'pembelian'     => $this->laporan->pembelian($a, $b, $supplierId),
-            'penjualan'     => $this->laporan->penjualan($a, $b, $agenId),
-            'laba'          => $this->laporan->labaHarian($a, $b),
-            'kartu-stok'    => $this->laporan->kartuStok($a, $b, $itemId),
-            'stok-supplier' => $this->laporan->stokSupplier($supplierId),
-            'deposit'       => $this->laporan->deposit($a, $b, $supplierId),
-            'piutang'       => $this->laporan->piutang($agenId),
-            'susut'         => $this->laporan->susut($a, $b, $itemId),
-            default         => $this->laporan->ringkasan($a, $b),
+            'pembelian' => $this->laporan->pembelian($a, $b, $supplierId),
+            'penjualan' => $this->laporan->penjualan($a, $b, $agenId),
+            'stok'      => $this->laporan->stok($a, $b, $itemId, $supplierId),
+            'uang'      => $this->laporan->uang($a, $b, $supplierId, $agenId),
+            default     => $this->laporan->laba($a, $b),
         };
+    }
+
+    /**
+     * Terima nama kategori lama maupun baru.
+     *
+     * Sembilan laporan dipadatkan jadi lima; tautan atau penanda halaman yang
+     * sudah tersimpan harus tetap terbuka pada kategori penggantinya, bukan
+     * berubah jadi galat 404.
+     */
+    private function normalkan($jenis): string
+    {
+        $jenis = (string) $jenis;
+        $jenis = ReportService::ALIAS[$jenis] ?? $jenis;
+
+        return isset(ReportService::JENIS[$jenis]) ? $jenis : 'laba';
     }
 }

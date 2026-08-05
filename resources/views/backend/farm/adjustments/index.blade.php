@@ -69,6 +69,12 @@
                   @if (! $r->isApproved())
                     <form action="{{ route('farm.adjustments.approve', $r->id) }}" method="POST" class="d-inline">@csrf
                       <button class="btn btn-sm btn-light-success py-1 px-3 fs-8">Setujui</button></form>
+                    {{-- Selama belum disetujui, penyesuaian yang salah input boleh dibuang;
+                         stok dikembalikan sebanyak yang benar-benar terpotong. --}}
+                    <form action="{{ route('farm.adjustments.destroy', $r->id) }}" method="POST" class="d-inline"
+                          onsubmit="return confirm('Hapus penyesuaian {{ $r->ref_no }}? Stok akan dikembalikan sebanyak yang dulu terpotong.')">
+                      @csrf @method('DELETE')
+                      <button class="btn btn-sm btn-light-danger py-1 px-3 fs-8">Hapus</button></form>
                   @endif
                 </td>
               </tr>

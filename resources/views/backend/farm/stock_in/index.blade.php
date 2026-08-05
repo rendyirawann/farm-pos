@@ -64,7 +64,8 @@
           <table class="table table-row-bordered align-middle gy-3 mb-0 farm-list-table">
             <thead><tr class="fw-bold text-muted bg-light fs-8">
               <th class="ps-4">Nota</th><th>Tanggal</th><th>Supplier</th><th>Barang</th>
-              <th class="text-end">Total</th><th class="pe-4">Status Bayar</th>
+              <th class="text-end">Total</th><th>Status Bayar</th>
+              <th class="text-end pe-4">Aksi</th>
             </tr></thead>
             <tbody>
             @forelse ($rows as $r)
@@ -87,7 +88,7 @@
                     <div class="fs-9 text-muted">bersih {{ $rp($r->netTotal()) }}</div>
                   @endif
                 </td>
-                <td class="pe-4">
+                <td>
                   @if ($r->isPaid())
                     <span class="badge badge-light-success fw-bold">Lunas</span>
                     @if ($r->paid_at)<div class="fs-9 text-muted">{{ $r->paid_at->format('d/m/Y') }}</div>@endif
@@ -99,9 +100,16 @@
                     <div class="fs-9 text-muted">sudah direalisasi</div>
                   @endif
                 </td>
+                <td class="text-end pe-4">
+                  {{-- Tombol Detail disediakan terang-terangan: nomor notanya memang
+                       bisa diklik, tetapi tautan teks tanpa penanda membuat orang
+                       tidak tahu ada halaman rinciannya. --}}
+                  <a href="{{ route('farm.stock-in.show', $r->id) }}"
+                     class="btn btn-sm btn-light-primary py-1 px-3 fs-8 fw-bold">Detail</a>
+                </td>
               </tr>
             @empty
-              <tr><td colspan="6" class="text-center text-muted py-10">
+              <tr><td colspan="7" class="text-center text-muted py-10">
                 @if ($disaring)
                   Tidak ada nota yang cocok dengan filter ini.
                   <a href="{{ route('farm.stock-in.index') }}" class="fw-bold">Tampilkan semua</a>.

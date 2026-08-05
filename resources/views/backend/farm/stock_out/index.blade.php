@@ -51,7 +51,8 @@
           <table class="table table-row-bordered align-middle gy-3 mb-0 farm-list-table">
             <thead><tr class="fw-bold text-muted bg-light fs-8">
               <th class="ps-4">Nota</th><th>Tanggal</th><th>Agen</th><th>Barang</th>
-              <th class="text-end">Jual</th><th class="text-end">Laba</th><th class="text-end pe-4">Status</th>
+              <th class="text-end">Jual</th><th class="text-end">Laba</th><th class="text-end">Status</th>
+              <th class="text-end pe-4">Aksi</th>
             </tr></thead>
             <tbody>
             @forelse ($rows as $r)
@@ -69,7 +70,7 @@
                 <td class="text-end fw-bold">{{ $rp($r->total_sale) }}</td>
                 <td class="text-end fw-bold text-success">{{ $rp($r->gross_profit) }}
                   <div class="fs-9 text-muted">{{ $r->marginPercent() }}%</div></td>
-                <td class="text-end pe-4">
+                <td class="text-end">
                   @if ($r->isPaid())
                     <span class="badge badge-light-success">Lunas</span>
                   @elseif ($r->isOverdue())
@@ -80,9 +81,24 @@
                     @if ($r->due_date)<div class="fs-9 text-muted">{{ $r->due_date->format('d/m/Y') }}</div>@endif
                   @endif
                 </td>
+                <td class="text-end pe-4">
+                  {{-- Cetak nota juga berlaku untuk nota BELUM LUNAS: struknya memang
+                       mencetak keterangan "BELUM LUNAS" supaya agen tahu masih berutang. --}}
+                  @if ($r->isPaid())
+                    <button type="button" class="btn btn-sm btn-light-primary py-1 px-3 fs-8 js-cetak"
+                            data-url="{{ route('farm.stock-out.receipt', $r->id) }}" title="Cetak nota">
+                      <i class="ki-outline ki-printer fs-5"></i></button>
+                  @else
+                    <button type="button" class="btn btn-sm btn-light py-1 px-3 fs-8" disabled
+                            title="Belum lunas — nota bisa dicetak setelah pembayaran dicatat">
+                      <i class="ki-outline ki-printer fs-5"></i></button>
+                  @endif
+                  <a href="{{ route('farm.stock-out.show', $r->id) }}"
+                     class="btn btn-sm btn-light py-1 px-3 fs-8">Detail</a>
+                </td>
               </tr>
             @empty
-              <tr><td colspan="7" class="text-center text-muted py-10">
+              <tr><td colspan="8" class="text-center text-muted py-10">
                 @if ($disaring)
                   Tidak ada nota yang cocok dengan filter ini.
                   <a href="{{ route('farm.stock-out.index') }}" class="fw-bold">Tampilkan semua</a>.
@@ -101,3 +117,32 @@
   </div>
 </div>
 @endsection
+
+@push('scripts')
+@include('backend.farm._print_script')
+<script>
+  // Cetak langsung dari daftar: tidak perlu membuka detail dulu. Berlaku untuk
+  // nota belum lunas maupun lunas — status bayarnya ikut tercetak di struk.
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('.js-cetak');
+    if (!b) return;
+
+    var semula = b.innerHTML;
+    b.disabled = true;
+    b.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    fetch(b.dataset.url, { headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!window.MoodaPrint || !window.farmNota) {
+          throw new Error('Mesin cetak belum siap');
+        }
+        window.MoodaPrint.print(window.farmNota(d));
+      })
+      .catch(function (err) {
+        alert('Gagal menyiapkan nota: ' + (err.message || 'coba lagi'));
+      })
+      .finally(function () { b.disabled = false; b.innerHTML = semula; });
+  });
+</script>
+@endpush

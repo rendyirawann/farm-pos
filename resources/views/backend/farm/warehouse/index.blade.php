@@ -70,7 +70,7 @@
           </form>
           <a href="{{ route('farm.warehouse.stock') }}" class="btn btn-sm btn-light-primary fw-bold">
             <i class="ki-outline ki-chart-simple fs-5"></i> Stok per Supplier</a>
-          <a href="{{ route('farm.reports.index', ['jenis' => 'kartu-stok']) }}" class="btn btn-sm btn-light fw-bold">
+          <a href="{{ route('farm.reports.index', ['jenis' => 'stok']) }}" class="btn btn-sm btn-light fw-bold">
             Kartu Stok (PDF)</a>
         </div>
       </div>
@@ -142,7 +142,7 @@
             (atau penyesuaian) yang jumlahnya melebihi stok yang tercatat. Biasanya karena
             <b>nota barang masuk belum dicatat</b>. Bagian itu tersimpan berharga pokok 0, jadi labanya terlihat
             lebih besar dari kenyataan. Catat pembelian yang tertinggal, lalu buka
-            <a href="{{ route('farm.reports.index', ['jenis' => 'kartu-stok']) }}" class="fw-bold">Kartu Stok</a>
+            <a href="{{ route('farm.reports.index', ['jenis' => 'stok']) }}" class="fw-bold">Kartu Stok</a>
             untuk memastikan sudah beres.
           </div>
         @endif

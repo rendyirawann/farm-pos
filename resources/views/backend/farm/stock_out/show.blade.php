@@ -15,10 +15,27 @@
           <h3 class="card-title fw-bold fs-4 mb-0">Nota Penjualan</h3>
           <span class="text-muted fs-8">{{ $row->invoice_no }}</span>
         </div>
-        <div class="card-toolbar gap-2">
+        <div class="card-toolbar gap-2 flex-wrap">
           <a href="{{ route('farm.stock-out.index') }}" class="btn btn-sm btn-light">Kembali</a>
-          @include('backend.farm._print_button')
-          <button class="btn btn-sm btn-primary fw-bold" id="btn-cetak"><i class="ki-outline ki-printer fs-4"></i> Cetak Nota</button>
+          {{-- Batalkan nota: stok dikembalikan ke lot asalnya. Dipakai untuk memperbaiki
+               salah input — termasuk nota yang dulu tersimpan tanpa menemukan stok. --}}
+          <form method="POST" action="{{ route('farm.stock-out.destroy', $row->id) }}" class="m-0"
+                onsubmit="return confirm('Batalkan nota {{ $row->invoice_no }}?\n\nStok akan dikembalikan ke lot asalnya dan notanya dihapus. Tindakan ini tidak bisa diurungkan.')">
+            @csrf @method('DELETE')
+            <button class="btn btn-sm btn-light-danger fw-bold">
+              <i class="ki-outline ki-trash fs-5"></i> Batalkan Nota</button>
+          </form>
+          @if ($row->isPaid())
+            @include('backend.farm._print_button')
+            <button class="btn btn-sm btn-primary fw-bold" id="btn-cetak">
+              <i class="ki-outline ki-printer fs-4"></i> Cetak Nota</button>
+          @else
+            {{-- Belum lunas: tombol dimatikan, bukan disembunyikan — supaya jelas
+                 bahwa cetaknya ADA, hanya menunggu pembayaran. --}}
+            <button class="btn btn-sm btn-light fw-bold" disabled
+                    title="Nota bisa dicetak setelah lunas. Catat pembayarannya di bawah.">
+              <i class="ki-outline ki-printer fs-4"></i> Cetak Nota</button>
+          @endif
         </div>
       </div>
       <div class="card-body pt-4">

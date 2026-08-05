@@ -24,6 +24,16 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        /*
+         * Paginasi memakai kerangka BOOTSTRAP 5, bukan bawaan Laravel.
+         *
+         * Tampilan bawaan Laravel dibuat untuk Tailwind: tombol "sebelumnya/berikutnya"
+         * berupa SVG yang ukurannya diatur kelas w-5/h-5. Tema ini memakai Bootstrap,
+         * kelas itu tidak ada, sehingga ikon panahnya membesar memenuhi halaman —
+         * terlihat di daftar Barang Keluar begitu datanya lebih dari satu halaman.
+         */
+        \Illuminate\Pagination\Paginator::useBootstrapFive();
+
         // Real-time: broadcast perubahan order (menggantikan polling Kasir & Dapur)
         \App\Models\Order::observe(\App\Observers\OrderObserver::class);
         \App\Models\OrderDetail::observe(\App\Observers\OrderDetailObserver::class);

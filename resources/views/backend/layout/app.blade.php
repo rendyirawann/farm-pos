@@ -241,6 +241,9 @@ License: Proprietary - Mooda System
                                 })();
                             </script>
                         @endif
+                        <!--begin::Breadcrumb-->
+                        @include('backend.layout._breadcrumb')
+                        <!--end::Breadcrumb-->
                         <!--begin::Content-->
                         @yield('content')
                         <!--end::Content-->

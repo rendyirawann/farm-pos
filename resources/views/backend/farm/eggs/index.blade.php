@@ -18,6 +18,15 @@
           ({{ $rincian['periode'] }}) dibagi butir bersih. Catat pakan/obat/tenaga di menu
           <a href="{{ route('expenses.index') }}" class="fw-bold">Pengeluaran</a> agar angkanya akurat.
         </div>
+        {{-- Harga pokok dibekukan saat produksi dicatat; kalau biaya bulan itu baru
+             dimasukkan belakangan, lot yang belum terjual perlu dihitung ulang. --}}
+        <form method="POST" action="{{ route('farm.eggs.recalc') }}" class="mb-3"
+              onsubmit="return confirm('Hitung ulang harga pokok telur pada lot yang BELUM terjual?')">
+          @csrf
+          <button class="btn btn-sm btn-light-warning fw-bold">
+            <i class="ki-outline ki-arrows-circle fs-5"></i> Hitung Ulang HPP Telur</button>
+          <span class="fs-9 text-muted ms-2">Hanya lot yang belum terjual; nota lama tidak berubah.</span>
+        </form>
         <div class="row g-3">
           <div class="col-6 col-md-3"><div class="bg-body rounded p-3">
             <div class="fs-9 text-muted text-uppercase fw-bold">Biaya Operasional</div>

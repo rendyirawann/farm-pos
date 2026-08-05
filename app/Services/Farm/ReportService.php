@@ -31,61 +31,65 @@ use Illuminate\Support\Facades\DB;
 class ReportService
 {
     /** Daftar laporan yang tersedia beserta filter yang relevan untuk masing-masing. */
+    /**
+     * Lima kategori laporan.
+     *
+     * Sebelumnya ada sembilan, dan beberapa di antaranya menjawab pertanyaan yang
+     * sama dengan sudut pandang berbeda: "Ringkasan Usaha" vs "Laba Harian",
+     * "Kartu Stok" vs "Stok per Supplier" vs "Susut". Memisahkannya membuat orang
+     * harus membuka tiga laporan untuk satu pertanyaan, dan angka yang sama muncul
+     * di beberapa tempat. Sekarang tiap kategori dibuat LEBIH DALAM: satu laporan
+     * memuat ringkasan, rincian per tanggal, dan rincian per barang sekaligus.
+     */
     public const JENIS = [
-        'ringkasan' => [
-            'nama'   => 'Ringkasan Usaha',
-            'ikon'   => 'ki-chart-simple',
-            'untuk'  => 'Satu halaman: pembelian, penjualan, laba, susut, nilai stok, uang di supplier, dan piutang agen.',
+        'laba' => [
+            'nama'   => 'Laba & Ringkasan Usaha',
+            'ikon'   => 'ki-chart-line-up',
+            'untuk'  => 'Laba kotor sampai laba bersih, rincian per tanggal, pengeluaran menurut jenis, '
+                . 'laba per barang, dan posisi stok/uang terkini.',
             'filter' => ['periode'],
         ],
         'pembelian' => [
-            'nama'   => 'Pembelian per Supplier',
+            'nama'   => 'Pembelian',
             'ikon'   => 'ki-entrance-left',
-            'untuk'  => 'Rincian nota barang masuk, koreksi realisasi, dan rekap belanja tiap supplier.',
+            'untuk'  => 'Rincian nota barang masuk, koreksi realisasi, rekap per supplier, dan rekap per barang '
+                . 'beserta harga rata-rata per kg.',
             'filter' => ['periode', 'supplier'],
         ],
         'penjualan' => [
             'nama'   => 'Penjualan & Laba',
             'ikon'   => 'ki-entrance-right',
-            'untuk'  => 'Nota barang keluar dengan harga pokok, laba, dan margin — per agen atau seluruhnya.',
+            'untuk'  => 'Rincian nota barang keluar dengan harga pokok & margin, rekap per agen, '
+                . 'dan rekap per barang.',
             'filter' => ['periode', 'agen'],
         ],
-        'laba' => [
-            'nama'   => 'Laba Harian',
-            'ikon'   => 'ki-chart-line-up',
-            'untuk'  => 'Per tanggal: penjualan, harga pokok, laba kotor, susut, pengeluaran, dan LABA BERSIH.',
-            'filter' => ['periode'],
-        ],
-        'kartu-stok' => [
-            'nama'   => 'Kartu Stok',
-            'ikon'   => 'ki-book',
-            'untuk'  => 'Mutasi tiap barang: saldo awal, masuk, keluar, susut, saldo akhir.',
-            'filter' => ['periode', 'item'],
-        ],
-        'stok-supplier' => [
-            'nama'   => 'Stok & HPP per Supplier',
+        'stok' => [
+            'nama'   => 'Stok, Kartu Stok & Susut',
             'ikon'   => 'ki-package',
-            'untuk'  => 'Sisa stok yang masih ada beserta nilai persediaan dan harga pokoknya.',
-            'filter' => ['supplier'],
+            'untuk'  => 'Mutasi tiap barang, sisa lot per supplier beserta HPP-nya, serta susut/penyesuaian '
+                . 'dalam satu laporan.',
+            'filter' => ['periode', 'item', 'supplier'],
         ],
-        'deposit' => [
-            'nama'   => 'Deposit Supplier',
-            'ikon'   => 'ki-wallet',
-            'untuk'  => 'Mutasi uang di tiap supplier: setoran, potongan pembelian, koreksi realisasi, saldo akhir.',
-            'filter' => ['periode', 'supplier'],
-        ],
-        'piutang' => [
-            'nama'   => 'Piutang Agen',
+        'uang' => [
+            'nama'   => 'Piutang & Deposit',
             'ikon'   => 'ki-dollar',
-            'untuk'  => 'Nota yang belum lunas dikelompokkan menurut umur tunggakan.',
-            'filter' => ['agen'],
+            'untuk'  => 'Uang kita yang dipegang supplier (deposit) dan uang agen yang belum dibayar (piutang) '
+                . 'beserta umur tunggakannya.',
+            'filter' => ['periode', 'supplier', 'agen'],
         ],
-        'susut' => [
-            'nama'   => 'Susut & Penyesuaian',
-            'ikon'   => 'ki-arrows-circle',
-            'untuk'  => 'Ayam mati, susut bobot, dan koreksi opname beserta nilai kerugiannya.',
-            'filter' => ['periode', 'item'],
-        ],
+    ];
+
+    /**
+     * Nama lama -> kategori baru. Tautan atau penanda halaman yang sudah tersimpan
+     * tetap terbuka, bukan berubah jadi galat.
+     */
+    public const ALIAS = [
+        'ringkasan'     => 'laba',
+        'kartu-stok'    => 'stok',
+        'stok-supplier' => 'stok',
+        'susut'         => 'stok',
+        'deposit'       => 'uang',
+        'piutang'       => 'uang',
     ];
 
     /** Pilihan periode siap pakai. Nilainya dihitung saat dipakai, bukan disimpan. */
@@ -152,7 +156,7 @@ class ReportService
     /* ===================================================================
        1. RINGKASAN USAHA
        =================================================================== */
-    public function ringkasan(Carbon $a, Carbon $b): array
+    private function bagianRingkasan(Carbon $a, Carbon $b): array
     {
         $tglA = $a->toDateString();
         $tglB = $b->toDateString();
@@ -256,7 +260,7 @@ class ReportService
     /* ===================================================================
        2. PEMBELIAN PER SUPPLIER
        =================================================================== */
-    public function pembelian(Carbon $a, Carbon $b, ?int $supplierId): array
+    private function bagianPembelian(Carbon $a, Carbon $b, ?int $supplierId): array
     {
         $q = StockIn::with(['supplier', 'lines.item', 'realization'])
             ->whereBetween('date', [$a->toDateString(), $b->toDateString()]);
@@ -368,7 +372,7 @@ class ReportService
     /* ===================================================================
        3. PENJUALAN & LABA
        =================================================================== */
-    public function penjualan(Carbon $a, Carbon $b, ?int $agenId): array
+    private function bagianPenjualan(Carbon $a, Carbon $b, ?int $agenId): array
     {
         $q = StockOut::with(['agent', 'lines.item'])
             ->whereBetween('date', [$a->toDateString(), $b->toDateString()]);
@@ -486,7 +490,7 @@ class ReportService
     /* ===================================================================
        4. LABA HARIAN — pengeluaran hari itu memotong uang masuk hari itu
        =================================================================== */
-    public function labaHarian(Carbon $a, Carbon $b): array
+    private function bagianLabaHarian(Carbon $a, Carbon $b): array
     {
         $tglA = $a->toDateString();
         $tglB = $b->toDateString();
@@ -605,7 +609,7 @@ class ReportService
     /* ===================================================================
        5. KARTU STOK
        =================================================================== */
-    public function kartuStok(Carbon $a, Carbon $b, ?int $itemId): array
+    private function bagianKartuStok(Carbon $a, Carbon $b, ?int $itemId): array
     {
         $items = Item::where('is_active', true)
             ->when($itemId, fn ($q) => $q->whereKey($itemId))
@@ -762,7 +766,7 @@ class ReportService
     /* ===================================================================
        6. STOK & HPP PER SUPPLIER (potret saat ini)
        =================================================================== */
-    public function stokSupplier(?int $supplierId): array
+    private function bagianStokSupplier(?int $supplierId): array
     {
         $lots = StockLot::with(['item', 'supplier'])
             ->where(fn ($q) => $q->where('weight_kg_left', '>', 0)->orWhere('qty_ekor_left', '>', 0))
@@ -823,7 +827,7 @@ class ReportService
     /* ===================================================================
        7. DEPOSIT SUPPLIER
        =================================================================== */
-    public function deposit(Carbon $a, Carbon $b, ?int $supplierId): array
+    private function bagianDeposit(Carbon $a, Carbon $b, ?int $supplierId): array
     {
         $suppliers = Supplier::when($supplierId, fn ($q) => $q->whereKey($supplierId))
             ->orderBy('name')->get();
@@ -898,7 +902,7 @@ class ReportService
     /* ===================================================================
        8. PIUTANG AGEN (umur tunggakan)
        =================================================================== */
-    public function piutang(?int $agenId): array
+    private function bagianPiutang(?int $agenId): array
     {
         $nota = StockOut::with('agent')->where('payment_status', 'unpaid')
             ->when($agenId, fn ($q) => $q->where('agent_id', $agenId))
@@ -988,7 +992,7 @@ class ReportService
     /* ===================================================================
        9. SUSUT & PENYESUAIAN
        =================================================================== */
-    public function susut(Carbon $a, Carbon $b, ?int $itemId): array
+    private function bagianSusut(Carbon $a, Carbon $b, ?int $itemId): array
     {
         $rows = DB::table('farm_stock_adjustments as a')
             ->leftJoin('farm_items as i', 'i.id', '=', 'a.item_id')
@@ -1074,6 +1078,237 @@ class ReportService
             ],
             'catatan' => 'Penyesuaian adalah kerugian gudang sendiri (ayam mati, susut bobot) dan TIDAK '
                 . 'mempengaruhi saldo supplier. Selisih yang berasal dari nota supplier dicatat lewat Realisasi.',
+        ];
+    }
+
+
+    /* ===================================================================
+       LAPORAN GABUNGAN — lima kategori, masing-masing lebih dalam
+       =================================================================== */
+
+    /**
+     * 1. LABA & RINGKASAN USAHA
+     *    Menggabungkan bekas "Ringkasan Usaha" + "Laba Harian", ditambah laba per
+     *    barang. Satu laporan untuk pertanyaan "bulan ini untung berapa, dari mana".
+     */
+    public function laba(Carbon $a, Carbon $b): array
+    {
+        $ringkas = $this->bagianRingkasan($a, $b);
+        $harian  = $this->bagianLabaHarian($a, $b);
+
+        return [
+            'judul'   => 'LAPORAN LABA & RINGKASAN USAHA',
+            'ringkas' => $ringkas['ringkas'],
+            'blok'    => array_merge(
+                [$ringkas['blok'][0]],              // perhitungan laba kotor -> bersih
+                [$harian['blok'][0]],               // per tanggal
+                [$this->blokLabaPerBarang($a, $b)], // barang mana yang menghasilkan
+                [$harian['blok'][1]],               // pengeluaran menurut jenis
+                [$ringkas['blok'][1]]               // posisi stok & uang terkini
+            ),
+            'catatan' => $ringkas['catatan'] . ' Rincian per tanggal memakai tanggal dokumen, '
+                . 'sehingga pengeluaran yang dicatat pada hari tertentu langsung memotong '
+                . 'uang masuk hari itu.',
+        ];
+    }
+
+    /**
+     * 2. PEMBELIAN — rincian nota + rekap per supplier + rekap per barang.
+     */
+    public function pembelian(Carbon $a, Carbon $b, ?int $supplierId): array
+    {
+        $dasar = $this->bagianPembelian($a, $b, $supplierId);
+        array_splice($dasar['blok'], 1, 0, [$this->blokPembelianPerBarang($a, $b, $supplierId)]);
+
+        return $dasar;
+    }
+
+    /**
+     * 3. PENJUALAN & LABA — rincian nota + rekap per agen + rekap per barang.
+     */
+    public function penjualan(Carbon $a, Carbon $b, ?int $agenId): array
+    {
+        $dasar = $this->bagianPenjualan($a, $b, $agenId);
+        array_splice($dasar['blok'], 1, 0, [$this->blokLabaPerBarang($a, $b, $agenId)]);
+
+        return $dasar;
+    }
+
+    /**
+     * 4. STOK — kartu stok + sisa lot per supplier + susut, dalam satu laporan.
+     *    Ketiganya menjawab pertanyaan yang sama ("stok saya sebenarnya berapa dan
+     *    ke mana perginya"), jadi tidak masuk akal dipisah jadi tiga menu.
+     */
+    public function stok(Carbon $a, Carbon $b, ?int $itemId, ?int $supplierId): array
+    {
+        $kartu = $this->bagianKartuStok($a, $b, $itemId);
+        $lot   = $this->bagianStokSupplier($supplierId);
+        $susut = $this->bagianSusut($a, $b, $itemId);
+
+        $cakupan = array_filter([
+            $itemId ? 'Barang: ' . (Item::find($itemId)->name ?? '—') : null,
+            $supplierId ? 'Supplier: ' . (Supplier::find($supplierId)->name ?? '—') : null,
+        ]);
+
+        return [
+            'judul'    => 'LAPORAN STOK, KARTU STOK & SUSUT',
+            'subjudul' => $cakupan ? implode(' · ', $cakupan) : 'Seluruh barang & supplier',
+            'ringkas'  => [
+                $kartu['ringkas'][1],       // masuk
+                $kartu['ringkas'][2],       // keluar
+                $kartu['ringkas'][3],       // saldo akhir
+                $lot['ringkas'][2],         // nilai persediaan
+            ],
+            'blok' => array_merge(
+                $kartu['blok'],             // mutasi per barang
+                $lot['blok'],               // rincian lot FIFO per supplier
+                $susut['blok']              // rekap sebab + rincian kejadian susut
+            ),
+            'catatan' => $kartu['catatan'] . ' ' . $susut['catatan'],
+        ];
+    }
+
+    /**
+     * 5. PIUTANG & DEPOSIT — dua sisi uang yang berada di luar kas:
+     *    yang kita titipkan ke supplier, dan yang belum dibayar agen.
+     */
+    public function uang(Carbon $a, Carbon $b, ?int $supplierId, ?int $agenId): array
+    {
+        $dep = $this->bagianDeposit($a, $b, $supplierId);
+        $piu = $this->bagianPiutang($agenId);
+
+        $cakupan = array_filter([
+            $supplierId ? 'Supplier: ' . (Supplier::find($supplierId)->name ?? '—') : null,
+            $agenId ? 'Agen: ' . (Agent::find($agenId)->name ?? '—') : null,
+        ]);
+
+        return [
+            'judul'    => 'LAPORAN PIUTANG & DEPOSIT',
+            'subjudul' => $cakupan ? implode(' · ', $cakupan) : 'Seluruh supplier & agen',
+            'ringkas'  => [
+                $dep['ringkas'][1],         // setoran
+                $dep['ringkas'][3],         // saldo akhir deposit
+                $piu['ringkas'][1],         // total piutang
+                $piu['ringkas'][3],         // piutang di atas 30 hari
+            ],
+            'blok'    => array_merge($dep['blok'], $piu['blok']),
+            'catatan' => 'Saldo deposit adalah uang KITA yang masih dipegang supplier; piutang adalah uang '
+                . 'AGEN yang belum dibayar ke kita. Saldo deposit minus berarti barang sudah masuk tetapi '
+                . 'uangnya belum kita transfer. ' . $piu['catatan'],
+        ];
+    }
+
+    /* ---------------- blok rincian tambahan ---------------- */
+
+    /** Barang mana yang benar-benar menghasilkan laba — bukan hanya yang paling banyak terjual. */
+    private function blokLabaPerBarang(Carbon $a, Carbon $b, ?int $agenId = null): array
+    {
+        $rows = DB::table('farm_stock_out_lines as l')
+            ->join('farm_stock_outs as o', 'o.id', '=', 'l.stock_out_id')
+            ->leftJoin('farm_items as i', 'i.id', '=', 'l.item_id')
+            ->whereBetween('o.date', [$a->toDateString(), $b->toDateString()])
+            ->when($agenId, fn ($q) => $q->where('o.agent_id', $agenId))
+            ->groupBy('i.name')
+            ->orderByDesc(DB::raw('SUM(l.profit)'))
+            ->get([
+                DB::raw('i.name as nama'),
+                DB::raw('COALESCE(SUM(l.qty_ekor),0) ekor'),
+                DB::raw('COALESCE(SUM(l.weight_kg),0) kg'),
+                DB::raw('COALESCE(SUM(l.subtotal),0) jual'),
+                DB::raw('COALESCE(SUM(l.cost),0) modal'),
+                DB::raw('COALESCE(SUM(l.profit),0) laba'),
+            ]);
+
+        $baris = [];
+        $tKg = $tJual = $tModal = $tLaba = 0.0;
+        $tEkor = 0;
+
+        foreach ($rows as $r) {
+            $kg   = (float) $r->kg;
+            $jual = (float) $r->jual;
+            $laba = (float) $r->laba;
+
+            $baris[] = [
+                $r->nama ?? '—',
+                $this->angka((int) $r->ekor),
+                $this->angka($kg, 2),
+                $kg > 0 ? $this->rp($jual / $kg) : '—',
+                $this->rp($jual),
+                $this->rp($r->modal),
+                $this->rp($laba),
+                $jual > 0 ? number_format($laba / $jual * 100, 1, ',', '.') . '%' : '—',
+            ];
+
+            $tEkor += (int) $r->ekor; $tKg += $kg; $tJual += $jual;
+            $tModal += (float) $r->modal; $tLaba += $laba;
+        }
+
+        return [
+            'judul' => 'Laba per Barang',
+            'kolom' => [
+                ['label' => 'Barang', 'align' => 'left'],
+                ['label' => 'Ekor/Butir', 'align' => 'right', 'lebar' => '10%'],
+                ['label' => 'Berat (kg)', 'align' => 'right', 'lebar' => '11%'],
+                ['label' => 'Harga Rata²/kg', 'align' => 'right', 'lebar' => '13%'],
+                ['label' => 'Penjualan', 'align' => 'right', 'lebar' => '14%'],
+                ['label' => 'Harga Pokok', 'align' => 'right', 'lebar' => '14%'],
+                ['label' => 'Laba', 'align' => 'right', 'lebar' => '13%'],
+                ['label' => 'Margin', 'align' => 'right', 'lebar' => '9%'],
+            ],
+            'baris' => $baris,
+            'total' => ['TOTAL', $this->angka($tEkor), $this->angka($tKg, 2),
+                $tKg > 0 ? $this->rp($tJual / $tKg) : '—', $this->rp($tJual), $this->rp($tModal),
+                $this->rp($tLaba), $tJual > 0 ? number_format($tLaba / $tJual * 100, 1, ',', '.') . '%' : '—'],
+        ];
+    }
+
+    /** Berapa kg tiap barang dibeli, dan berapa harga rata-rata nyatanya per kg. */
+    private function blokPembelianPerBarang(Carbon $a, Carbon $b, ?int $supplierId): array
+    {
+        $rows = DB::table('farm_stock_in_lines as l')
+            ->join('farm_stock_ins as s', 's.id', '=', 'l.stock_in_id')
+            ->leftJoin('farm_items as i', 'i.id', '=', 'l.item_id')
+            ->whereBetween('s.date', [$a->toDateString(), $b->toDateString()])
+            ->when($supplierId, fn ($q) => $q->where('s.supplier_id', $supplierId))
+            ->groupBy('i.name')
+            ->orderByDesc(DB::raw('SUM(l.subtotal)'))
+            ->get([
+                DB::raw('i.name as nama'),
+                DB::raw('COUNT(*) baris'),
+                DB::raw('COALESCE(SUM(l.qty_ekor),0) ekor'),
+                DB::raw('COALESCE(SUM(l.weight_kg),0) kg'),
+                DB::raw('COALESCE(SUM(l.subtotal),0) nilai'),
+            ]);
+
+        $baris = [];
+        $tEkor = 0; $tKg = $tNilai = 0.0;
+
+        foreach ($rows as $r) {
+            $kg = (float) $r->kg;
+            $baris[] = [
+                $r->nama ?? '—',
+                (int) $r->baris,
+                $this->angka((int) $r->ekor),
+                $this->angka($kg, 2),
+                $kg > 0 ? $this->rp((float) $r->nilai / $kg) : '—',
+                $this->rp($r->nilai),
+            ];
+            $tEkor += (int) $r->ekor; $tKg += $kg; $tNilai += (float) $r->nilai;
+        }
+
+        return [
+            'judul' => 'Rekap per Barang',
+            'kolom' => [
+                ['label' => 'Barang', 'align' => 'left'],
+                ['label' => 'Baris Nota', 'align' => 'center', 'lebar' => '11%'],
+                ['label' => 'Ekor', 'align' => 'right', 'lebar' => '11%'],
+                ['label' => 'Berat (kg)', 'align' => 'right', 'lebar' => '13%'],
+                ['label' => 'Harga Rata²/kg', 'align' => 'right', 'lebar' => '15%'],
+                ['label' => 'Nilai Nota', 'align' => 'right', 'lebar' => '17%'],
+            ],
+            'baris' => $baris,
+            'total' => ['TOTAL', '', $this->angka($tEkor), $this->angka($tKg, 2),
+                $tKg > 0 ? $this->rp($tNilai / $tKg) : '—', $this->rp($tNilai)],
         ];
     }
 
