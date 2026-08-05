@@ -4,80 +4,128 @@ namespace App\Http\Controllers\Backend\Farm;
 
 use App\Http\Controllers\Controller;
 use App\Models\Farm\Item;
-use App\Models\Farm\WarehouseSession;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 /**
- * BUKA / TUTUP GUDANG — pengganti "shift" kasir.
- * Tidak ada modal & kembalian: yang dipertanggungjawabkan adalah STOK FISIK.
+ * GUDANG — tampilan stok saja (baca-saja).
+ *
+ * Buka/tutup gudang sudah dihapus: satu-satunya jalur koreksi stok adalah
+ * Penyesuaian Stok, sehingga tidak ada dua sumber angka yang bisa berbeda.
  */
 class WarehouseController extends Controller
 {
-    public function index()
+    /** Pilihan periode untuk kolom Masuk/Keluar/Susut. Stok sekarang selalu realtime. */
+    public const PERIODE = [
+        'hari-ini'    => 'hari ini',
+        'kemarin'     => 'kemarin',
+        '7-hari'      => '7 hari terakhir',
+        'bulan-ini'   => 'bulan ini',
+        'bulan-lalu'  => 'bulan lalu',
+    ];
+
+    /**
+     * GUDANG — hanya untuk dilihat.
+     *
+     * Buka/tutup gudang dihapus: penutupan gudang dulu meminta hitung fisik dan
+     * menghasilkan catatan selisih tersendiri, padahal koreksi stok yang sah
+     * hanya lewat Penyesuaian Stok. Dua jalur untuk hal yang sama membuat
+     * angkanya bisa berbeda tanpa ada yang bisa dipercaya.
+     */
+    public function index(Request $request)
     {
+        $periode = $request->input('periode', 'hari-ini');
+        if (! isset(self::PERIODE[$periode])) {
+            $periode = 'hari-ini';
+        }
+        [$a, $b] = $this->rentang($periode);
+
+        $rows = [];
+        $total = ['masuk_kg' => 0.0, 'masuk_ekor' => 0, 'keluar_kg' => 0.0, 'keluar_ekor' => 0,
+            'susut_kg' => 0.0, 'susut_ekor' => 0, 'sisa_kg' => 0.0, 'sisa_ekor' => 0, 'nilai' => 0.0];
+
+        foreach (Item::where('is_active', true)->orderBy('name')->get() as $item) {
+            $masuk = DB::table('farm_stock_lots')->where('item_id', $item->id)
+                ->whereBetween('date', [$a, $b])
+                ->selectRaw('COALESCE(SUM(weight_kg_initial),0) kg, COALESCE(SUM(qty_ekor_initial),0) ekor')
+                ->first();
+
+            $keluar = DB::table('farm_stock_out_lines as l')
+                ->join('farm_stock_outs as o', 'o.id', '=', 'l.stock_out_id')
+                ->where('l.item_id', $item->id)->whereBetween('o.date', [$a, $b])
+                ->selectRaw('COALESCE(SUM(l.weight_kg),0) kg, COALESCE(SUM(l.qty_ekor),0) ekor')
+                ->first();
+
+            $susut = DB::table('farm_stock_adjustments')->where('item_id', $item->id)
+                ->where('reason', '!=', 'koreksi_tambah')->whereBetween('date', [$a, $b])
+                ->selectRaw('COALESCE(SUM(weight_kg),0) kg, COALESCE(SUM(qty_ekor),0) ekor')
+                ->first();
+
+            // Sisa & nilainya diambil dari lot: itulah kebenaran stok saat ini,
+            // bukan hasil penjumlahan ulang mutasi yang bisa melenceng.
+            $sisa = DB::table('farm_stock_lots')->where('item_id', $item->id)
+                ->selectRaw('COALESCE(SUM(weight_kg_left),0) kg, COALESCE(SUM(qty_ekor_left),0) ekor,
+                             COALESCE(SUM(CASE WHEN weight_kg_left > 0 THEN weight_kg_left * cost_per_kg
+                                               ELSE qty_ekor_left * cost_per_ekor END),0) nilai,
+                             COUNT(CASE WHEN weight_kg_left > 0 OR qty_ekor_left > 0 THEN 1 END) lot')
+                ->first();
+
+            $baris = [
+                'nama'        => $item->name,
+                'produksi'    => (bool) $item->is_produced,
+                'lot'         => (int) $sisa->lot,
+                'masuk_kg'    => round((float) $masuk->kg, 2),
+                'masuk_ekor'  => (int) $masuk->ekor,
+                'keluar_kg'   => round((float) $keluar->kg, 2),
+                'keluar_ekor' => (int) $keluar->ekor,
+                'susut_kg'    => round((float) $susut->kg, 2),
+                'susut_ekor'  => (int) $susut->ekor,
+                'sisa_kg'     => round((float) $sisa->kg, 2),
+                'sisa_ekor'   => (int) $sisa->ekor,
+                'nilai'       => round((float) $sisa->nilai, 2),
+            ];
+
+            // Barang tanpa stok dan tanpa mutasi pada periode ini tidak perlu tampil.
+            if ($baris['sisa_kg'] <= 0.001 && $baris['sisa_ekor'] <= 0
+                && $baris['masuk_kg'] <= 0.001 && $baris['masuk_ekor'] <= 0
+                && $baris['keluar_kg'] <= 0.001 && $baris['keluar_ekor'] <= 0) {
+                continue;
+            }
+
+            $rows[] = $baris;
+            foreach (['masuk_kg', 'masuk_ekor', 'keluar_kg', 'keluar_ekor', 'susut_kg', 'susut_ekor',
+                      'sisa_kg', 'sisa_ekor', 'nilai'] as $k) {
+                $total[$k] += $baris[$k];
+            }
+        }
+
+        foreach (['masuk_kg', 'keluar_kg', 'susut_kg', 'sisa_kg', 'nilai'] as $k) {
+            $total[$k] = round($total[$k], 2);
+        }
+
         return view('backend.farm.warehouse.index', [
-            'active'  => WarehouseSession::where('status', 'open')->latest('opened_at')->first(),
-            'history' => WarehouseSession::with(['opener', 'closer'])->orderByDesc('opened_at')->limit(30)->get(),
-            'items'   => Item::where('is_active', true)->orderBy('name')->get(),
+            'rows'          => $rows,
+            'total'         => $total,
+            'periode'       => $periode,
+            'daftarPeriode' => self::PERIODE,
+            'labelPeriode'  => self::PERIODE[$periode],
         ]);
     }
 
-    public function open(Request $request)
+    /** @return array{0:string,1:string} tanggal mulai & selesai (Y-m-d) */
+    private function rentang(string $periode): array
     {
-        if (WarehouseSession::where('status', 'open')->exists()) {
-            return back()->with('error', 'Masih ada sesi gudang yang terbuka. Tutup dulu sebelum membuka yang baru.');
-        }
+        $h = Carbon::today();
 
-        WarehouseSession::create([
-            'opened_by'     => Auth::id(),
-            'opened_at'     => now(),
-            'opening_stock' => $this->snapshot(),
-            'status'        => 'open',
-            'notes'         => $request->input('notes'),
-        ]);
-
-        return back()->with('success', 'Gudang dibuka. Stok awal tercatat.');
-    }
-
-    public function close(Request $request, WarehouseSession $session)
-    {
-        if (! $session->isOpen()) {
-            return back()->with('error', 'Sesi ini sudah ditutup.');
-        }
-
-        $sistem = $this->snapshot();
-        $fisik  = [];
-        foreach ((array) $request->input('physical', []) as $itemId => $nilai) {
-            $fisik[(int) $itemId] = [
-                'ekor' => (int) ($nilai['ekor'] ?? 0),
-                'kg'   => round((float) ($nilai['kg'] ?? 0), 2),
-            ];
-        }
-
-        // Selisih = fisik - sistem. Dicatat apa adanya, tidak menimpa stok:
-        // koreksi stok dilakukan sadar lewat Penyesuaian Stok.
-        $selisih = [];
-        foreach ($sistem as $itemId => $s) {
-            $f = $fisik[$itemId] ?? ['ekor' => 0, 'kg' => 0];
-            $selisih[$itemId] = [
-                'nama' => $s['nama'],
-                'ekor' => $f['ekor'] - $s['ekor'],
-                'kg'   => round($f['kg'] - $s['kg'], 2),
-            ];
-        }
-
-        $session->update([
-            'closed_by'      => Auth::id(),
-            'closed_at'      => now(),
-            'closing_stock'  => $sistem,
-            'physical_stock' => $fisik,
-            'difference'     => $selisih,
-            'status'         => 'closed',
-            'notes'          => trim(($session->notes ? $session->notes . ' | ' : '') . (string) $request->input('notes')),
-        ]);
-
-        return back()->with('success', 'Gudang ditutup. Selisih tercatat — luruskan lewat Penyesuaian Stok bila perlu.');
+        return match ($periode) {
+            'kemarin'    => [$h->copy()->subDay()->toDateString(), $h->copy()->subDay()->toDateString()],
+            '7-hari'     => [$h->copy()->subDays(6)->toDateString(), $h->toDateString()],
+            'bulan-ini'  => [$h->copy()->startOfMonth()->toDateString(), $h->copy()->endOfMonth()->toDateString()],
+            'bulan-lalu' => [$h->copy()->subMonthNoOverflow()->startOfMonth()->toDateString(),
+                             $h->copy()->subMonthNoOverflow()->endOfMonth()->toDateString()],
+            default      => [$h->toDateString(), $h->toDateString()],
+        };
     }
 
     /**
@@ -262,15 +310,4 @@ class WarehouseController extends Controller
         return $out;
     }
 
-    /** Potret stok sistem saat ini per item. */
-    private function snapshot(): array
-    {
-        $out = [];
-        foreach (Item::where('is_active', true)->get() as $item) {
-            $s = $item->stock();
-            $out[$item->id] = ['nama' => $item->name, 'ekor' => $s['ekor'], 'kg' => $s['kg']];
-        }
-
-        return $out;
-    }
 }

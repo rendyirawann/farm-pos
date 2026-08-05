@@ -50,6 +50,12 @@ class ReportService
             'untuk'  => 'Nota barang keluar dengan harga pokok, laba, dan margin — per agen atau seluruhnya.',
             'filter' => ['periode', 'agen'],
         ],
+        'laba' => [
+            'nama'   => 'Laba Harian',
+            'ikon'   => 'ki-chart-line-up',
+            'untuk'  => 'Per tanggal: penjualan, harga pokok, laba kotor, susut, pengeluaran, dan LABA BERSIH.',
+            'filter' => ['periode'],
+        ],
         'kartu-stok' => [
             'nama'   => 'Kartu Stok',
             'ikon'   => 'ki-book',
@@ -176,6 +182,11 @@ class ReportService
             ->selectRaw('COALESCE(SUM(weight_kg_left),0) kg, COALESCE(SUM(qty_ekor_left),0) ekor,
                          COALESCE(SUM(weight_kg_left * cost_per_kg),0) nilai')->first();
 
+        // Pengeluaran operasional periode ini (pakan, obat, gaji, transport, dll).
+        // Tanpa ini yang terlihat hanya laba KOTOR, dan itu selalu tampak besar.
+        $pengeluaran = (float) \App\Models\Expense::whereBetween('date', [$tglA, $tglB])->sum('amount');
+        $labaBersih  = (float) $jual->laba - (float) $susut->nilai - $pengeluaran;
+
         $deposit = (float) SupplierDeposit::sum('amount');
         $depositMinus = Supplier::all()->filter(fn ($s) => $s->depositBalance() < -0.01);
 
@@ -193,8 +204,8 @@ class ReportService
                     'ket' => $jual->n . ' nota · ' . $this->angka($kgKeluar, 2) . ' kg keluar'],
                 ['label' => 'Laba Kotor', 'nilai' => (float) $jual->laba, 'jenis' => 'rp',
                     'ket' => 'margin ' . number_format($marginPersen, 1, ',', '.') . '%'],
-                ['label' => 'Nilai Susut', 'nilai' => (float) $susut->nilai, 'jenis' => 'rp',
-                    'ket' => $susut->n . ' penyesuaian · ' . $this->angka((float) $susut->kg, 2) . ' kg'],
+                ['label' => 'Laba Bersih', 'nilai' => $labaBersih, 'jenis' => 'rp',
+                    'ket' => 'setelah susut ' . $this->rp($susut->nilai) . ' & pengeluaran ' . $this->rp($pengeluaran)],
             ],
             'blok' => [
                 [
@@ -211,10 +222,12 @@ class ReportService
                         ['LABA KOTOR', $this->rp($jual->laba), 'Penjualan dikurangi harga pokok.'],
                         ['Susut & penyesuaian gudang', '(' . $this->rp($susut->nilai) . ')',
                             'Ayam mati / susut bobot — beban kita sendiri, bukan tanggungan supplier.'],
-                        ['LABA SETELAH SUSUT', $this->rp((float) $jual->laba - (float) $susut->nilai),
-                            'Belum dikurangi biaya operasional (pakan, gaji, listrik, transport).'],
+                        ['Pengeluaran operasional', '(' . $this->rp($pengeluaran) . ')',
+                            'Pakan, obat, gaji, transport, listrik — dari menu Pengeluaran.'],
+                        ['LABA BERSIH', $this->rp($labaBersih),
+                            'Inilah uang yang benar-benar tersisa dari usaha pada periode ini.'],
                     ],
-                    'tebal' => [2, 4],   // baris yang dicetak tebal
+                    'tebal' => [2, 5],   // baris yang dicetak tebal
                 ],
                 [
                     'judul' => 'Posisi Terkini (per ' . $b->locale('id')->translatedFormat('d F Y') . ')',
@@ -235,8 +248,8 @@ class ReportService
                     ],
                 ],
             ],
-            'catatan' => 'Laba kotor belum memperhitungkan biaya operasional. Nilai persediaan dan saldo '
-                . 'deposit adalah posisi SAAT LAPORAN DIBUAT, bukan posisi akhir periode.',
+            'catatan' => 'Laba bersih = laba kotor − susut − pengeluaran operasional pada periode yang sama. '
+                . 'Nilai persediaan dan saldo deposit adalah posisi SAAT LAPORAN DIBUAT, bukan posisi akhir periode.',
         ];
     }
 
@@ -469,8 +482,128 @@ class ReportService
         ];
     }
 
+
     /* ===================================================================
-       4. KARTU STOK
+       4. LABA HARIAN — pengeluaran hari itu memotong uang masuk hari itu
+       =================================================================== */
+    public function labaHarian(Carbon $a, Carbon $b): array
+    {
+        $tglA = $a->toDateString();
+        $tglB = $b->toDateString();
+
+        // Tiga sumber angka dikumpulkan per TANGGAL lalu digabung, bukan di-join
+        // langsung: satu tanggal bisa punya penjualan tanpa pengeluaran (atau
+        // sebaliknya), dan join akan menghilangkan tanggal yang tidak lengkap.
+        $jual = DB::table('farm_stock_outs')->whereBetween('date', [$tglA, $tglB])
+            ->selectRaw('date, COUNT(*) n, COALESCE(SUM(total_sale),0) jual,
+                         COALESCE(SUM(total_cost),0) modal, COALESCE(SUM(gross_profit),0) laba')
+            ->groupBy('date')->get()->keyBy(fn ($r) => (string) $r->date);
+
+        $susut = DB::table('farm_stock_adjustments')->whereBetween('date', [$tglA, $tglB])
+            ->where('reason', '!=', 'koreksi_tambah')
+            ->selectRaw('date, COALESCE(SUM(cost_impact),0) nilai')
+            ->groupBy('date')->get()->keyBy(fn ($r) => (string) $r->date);
+
+        $keluar = DB::table('expenses')->whereBetween('date', [$tglA, $tglB])
+            ->selectRaw('date, COUNT(*) n, COALESCE(SUM(amount),0) nilai')
+            ->groupBy('date')->get()->keyBy(fn ($r) => (string) $r->date);
+
+        $tanggal = collect($jual->keys())->merge($susut->keys())->merge($keluar->keys())
+            ->unique()->sort()->values();
+
+        $baris = [];
+        $tJual = $tModal = $tLaba = $tSusut = $tKeluar = 0.0;
+
+        foreach ($tanggal as $t) {
+            $j  = $jual[$t] ?? null;
+            $sJ = (float) ($j->jual ?? 0);
+            $sM = (float) ($j->modal ?? 0);
+            $sL = (float) ($j->laba ?? 0);
+            $sS = (float) ($susut[$t]->nilai ?? 0);
+            $sK = (float) ($keluar[$t]->nilai ?? 0);
+            $bersih = $sL - $sS - $sK;
+
+            $baris[] = [
+                Carbon::parse($t)->locale('id')->translatedFormat('D, d/m/y'),
+                (int) ($j->n ?? 0),
+                $this->rp($sJ),
+                $this->rp($sM),
+                $this->rp($sL),
+                $sS > 0 ? $this->rp($sS) : '—',
+                $sK > 0 ? $this->rp($sK) : '—',
+                $this->rp($bersih),
+            ];
+
+            $tJual += $sJ; $tModal += $sM; $tLaba += $sL; $tSusut += $sS; $tKeluar += $sK;
+        }
+
+        $bersihTotal = $tLaba - $tSusut - $tKeluar;
+
+        // Rekap pengeluaran menurut jenisnya: yang paling sering jadi pertanyaan
+        // adalah "uang habis ke mana", bukan sekadar totalnya berapa.
+        $perJenis = DB::table('expenses')->whereBetween('date', [$tglA, $tglB])
+            ->selectRaw('category, COUNT(*) n, COALESCE(SUM(amount),0) nilai')
+            ->groupBy('category')->orderByDesc('nilai')->get();
+
+        $barisJenis = [];
+        foreach ($perJenis as $r) {
+            $barisJenis[] = [
+                $r->category ?: 'Tanpa kategori',
+                (int) $r->n,
+                $this->rp($r->nilai),
+                $tKeluar > 0 ? number_format((float) $r->nilai / $tKeluar * 100, 1, ',', '.') . '%' : '—',
+            ];
+        }
+
+        return [
+            'judul'   => 'LAPORAN LABA HARIAN',
+            'ringkas' => [
+                ['label' => 'Penjualan', 'nilai' => $tJual, 'jenis' => 'rp'],
+                ['label' => 'Laba Kotor', 'nilai' => $tLaba, 'jenis' => 'rp',
+                    'ket' => 'penjualan − harga pokok'],
+                ['label' => 'Pengeluaran', 'nilai' => $tKeluar, 'jenis' => 'rp',
+                    'ket' => 'susut ' . $this->rp($tSusut) . ' dihitung terpisah'],
+                ['label' => 'Laba Bersih', 'nilai' => $bersihTotal, 'jenis' => 'rp',
+                    'ket' => $tJual > 0 ? number_format($bersihTotal / $tJual * 100, 1, ',', '.') . '% dari penjualan' : ''],
+            ],
+            'blok' => [
+                [
+                    'judul' => 'Per Tanggal',
+                    'kolom' => [
+                        ['label' => 'Tanggal', 'align' => 'left'],
+                        ['label' => 'Nota', 'align' => 'center', 'lebar' => '7%'],
+                        ['label' => 'Penjualan', 'align' => 'right', 'lebar' => '14%'],
+                        ['label' => 'Harga Pokok', 'align' => 'right', 'lebar' => '14%'],
+                        ['label' => 'Laba Kotor', 'align' => 'right', 'lebar' => '13%'],
+                        ['label' => 'Susut', 'align' => 'right', 'lebar' => '12%'],
+                        ['label' => 'Pengeluaran', 'align' => 'right', 'lebar' => '13%'],
+                        ['label' => 'Laba Bersih', 'align' => 'right', 'lebar' => '14%'],
+                    ],
+                    'baris' => $baris,
+                    'total' => ['TOTAL', '', $this->rp($tJual), $this->rp($tModal), $this->rp($tLaba),
+                        $this->rp($tSusut), $this->rp($tKeluar), $this->rp($bersihTotal)],
+                ],
+                [
+                    'judul' => 'Pengeluaran menurut Jenis',
+                    'kolom' => [
+                        ['label' => 'Jenis Pengeluaran', 'align' => 'left'],
+                        ['label' => 'Jumlah Catatan', 'align' => 'center', 'lebar' => '18%'],
+                        ['label' => 'Nilai', 'align' => 'right', 'lebar' => '22%'],
+                        ['label' => 'Porsi', 'align' => 'right', 'lebar' => '12%'],
+                    ],
+                    'baris' => $barisJenis,
+                    'total' => ['TOTAL', '', $this->rp($tKeluar), $tKeluar > 0 ? '100%' : '—'],
+                ],
+            ],
+            'catatan' => 'Laba bersih per hari = laba kotor − susut − pengeluaran pada TANGGAL YANG SAMA. '
+                . 'Pengeluaran diambil dari menu Pengeluaran, jadi biaya pakan/obat/gaji yang dicatat hari itu '
+                . 'langsung memotong uang masuk hari itu. Angka ini belum memperhitungkan penyusutan aset '
+                . 'maupun pajak.',
+        ];
+    }
+
+    /* ===================================================================
+       5. KARTU STOK
        =================================================================== */
     public function kartuStok(Carbon $a, Carbon $b, ?int $itemId): array
     {
@@ -568,7 +701,7 @@ class ReportService
     }
 
     /* ===================================================================
-       5. STOK & HPP PER SUPPLIER (potret saat ini)
+       6. STOK & HPP PER SUPPLIER (potret saat ini)
        =================================================================== */
     public function stokSupplier(?int $supplierId): array
     {
@@ -629,7 +762,7 @@ class ReportService
     }
 
     /* ===================================================================
-       6. DEPOSIT SUPPLIER
+       7. DEPOSIT SUPPLIER
        =================================================================== */
     public function deposit(Carbon $a, Carbon $b, ?int $supplierId): array
     {
@@ -704,7 +837,7 @@ class ReportService
     }
 
     /* ===================================================================
-       7. PIUTANG AGEN (umur tunggakan)
+       8. PIUTANG AGEN (umur tunggakan)
        =================================================================== */
     public function piutang(?int $agenId): array
     {
@@ -794,7 +927,7 @@ class ReportService
     }
 
     /* ===================================================================
-       8. SUSUT & PENYESUAIAN
+       9. SUSUT & PENYESUAIAN
        =================================================================== */
     public function susut(Carbon $a, Carbon $b, ?int $itemId): array
     {

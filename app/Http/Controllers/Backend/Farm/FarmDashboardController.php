@@ -11,7 +11,6 @@ use App\Models\Farm\StockAdjustment;
 use App\Models\Farm\StockIn;
 use App\Models\Farm\StockOut;
 use App\Models\Farm\Supplier;
-use App\Models\Farm\WarehouseSession;
 use App\Services\Farm\EggCostService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -211,7 +210,6 @@ class FarmDashboardController extends Controller
             'monthOptions'  => $monthOptions,
             'periodLabel'   => $periodLabel,
             'onboarding'    => $onboarding,
-            'sesiGudang'    => WarehouseSession::where('status', 'open')->latest('opened_at')->first(),
             'notaTerakhir'  => StockOut::with('agent')->orderByDesc('id')->limit(6)->get(),
         ]);
     }

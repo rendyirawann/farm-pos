@@ -15,9 +15,10 @@ class EggProduction extends Model
     use BelongsToTenant;
 
     protected $table = 'farm_egg_productions';
-    protected $fillable = ['tenant_id', 'date', 'coop', 'item_id', 'qty_butir', 'qty_broken', 'user_id', 'notes'];
+    protected $fillable = ['tenant_id', 'date', 'coop', 'item_id', 'lot_id', 'qty_butir', 'qty_broken', 'user_id', 'notes'];
     protected $casts = ['date' => 'date'];
 
+    public function lot()  { return $this->belongsTo(StockLot::class, 'lot_id'); }
     public function item(){ return $this->belongsTo(Item::class, 'item_id'); }
 
     /** Butir yang benar-benar layak jual. */

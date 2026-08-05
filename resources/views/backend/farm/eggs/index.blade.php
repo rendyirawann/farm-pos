@@ -36,6 +36,39 @@
       </div>
     </div>
 
+    {{-- Stok telur REALTIME. Diambil dari lot produksi, jadi angka ini sudah
+         dikurangi telur yang terjual lewat Barang Keluar dan yang kena penyesuaian. --}}
+    <div class="row g-4 mb-5 farm-kpi">
+      <div class="col-6 col-lg-3">
+        <div class="card card-flush h-100"><div class="card-body py-5">
+          <div class="text-muted fs-8">Sisa Stok Telur</div>
+          <div class="fs-2hx fw-bold text-success">{{ $num($stok['sisa']) }}<span class="fs-5"> butir</span></div>
+          <div class="fs-9 text-muted">seluruh periode, realtime</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="card card-flush h-100"><div class="card-body py-5">
+          <div class="text-muted fs-8">Masuk Stok (total)</div>
+          <div class="fs-2hx fw-bold text-gray-900">{{ $num($stok['masuk']) }}<span class="fs-5"> butir</span></div>
+          <div class="fs-9 text-muted">butir bersih dari seluruh produksi</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="card card-flush h-100"><div class="card-body py-5">
+          <div class="text-muted fs-8">Sudah Keluar</div>
+          <div class="fs-2hx fw-bold text-warning">{{ $num($stok['terjual']) }}<span class="fs-5"> butir</span></div>
+          <div class="fs-9 text-muted">terjual / kena penyesuaian</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="card card-flush h-100"><div class="card-body py-5">
+          <div class="text-muted fs-8">Nilai Stok Telur</div>
+          <div class="fs-2hx fw-bold text-primary">{{ $rp($stok['nilai']) }}</div>
+          <div class="fs-9 text-muted">sisa butir × HPP tiap lot</div>
+        </div></div>
+      </div>
+    </div>
+
     <div class="card card-flush">
       <div class="card-header pt-5">
         <div>
@@ -55,6 +88,8 @@
             <thead><tr class="fw-bold text-muted bg-light fs-8">
               <th class="ps-4">Tanggal</th><th>Kandang</th><th>Item</th>
               <th class="text-end">Butir</th><th class="text-end">Pecah</th><th class="text-end">Bersih</th>
+              <th class="text-end">Terjual</th><th class="text-end">Sisa Stok</th>
+              <th class="text-end">HPP/butir</th>
               <th class="text-end pe-4">Aksi</th>
             </tr></thead>
             <tbody>
@@ -66,14 +101,33 @@
                 <td class="text-end">{{ $num($r->qty_butir) }}</td>
                 <td class="text-end text-danger">{{ $num($r->qty_broken) }}</td>
                 <td class="text-end fw-bold text-success">{{ $num($r->netButir()) }}</td>
+                @php
+                  $sisa = $r->lot ? (int) $r->lot->qty_ekor_left : null;
+                  $keluar = $r->lot ? max(0, (int) $r->lot->qty_ekor_initial - $sisa) : null;
+                @endphp
+                <td class="text-end">
+                  @if ($keluar === null)<span class="text-muted fs-9">—</span>
+                  @else <span class="text-warning fw-bold">{{ $num($keluar) }}</span> @endif
+                </td>
+                <td class="text-end">
+                  @if ($sisa === null)
+                    <span class="text-muted fs-9">tanpa stok</span>
+                  @else
+                    <span class="fw-bold {{ $sisa > 0 ? 'text-success' : 'text-muted' }}">{{ $num($sisa) }}</span>
+                    @if ($sisa === 0)<div class="fs-9 text-muted">habis</div>@endif
+                  @endif
+                </td>
+                <td class="text-end fs-8">{{ $r->lot ? $rp($r->lot->cost_per_ekor) : '—' }}</td>
                 <td class="text-end pe-4">
+                  <button type="button" class="btn btn-sm btn-light-primary py-1 px-3 fs-8 js-detail"
+                          data-url="{{ route('farm.eggs.detail', $r->id) }}">Detail</button>
                   <form action="{{ route('farm.eggs.destroy', $r->id) }}" method="POST" class="d-inline"
-                        onsubmit="return confirm('Hapus catatan produksi ini?')">@csrf @method('DELETE')
+                        onsubmit="return confirm('Hapus catatan produksi ini? Hanya bisa bila telurnya belum terjual.')">@csrf @method('DELETE')
                     <button class="btn btn-sm btn-light-danger py-1 px-3 fs-8">Hapus</button></form>
                 </td>
               </tr>
             @empty
-              <tr><td colspan="7" class="text-center text-muted py-10">Belum ada produksi pada bulan ini.</td></tr>
+              <tr><td colspan="10" class="text-center text-muted py-10">Belum ada produksi pada bulan ini.</td></tr>
             @endforelse
             </tbody>
           </table>
@@ -121,4 +175,124 @@
     </div>
   </div>
 </div>
+{{-- Rincian satu catatan produksi: butirnya dipakai ke nota mana saja. --}}
+<div class="modal fade" id="m-detail" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header py-4">
+        <div>
+          <h3 class="fw-bold mb-0">Rincian Produksi Telur</h3>
+          <span class="text-muted fs-8" id="d-judul">—</span>
+        </div>
+        <div class="btn btn-icon btn-sm btn-active-light" data-bs-dismiss="modal">
+          <i class="ki-outline ki-cross fs-1"></i></div>
+      </div>
+      <div class="modal-body" id="d-isi">
+        <div class="text-center text-muted py-8">Memuat…</div>
+      </div>
+      <div class="modal-footer py-3">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
 @endsection
+
+@push('scripts')
+<script>
+  /**
+   * Rincian produksi diambil saat tombol Detail ditekan, bukan dimuat semuanya
+   * di awal: satu bulan bisa berisi puluhan catatan dan hampir semuanya tidak
+   * pernah dibuka.
+   */
+  (function () {
+    var modalEl = document.getElementById('m-detail');
+    if (!modalEl) return;
+    var modal = new bootstrap.Modal(modalEl);
+
+    var rp = function (n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); };
+    var num = function (n) { return Number(n || 0).toLocaleString('id-ID'); };
+
+    function baris(label, nilai, kelas) {
+      return '<div class="d-flex justify-content-between border-bottom py-2">'
+        + '<span class="text-muted fs-8">' + label + '</span>'
+        + '<span class="fw-bold ' + (kelas || '') + '">' + nilai + '</span></div>';
+    }
+
+    function tabel(judul, kolom, baris) {
+      if (!baris.length) {
+        return '<div class="fw-bold fs-7 text-gray-800 mt-4 mb-2">' + judul + '</div>'
+          + '<div class="text-muted fs-8 border border-dashed rounded p-3 text-center">Belum ada.</div>';
+      }
+      var th = kolom.map(function (k) {
+        return '<th class="' + (k[1] || '') + '">' + k[0] + '</th>';
+      }).join('');
+
+      return '<div class="fw-bold fs-7 text-gray-800 mt-4 mb-2">' + judul + '</div>'
+        + '<div class="table-responsive"><table class="table table-row-bordered align-middle gy-2 mb-0 fs-8">'
+        + '<thead><tr class="fw-bold text-muted bg-light">' + th + '</tr></thead>'
+        + '<tbody>' + baris.join('') + '</tbody></table></div>';
+    }
+
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('.js-detail');
+      if (!b) return;
+
+      document.getElementById('d-isi').innerHTML =
+        '<div class="text-center text-muted py-8">Memuat…</div>';
+      modal.show();
+
+      fetch(b.dataset.url, { headers: { Accept: 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          document.getElementById('d-judul').textContent =
+            d.item + ' · ' + d.tanggal + ' · kandang ' + d.kandang;
+
+          var ringkas = '<div class="row g-3">'
+            + '<div class="col-6 col-md-3"><div class="border rounded p-3"><div class="fs-9 text-muted">BUTIR</div>'
+            + '<div class="fw-bold fs-4">' + num(d.butir) + '</div></div></div>'
+            + '<div class="col-6 col-md-3"><div class="border rounded p-3"><div class="fs-9 text-muted">PECAH</div>'
+            + '<div class="fw-bold fs-4 text-danger">' + num(d.pecah) + '</div></div></div>'
+            + '<div class="col-6 col-md-3"><div class="border rounded p-3"><div class="fs-9 text-muted">SUDAH KELUAR</div>'
+            + '<div class="fw-bold fs-4 text-warning">' + num(d.terjual) + '</div></div></div>'
+            + '<div class="col-6 col-md-3"><div class="border rounded p-3 bg-light-success"><div class="fs-9 text-muted">SISA STOK</div>'
+            + '<div class="fw-bold fs-4 text-success">' + num(d.sisa) + '</div></div></div>'
+            + '</div>';
+
+          var info = '<div class="mt-4">'
+            + baris('Butir bersih masuk stok', num(d.bersih) + ' butir')
+            + baris('Harga pokok per butir', rp(d.hpp))
+            + baris('Nilai sisa stok', rp(d.sisa * d.hpp), 'text-primary')
+            + (d.catatan ? baris('Catatan', d.catatan) : '')
+            + '</div>';
+
+          var jual = d.penjualan.map(function (p) {
+            return '<tr><td>' + p.tanggal + '</td>'
+              + '<td><a href="' + p.url + '">' + p.nota + '</a></td>'
+              + '<td>' + p.agen + '</td>'
+              + '<td class="text-end">' + num(p.butir) + '</td>'
+              + '<td class="text-end">' + rp(p.harga) + '</td>'
+              + '<td class="text-end">' + rp(p.hpp) + '</td></tr>';
+          });
+
+          var susut = d.penyesuaian.map(function (p) {
+            return '<tr><td>' + p.tanggal + '</td><td>' + p.ref + '</td><td>' + p.sebab + '</td>'
+              + '<td class="text-end">' + num(p.butir) + '</td>'
+              + '<td class="text-end">' + rp(p.nilai) + '</td></tr>';
+          });
+
+          document.getElementById('d-isi').innerHTML = ringkas + info
+            + tabel('Terjual lewat Barang Keluar',
+                [['Tanggal'], ['No. Nota'], ['Pembeli'], ['Butir', 'text-end'],
+                 ['Harga/butir', 'text-end'], ['Harga Pokok', 'text-end']], jual)
+            + tabel('Penyesuaian Stok',
+                [['Tanggal'], ['No. Ref'], ['Sebab'], ['Butir', 'text-end'], ['Nilai', 'text-end']], susut);
+        })
+        .catch(function () {
+          document.getElementById('d-isi').innerHTML =
+            '<div class="alert alert-danger fs-8 mb-0">Gagal memuat rincian. Coba lagi.</div>';
+        });
+    });
+  })();
+</script>
+@endpush

@@ -24,7 +24,7 @@
         <div class="card-header pt-5">
           <div>
             <h3 class="card-title fw-bold fs-4 mb-0"><i class="ki-outline ki-entrance-right fs-2 text-warning me-2"></i>Barang Keluar</h3>
-            <span class="text-muted fs-8">Penjualan ke agen. Harga pokok diambil FIFO dari pembelian terlama — muncul otomatis sebagai pembanding.</span>
+            <span class="text-muted fs-8">Penjualan ke agen atau ecer. Harga pokok diambil FIFO dari pembelian terlama — muncul otomatis sebagai pembanding.</span>
           </div>
         </div>
         <div class="card-body pt-4">
@@ -35,13 +35,34 @@
                      value="{{ old('date', now()->format('Y-m-d')) }}" required>
             </div>
             <div class="col-12 col-md-3">
-              <label class="form-label fw-semibold fs-7">Agen</label>
+              {{-- Penjualan ecer (pembeli datang langsung, bayar tunai) jauh lebih
+                   sering daripada penjualan ke agen. Sakelar ini membuat kolom agen
+                   hanya muncul saat memang dibutuhkan. --}}
+              <label class="form-label fw-semibold fs-7 d-block">Jenis Penjualan</label>
+              <label class="form-check form-switch form-check-custom form-check-solid mt-2">
+                <input class="form-check-input" type="checkbox" id="sw-agen" value="1"
+                       {{ old('agent_id') ? 'checked' : '' }}>
+                <span class="form-check-label fw-bold text-gray-800 ms-2" id="sw-agen-label">
+                  {{ old('agent_id') ? 'Ke Agen' : 'Ecer / Umum' }}
+                </span>
+              </label>
+              <div class="fs-9 text-muted mt-1" id="sw-agen-ket">
+                {{ old('agent_id') ? 'Nota tercatat atas nama agen & bisa dihutang.' : 'Pembeli langsung, tanpa nama agen.' }}
+              </div>
+            </div>
+            <div class="col-12 col-md-3" id="wrap-agen" style="{{ old('agent_id') ? '' : 'display:none' }}">
+              <label class="form-label fw-semibold fs-7 required">Agen</label>
               <select name="agent_id" id="in-agent" class="form-select form-select-solid form-select-lg">
-                <option value="">— umum / tanpa agen —</option>
+                <option value="">— pilih agen —</option>
                 @foreach ($agents as $a)
-                  <option value="{{ $a->id }}" data-term="{{ (int) $a->term_days }}">{{ $a->name }}</option>
+                  <option value="{{ $a->id }}" data-term="{{ (int) $a->term_days }}"
+                          {{ (string) old('agent_id') === (string) $a->id ? 'selected' : '' }}>{{ $a->name }}</option>
                 @endforeach
               </select>
+              @if ($agents->isEmpty())
+                <div class="fs-9 text-danger mt-1">Belum ada agen —
+                  <a href="{{ route('farm.agents.index') }}" class="fw-bold">tambah dulu</a>.</div>
+              @endif
             </div>
             <div class="col-12 col-md-3">
               <label class="form-label fw-semibold fs-7 required">Status Bayar</label>
@@ -309,6 +330,44 @@
     }
   }
 
+  /**
+   * Sakelar Ecer <-> Ke Agen.
+   *
+   * Ecer artinya tidak ada nama agen sama sekali: pilihan agen dikosongkan supaya
+   * nota tidak diam-diam tercatat atas nama agen yang terakhir dipilih. Ecer juga
+   * lunas di tempat, jadi status bayar diarahkan ke Lunas dan jatuh tempo
+   * disembunyikan — piutang tanpa nama tidak bisa ditagih ke siapa pun.
+   */
+  function aturJenisJual() {
+    var sw = document.getElementById('sw-agen');
+    var wrap = document.getElementById('wrap-agen');
+    var sel = document.getElementById('in-agent');
+    var status = document.getElementById('in-status');
+    if (!sw || !wrap) return;
+
+    var keAgen = sw.checked;
+    wrap.style.display = keAgen ? '' : 'none';
+    sel.required = keAgen;
+    document.getElementById('sw-agen-label').textContent = keAgen ? 'Ke Agen' : 'Ecer / Umum';
+    document.getElementById('sw-agen-ket').textContent = keAgen
+      ? 'Nota tercatat atas nama agen & bisa dihutang.'
+      : 'Pembeli langsung, tanpa nama agen.';
+
+    if (!keAgen) {
+      sel.value = '';
+      status.value = 'paid';
+    }
+    // Pilihan "Belum Lunas" hanya masuk akal bila ada agen yang bisa ditagih.
+    var opsiHutang = status.querySelector('option[value="unpaid"]');
+    if (opsiHutang) {
+      opsiHutang.disabled = !keAgen;
+      opsiHutang.textContent = keAgen ? 'Belum Lunas' : 'Belum Lunas (perlu agen)';
+    }
+
+    aturTempo();
+  }
+
+  document.getElementById('sw-agen')?.addEventListener('change', aturJenisJual);
   document.getElementById('btn-add').addEventListener('click', () => { barisBaru(); hitung(); });
   document.getElementById('in-agent').addEventListener('change', aturTempo);
   document.getElementById('in-status').addEventListener('change', aturTempo);
@@ -346,6 +405,6 @@
       }
     });
 
-  barisBaru(); hitung(); aturTempo();
+  barisBaru(); hitung(); aturJenisJual();
 </script>
 @endpush

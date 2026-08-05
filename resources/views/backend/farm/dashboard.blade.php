@@ -58,24 +58,6 @@
       </div>
     </div>
 
-    {{-- ===================== STATUS GUDANG ===================== --}}
-    @if ($sesiGudang)
-      <div class="alert alert-success d-flex align-items-center py-3 mb-5">
-        <i class="ki-outline ki-check-circle fs-2x me-3 text-success"></i>
-        <div class="flex-grow-1">
-          <b>Gudang sedang buka</b> — dibuka {{ $sesiGudang->opened_at->locale('id')->translatedFormat('d M Y H:i') }}
-          oleh {{ $sesiGudang->opener?->name ?? '-' }}.
-        </div>
-        <a href="{{ route('farm.warehouse.index') }}" class="btn btn-sm btn-light-success fw-bold">Tutup Gudang</a>
-      </div>
-    @else
-      <div class="alert alert-warning d-flex align-items-center py-3 mb-5">
-        <i class="ki-outline ki-information-5 fs-2x me-3 text-warning"></i>
-        <div class="flex-grow-1"><b>Gudang belum dibuka hari ini.</b> Buka gudang agar stok awal tercatat.</div>
-        <a href="{{ route('farm.warehouse.index') }}" class="btn btn-sm btn-warning fw-bold">Buka Gudang</a>
-      </div>
-    @endif
-
     {{-- ===================== PANDUAN SETUP (khas peternakan) ===================== --}}
     {{-- Sakelar tampil/sembunyi — tetap bisa dibuka lagi walau setup sudah selesai. --}}
     <div class="d-flex justify-content-end mb-3">

@@ -97,22 +97,22 @@ class StockOutController extends Controller
 
         $item = Item::findOrFail($data['item_id']);
 
-        // Telur: harga pokok dari biaya operasional, bukan dari lot.
-        if ($item->is_produced) {
-            $butir = (int) ($data['qty_ekor'] ?? 0);
-            $hpp = $this->eggCost->costFor($butir);
+        $hasil = $this->stock->previewCost(
+            $item->id, (float) ($data['weight_kg'] ?? 0), (int) ($data['qty_ekor'] ?? 0)
+        );
 
-            return response()->json([
-                'cost' => $hpp,
-                'lots' => [],
-                'catatan' => 'Harga pokok telur dihitung otomatis dari biaya operasional bulan ini.',
-                'kurang_kg' => 0, 'kurang_ekor' => 0,
-            ]);
+        // Telur diambil dari lot produksi seperti barang lain. Hanya bila belum ada
+        // lot sama sekali, harga pokoknya jatuh ke hitungan biaya operasional —
+        // dan itu dikatakan terang-terangan supaya tidak disangka harga beli.
+        if ($item->is_produced && empty($hasil['lots'])) {
+            $butir = (int) ($data['qty_ekor'] ?? 0);
+            $hasil['cost'] = $this->eggCost->costFor($butir);
+            $hasil['hpp_per_ekor'] = $butir > 0 ? round($hasil['cost'] / $butir, 2) : null;
+            $hasil['catatan'] = 'Belum ada produksi telur yang tercatat — harga pokok memakai '
+                . 'hitungan biaya operasional bulan ini.';
         }
 
-        return response()->json(
-            $this->stock->previewCost($item->id, (float) ($data['weight_kg'] ?? 0), (int) ($data['qty_ekor'] ?? 0))
-        );
+        return response()->json($hasil);
     }
 
     public function store(Request $request)
@@ -172,14 +172,18 @@ class StockOutController extends Controller
                         'subtotal'     => round($subtotal, 2),
                     ]);
 
-                    if ($item->is_produced) {
-                        // Telur: HPP dari biaya operasional, dibekukan ke baris ini supaya
-                        // laporan lama tidak berubah saat biaya bulan berjalan bertambah.
+                    // Barang produksi sendiri (telur) IKUT mengurangi stok. Sebelumnya
+                    // hanya harga pokoknya yang dihitung sementara lot produksinya tidak
+                    // pernah berkurang — telur terjual berkali-kali dan stoknya tetap.
+                    $hasil = $this->stock->consumeFifo($item->id, $kg, $ekor);
+                    $cost  = $hasil['cost'];
+                    $this->stock->recordUsages($line, $hasil['usages']);
+
+                    // Bila produksinya belum pernah dicatat, FIFO tidak menemukan lot dan
+                    // biayanya 0. Untuk telur, jatuhkan ke harga pokok otomatis dari biaya
+                    // operasional supaya labanya tidak terlihat 100%.
+                    if ($item->is_produced && $cost <= 0 && $ekor > 0) {
                         $cost = $this->eggCost->costFor($ekor, Carbon::parse($data['date']));
-                    } else {
-                        $hasil = $this->stock->consumeFifo($item->id, $kg, $ekor);
-                        $cost  = $hasil['cost'];
-                        $this->stock->recordUsages($line, $hasil['usages']);
                     }
 
                     $line->update(['cost' => $cost, 'profit' => round($subtotal - $cost, 2)]);

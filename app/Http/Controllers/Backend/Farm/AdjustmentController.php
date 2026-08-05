@@ -24,12 +24,18 @@ class AdjustmentController extends Controller
         return view('backend.farm.adjustments.index', [
             'rows'    => StockAdjustment::with(['item', 'lot', 'user'])->orderByDesc('date')->orderByDesc('id')->paginate(30),
             'items'   => Item::where('is_active', true)->orderBy('name')->get(),
-            'reasons' => StockAdjustment::REASONS,
+            'reasons'   => StockAdjustment::REASONS,
+            'tanpaFoto' => StockAdjustment::TANPA_FOTO,
         ]);
     }
 
     public function store(Request $request)
     {
+        // Foto WAJIB kecuali alasannya "hilang" — penyesuaian tidak punya dokumen
+        // dari pihak luar, jadi fotonya satu-satunya bukti bahwa barangnya memang
+        // begitu. Aturan ini ditegakkan di server, bukan hanya di layar.
+        $wajibFoto = StockAdjustment::butuhFoto($request->input('reason'));
+
         $data = $request->validate([
             'date'      => ['required', 'date'],
             'item_id'   => ['required', 'integer'],
@@ -38,21 +44,38 @@ class AdjustmentController extends Controller
             'qty_ekor'  => ['nullable', 'integer', 'min:0'],
             'weight_kg' => ['nullable', 'numeric', 'min:0'],
             'notes'     => ['nullable', 'string', 'max:255'],
-        ]);
+            'photo'     => [$wajibFoto ? 'required' : 'nullable', 'file',
+                'mimes:jpg,jpeg,png,webp', 'max:8192'],
+        ], [
+            'photo.required' => 'Foto bukti wajib dilampirkan untuk alasan ini. '
+                . 'Pilih alasan "Hilang" bila memang tidak ada barang yang bisa difoto.',
+        ], ['photo' => 'foto bukti']);
 
         if ((int) ($data['qty_ekor'] ?? 0) <= 0 && (float) ($data['weight_kg'] ?? 0) <= 0) {
             return back()->withInput()->with('error', 'Isi jumlah ekor atau berat yang disesuaikan.');
         }
 
-        $adj = StockAdjustment::create($data + [
-            'ref_no'  => 'ADJ-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5)),
-            'user_id' => Auth::id(),
+        $foto = null;
+        if ($request->hasFile('photo')) {
+            $berkas = $request->file('photo');
+            $ext = strtolower($berkas->getClientOriginalExtension() ?: 'jpg');
+            $foto = $berkas->storeAs('farm/penyesuaian',
+                'adj-' . now()->format('Ymd') . '-' . Str::random(8) . '.' . $ext, 'public');
+        }
+
+        $adj = StockAdjustment::create(collect($data)->except('photo')->all() + [
+            'ref_no'     => 'ADJ-' . now()->format('Ymd') . '-' . strtoupper(Str::random(5)),
+            'user_id'    => Auth::id(),
+            'photo_path' => $foto,
         ]);
 
         try {
             $dampak = $this->stock->applyAdjustment($adj);
         } catch (\Throwable $e) {
             $adj->delete();
+            if ($foto) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($foto);
+            }
 
             return back()->with('error', 'Gagal menyesuaikan: ' . $e->getMessage());
         }

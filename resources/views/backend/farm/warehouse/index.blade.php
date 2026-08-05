@@ -1,113 +1,146 @@
 @extends('backend.layout.app')
-@section('title', 'Buka / Tutup Gudang')
+@section('title', 'Gudang')
 @section('content')
-@php $num = fn($n,$d=0) => number_format((float)$n, $d, ',', '.'); @endphp
+@include('backend.farm._style')
+@php
+  $rp  = fn ($n) => 'Rp ' . number_format((float) $n, 0, ',', '.');
+  $num = fn ($n, $d = 0) => number_format((float) $n, $d, ',', '.');
+@endphp
 <div id="kt_app_content" class="app-content flex-column-fluid mt-5">
   <div id="kt_app_content_container" class="app-container container-xxl">
     @include('backend.farm._flash')
 
-    <div class="alert alert-primary d-flex align-items-start py-3 fs-8">
-      <i class="ki-outline ki-information-5 fs-2 me-2"></i>
-      <div>Ini pengganti "shift" kasir. <b>Tidak ada modal & uang kembalian</b> — yang dipertanggungjawabkan
-        adalah <b>stok fisik</b>. Selisih hitung fisik dicatat apa adanya, tidak menimpa stok;
-        koreksinya dilakukan sadar lewat <a href="{{ route('farm.adjustments.index') }}" class="fw-bold">Penyesuaian Stok</a>.</div>
-    </div>
-
-    @if ($active)
-      <div class="card card-flush mb-4 border-start border-4 border-success">
-        <div class="card-header pt-5">
-          <div>
-            <h3 class="card-title fw-bold fs-4 mb-0">Gudang Sedang Buka</h3>
-            <span class="text-muted fs-8">Dibuka {{ $active->opened_at->locale('id')->translatedFormat('d F Y H:i') }}
-              oleh {{ $active->opener?->name ?? '-' }}</span>
+    {{-- Ringkasan stok REALTIME — inilah angka yang dicari saat orang membuka menu Gudang. --}}
+    <div class="row g-4 mb-5 farm-kpi">
+      <div class="col-6 col-lg-3">
+        <div class="card card-flush h-100">
+          <div class="card-body py-5">
+            <div class="text-muted fs-8">Stok sekarang</div>
+            <div class="fs-2hx fw-bold text-gray-900">{{ $num($total['sisa_kg'], 2) }}<span class="fs-5"> kg</span></div>
+            <div class="fs-9 text-muted">{{ $num($total['sisa_ekor']) }} ekor / butir</div>
           </div>
         </div>
-        <div class="card-body pt-4">
-          <form method="POST" action="{{ route('farm.warehouse.close', $active->id) }}">
-            @csrf
-            <div class="fw-bold fs-6 text-gray-800 mb-3">Hitung Fisik Sebelum Tutup</div>
-            <div class="table-responsive">
-              <table class="table table-row-bordered align-middle gy-2 mb-0 farm-form-table">
-                <thead><tr class="fw-bold text-muted bg-light fs-8">
-                  <th class="ps-3">Item</th><th class="text-end">Stok Sistem</th>
-                  <th class="text-center" style="width:150px">Fisik (ekor)</th>
-                  <th class="text-center" style="width:150px">Fisik (kg)</th>
-                </tr></thead>
-                <tbody>
-                @foreach ($items as $i)
-                  @php $s = $i->stock(); @endphp
-                  <tr>
-                    <td data-label="Item" class="ps-3 fw-bold text-gray-800">{{ $i->name }}</td>
-                    <td data-label="Stok Sistem" class="text-end">{{ $num($s['ekor']) }} ekor
-                      <div class="fs-8 text-muted">{{ $num($s['kg'], 2) }} kg</div></td>
-                    <td data-label="Fisik (ekor)"><input type="number" name="physical[{{ $i->id }}][ekor]" class="form-control form-control-sm form-control-solid text-center"
-                               min="0" value="{{ $s['ekor'] }}"></td>
-                    <td data-label="Fisik (kg)"><input type="number" name="physical[{{ $i->id }}][kg]" class="form-control form-control-sm form-control-solid text-center"
-                               min="0" step="0.01" value="{{ $s['kg'] }}"></td>
-                  </tr>
-                @endforeach
-                </tbody>
-              </table>
-            </div>
-            <div class="mt-3"><label class="form-label fw-semibold fs-7">Catatan</label>
-              <input name="notes" class="form-control form-control-solid" maxlength="255" placeholder="mis. 3 ekor mati sore"></div>
-            <div class="text-end mt-4">
-              <button class="btn btn-danger fw-bold btn-lg"><i class="ki-outline ki-lock fs-3"></i> Tutup Gudang</button>
-            </div>
-          </form>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="card card-flush h-100">
+          <div class="card-body py-5">
+            <div class="text-muted fs-8">Nilai persediaan</div>
+            <div class="fs-2hx fw-bold text-primary">{{ $rp($total['nilai']) }}</div>
+            <div class="fs-9 text-muted">harga pokok tiap lot</div>
+          </div>
         </div>
       </div>
-    @else
-      <div class="card card-flush mb-4">
-        <div class="card-body text-center py-10">
-          <i class="ki-outline ki-lock-2 fs-4x text-warning mb-4 d-block"></i>
-          <h3 class="fw-bold text-gray-800">Gudang Tertutup</h3>
-          <div class="text-muted fs-7 mb-5">Buka gudang untuk memulai pencatatan hari ini. Stok awal terekam otomatis.</div>
-          <form method="POST" action="{{ route('farm.warehouse.open') }}" class="d-inline-flex gap-2 align-items-center farm-inline-form">
-            @csrf
-            <input name="notes" class="form-control form-control-solid" placeholder="Catatan (opsional)" style="max-width:280px" maxlength="255">
-            <button class="btn btn-success fw-bold btn-lg"><i class="ki-outline ki-entrance-left fs-3"></i> Buka Gudang</button>
-          </form>
+      <div class="col-6 col-lg-3">
+        <div class="card card-flush h-100">
+          <div class="card-body py-5">
+            <div class="text-muted fs-8">Masuk {{ $labelPeriode }}</div>
+            <div class="fs-2hx fw-bold text-success">{{ $num($total['masuk_kg'], 2) }}<span class="fs-5"> kg</span></div>
+            <div class="fs-9 text-muted">{{ $num($total['masuk_ekor']) }} ekor / butir</div>
+          </div>
         </div>
       </div>
-    @endif
+      <div class="col-6 col-lg-3">
+        <div class="card card-flush h-100">
+          <div class="card-body py-5">
+            <div class="text-muted fs-8">Keluar {{ $labelPeriode }}</div>
+            <div class="fs-2hx fw-bold text-warning">{{ $num($total['keluar_kg'], 2) }}<span class="fs-5"> kg</span></div>
+            <div class="fs-9 text-muted">{{ $num($total['keluar_ekor']) }} ekor / butir</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="card card-flush">
-      <div class="card-header pt-5"><h3 class="card-title fw-bold fs-5 mb-0">Riwayat Sesi Gudang</h3></div>
+      <div class="card-header pt-5">
+        <div>
+          <h3 class="card-title fw-bold fs-4 mb-0">Gudang — Stok Barang</h3>
+          <span class="text-muted fs-8">
+            Halaman baca saja. Kolom <b>Stok Sekarang</b> selalu realtime (barang masuk − barang keluar − susut);
+            kolom Masuk/Keluar/Susut mengikuti periode yang dipilih.
+          </span>
+        </div>
+        <div class="card-toolbar gap-2 flex-wrap">
+          <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
+            <select name="periode" class="form-select form-select-sm form-select-solid" style="width:170px">
+              @foreach ($daftarPeriode as $k => $v)
+                <option value="{{ $k }}" {{ $periode === $k ? 'selected' : '' }}>{{ $v }}</option>
+              @endforeach
+            </select>
+            <button class="btn btn-sm btn-light-primary fw-bold">Tampilkan</button>
+          </form>
+          <a href="{{ route('farm.warehouse.stock') }}" class="btn btn-sm btn-light-primary fw-bold">
+            <i class="ki-outline ki-chart-simple fs-5"></i> Stok per Supplier</a>
+          <a href="{{ route('farm.reports.index', ['jenis' => 'kartu-stok']) }}" class="btn btn-sm btn-light fw-bold">
+            Kartu Stok (PDF)</a>
+        </div>
+      </div>
       <div class="card-body pt-4">
         <div class="table-responsive">
-          <table class="table table-row-bordered align-middle gy-3 mb-0 farm-list-table">
+          <table class="table table-row-bordered align-middle gy-3 mb-0 farm-card-table">
             <thead><tr class="fw-bold text-muted bg-light fs-8">
-              <th class="ps-4">Buka</th><th>Tutup</th><th>Petugas</th><th>Selisih Fisik</th><th class="pe-4">Catatan</th>
+              <th class="ps-4">Barang</th>
+              <th class="text-end">Masuk ({{ $labelPeriode }})</th>
+              <th class="text-end">Keluar ({{ $labelPeriode }})</th>
+              <th class="text-end">Susut ({{ $labelPeriode }})</th>
+              <th class="text-end">Stok Sekarang</th>
+              <th class="text-end pe-4">Nilai Persediaan</th>
             </tr></thead>
             <tbody>
-            @forelse ($history as $h)
+            @forelse ($rows as $r)
               <tr>
-                <td class="ps-4 fw-bold fs-8">{{ $h->opened_at->format('d/m/Y H:i') }}</td>
-                <td class="fs-8">{{ $h->closed_at?->format('d/m/Y H:i') ?? '—' }}</td>
-                <td class="fs-8">{{ $h->opener?->name ?? '-' }}
-                  @if ($h->closer && $h->closer->id !== $h->opener?->id)<div class="text-muted">tutup: {{ $h->closer->name }}</div>@endif
+                <td class="ps-4 fw-bold text-gray-800" data-label="Barang">
+                  {{ $r['nama'] }}
+                  <div class="fs-9 text-muted fw-normal">
+                    {{ $r['produksi'] ? 'produksi sendiri' : 'dibeli dari supplier' }}
+                    @if ($r['lot'] > 0) · {{ $r['lot'] }} lot aktif @endif
+                  </div>
                 </td>
-                <td class="fs-8">
-                  @php $adaSelisih = false; @endphp
-                  @foreach (($h->difference ?? []) as $d)
-                    @if (($d['ekor'] ?? 0) != 0 || ($d['kg'] ?? 0) != 0)
-                      @php $adaSelisih = true; @endphp
-                      <span class="badge badge-light-danger fs-9 me-1 mb-1">
-                        {{ $d['nama'] ?? '?' }}: {{ $d['ekor'] > 0 ? '+' : '' }}{{ $d['ekor'] }} ekor /
-                        {{ $d['kg'] > 0 ? '+' : '' }}{{ $num($d['kg'], 2) }} kg</span>
-                    @endif
-                  @endforeach
-                  @if (! $adaSelisih && $h->closed_at)<span class="badge badge-light-success fs-9">Cocok</span>@endif
-                  @if (! $h->closed_at)<span class="badge badge-light-primary fs-9">Sedang berjalan</span>@endif
+                <td class="text-end text-success" data-label="Masuk">
+                  {{ $num($r['masuk_kg'], 2) }} kg
+                  <div class="fs-9 text-muted">{{ $num($r['masuk_ekor']) }} ekor/butir</div>
                 </td>
-                <td class="pe-4 fs-8 text-muted">{{ $h->notes ?: '—' }}</td>
+                <td class="text-end text-warning" data-label="Keluar">
+                  {{ $num($r['keluar_kg'], 2) }} kg
+                  <div class="fs-9 text-muted">{{ $num($r['keluar_ekor']) }} ekor/butir</div>
+                </td>
+                <td class="text-end text-danger" data-label="Susut">
+                  @if ($r['susut_kg'] > 0.001 || $r['susut_ekor'] > 0)
+                    {{ $num($r['susut_kg'], 2) }} kg
+                    <div class="fs-9 text-muted">{{ $num($r['susut_ekor']) }} ekor/butir</div>
+                  @else
+                    <span class="text-muted">—</span>
+                  @endif
+                </td>
+                <td class="text-end fw-bold fs-6" data-label="Stok Sekarang">
+                  {{ $num($r['sisa_kg'], 2) }} kg
+                  <div class="fs-9 text-muted fw-normal">{{ $num($r['sisa_ekor']) }} ekor/butir</div>
+                </td>
+                <td class="text-end pe-4 fw-bold" data-label="Nilai Persediaan">{{ $rp($r['nilai']) }}</td>
               </tr>
             @empty
-              <tr><td colspan="5" class="text-center text-muted py-10">Belum ada riwayat.</td></tr>
+              <tr><td colspan="6" class="text-center text-muted py-10">
+                Belum ada barang aktif. Tambahkan dulu di menu <a href="{{ route('farm.items.index') }}">Item</a>.
+              </td></tr>
             @endforelse
             </tbody>
+            @if (count($rows))
+              <tfoot><tr class="fw-bold border-top border-2">
+                <td class="ps-4">TOTAL</td>
+                <td class="text-end">{{ $num($total['masuk_kg'], 2) }} kg</td>
+                <td class="text-end">{{ $num($total['keluar_kg'], 2) }} kg</td>
+                <td class="text-end">{{ $num($total['susut_kg'], 2) }} kg</td>
+                <td class="text-end">{{ $num($total['sisa_kg'], 2) }} kg</td>
+                <td class="text-end pe-4">{{ $rp($total['nilai']) }}</td>
+              </tr></tfoot>
+            @endif
           </table>
+        </div>
+
+        <div class="alert alert-light-primary border border-primary fs-8 py-3 mt-4 mb-0">
+          Stok berkurang otomatis saat <b>Barang Keluar</b> disimpan (FIFO) dan saat ada
+          <a href="{{ route('farm.adjustments.index') }}" class="fw-bold">Penyesuaian Stok</a>.
+          Bila hitungan fisik di kandang berbeda dengan angka di sini, luruskan lewat Penyesuaian Stok —
+          jangan diubah langsung, supaya sebab selisihnya tetap tercatat.
         </div>
       </div>
     </div>

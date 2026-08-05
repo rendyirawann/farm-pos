@@ -72,7 +72,7 @@
                     <span class="menu-title">Operasional</span><span class="menu-arrow d-lg-none"></span></span>
                 <div class="menu-sub menu-sub-lg-down-accordion menu-sub-lg-dropdown px-lg-2 py-lg-4 w-lg-210px">
                     <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.warehouse.index') }}">
-                        <span class="menu-icon"><i class="ki-outline ki-tablet-ok fs-2"></i></span><span class="menu-title">Buka/Tutup Gudang</span></a></div>
+                        <span class="menu-icon"><i class="ki-outline ki-tablet-ok fs-2"></i></span><span class="menu-title">Gudang (Stok)</span></a></div>
                     <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.warehouse.stock') }}">
                         <span class="menu-icon"><i class="ki-outline ki-chart-simple fs-2"></i></span><span class="menu-title">Stok per Supplier</span></a></div>
                     <div class="menu-item"><a class="menu-link py-3" href="{{ route('farm.eggs.index') }}">

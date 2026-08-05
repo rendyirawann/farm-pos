@@ -83,7 +83,7 @@ class ReportController extends Controller
 
         // Laporan dengan banyak kolom dicetak mendatar supaya angkanya tidak
         // berdesakan; sisanya tegak karena lebih enak dibaca & diarsipkan.
-        $mendatar = in_array($jenis, ['pembelian', 'penjualan', 'piutang', 'susut'], true);
+        $mendatar = in_array($jenis, ['pembelian', 'penjualan', 'laba', 'piutang', 'susut'], true);
 
         $pdf = Pdf::loadView('backend.farm.reports.pdf', [
             'data'         => $data,
@@ -133,6 +133,7 @@ class ReportController extends Controller
         return match ($jenis) {
             'pembelian'     => $this->laporan->pembelian($a, $b, $supplierId),
             'penjualan'     => $this->laporan->penjualan($a, $b, $agenId),
+            'laba'          => $this->laporan->labaHarian($a, $b),
             'kartu-stok'    => $this->laporan->kartuStok($a, $b, $itemId),
             'stok-supplier' => $this->laporan->stokSupplier($supplierId),
             'deposit'       => $this->laporan->deposit($a, $b, $supplierId),

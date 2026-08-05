@@ -29,6 +29,7 @@
             <thead><tr class="fw-bold text-muted bg-light fs-8">
               <th class="ps-4">Ref</th><th>Tanggal</th><th>Item</th><th>Alasan</th>
               <th class="text-end">Jumlah</th><th class="text-end">Dampak Nilai</th>
+              <th class="text-center">Bukti</th>
               <th>Persetujuan</th><th class="text-end pe-4">Aksi</th>
             </tr></thead>
             <tbody>
@@ -41,6 +42,21 @@
                 <td class="text-end">{{ $num($r->qty_ekor) }} ekor<div class="fs-8 text-muted">{{ $num($r->weight_kg, 2) }} kg</div></td>
                 <td class="text-end fw-bold {{ $r->isAddition() ? 'text-success' : 'text-danger' }}">
                   {{ $r->isAddition() ? '+' : '−' }} {{ $rp($r->cost_impact) }}</td>
+                <td class="text-center">
+                  @if ($r->hasPhoto())
+                    @if (\Illuminate\Support\Facades\Storage::disk('public')->exists($r->photo_path))
+                      <a href="{{ asset('storage/' . $r->photo_path) }}" target="_blank" rel="noopener">
+                        <img src="{{ asset('storage/' . $r->photo_path) }}" alt="Bukti"
+                             class="rounded border" style="width:44px;height:44px;object-fit:cover"></a>
+                    @else
+                      <span class="badge badge-light-danger fs-9">berkas hilang</span>
+                    @endif
+                  @elseif ($r->reason === 'hilang')
+                    <span class="fs-9 text-muted">tidak perlu</span>
+                  @else
+                    <span class="badge badge-light-warning fs-9">belum ada</span>
+                  @endif
+                </td>
                 <td>
                   @if ($r->isApproved())
                     <span class="badge badge-light-success">Disetujui</span>
@@ -57,7 +73,7 @@
                 </td>
               </tr>
             @empty
-              <tr><td colspan="8" class="text-center text-muted py-10">Belum ada penyesuaian.</td></tr>
+              <tr><td colspan="9" class="text-center text-muted py-10">Belum ada penyesuaian.</td></tr>
             @endforelse
             </tbody>
           </table>
@@ -73,7 +89,7 @@
        untuk lebar bawaan sehingga teksnya terpotong. --}}
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
-      <form method="POST" action="{{ route('farm.adjustments.store') }}">
+      <form method="POST" action="{{ route('farm.adjustments.store') }}" enctype="multipart/form-data" id="f-adj">
         @csrf
         <div class="modal-header py-4"><h3 class="fw-bold mb-0">Penyesuaian Stok</h3>
           <div class="btn btn-icon btn-sm btn-active-light" data-bs-dismiss="modal"><i class="ki-outline ki-cross fs-1"></i></div>
@@ -101,6 +117,23 @@
               <input type="number" name="weight_kg" class="form-control form-control-solid" min="0" step="0.01" value="0"></div>
             <div class="col-12"><label class="form-label fw-semibold fs-7">Catatan</label>
               <input name="notes" class="form-control form-control-solid" maxlength="255"></div>
+
+            {{-- Foto bukti. capture="environment" membuat HP langsung membuka kamera
+                 belakang; di laptop tetap menjadi pemilih berkas biasa. --}}
+            <div class="col-12">
+              <label class="form-label fw-semibold fs-7" id="adj-foto-label">
+                Foto Bukti <span class="text-danger">*</span>
+              </label>
+              <input type="file" name="photo" id="adj-foto" class="form-control form-control-solid"
+                     accept="image/*" capture="environment" required>
+              <div class="fs-9 text-muted mt-1" id="adj-foto-ket">
+                Wajib difoto. Penyesuaian mengurangi stok dan membebani laba tanpa nota dari pihak luar —
+                foto ini satu-satunya buktinya. Di HP tombol ini langsung membuka kamera.
+              </div>
+              <div class="mt-2 d-none" id="adj-foto-pratinjau">
+                <img src="" alt="Pratinjau" class="rounded border" style="max-height:150px">
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer py-3">
@@ -134,5 +167,42 @@
   }
   document.getElementById('adj-item').addEventListener('change', muatLot);
   muatLot();
+
+  /**
+   * Foto wajib untuk semua alasan KECUALI "hilang" — barang yang hilang tidak
+   * ada wujudnya untuk difoto. Aturan yang sama juga ditegakkan di server;
+   * yang di sini hanya supaya petugas tahu sebelum menekan Simpan.
+   */
+  (function () {
+    var TANPA_FOTO = @json($tanpaFoto);
+    var sel = document.querySelector('#m-adj [name="reason"]');
+    var inp = document.getElementById('adj-foto');
+    var lbl = document.getElementById('adj-foto-label');
+    var ket = document.getElementById('adj-foto-ket');
+    var pra = document.getElementById('adj-foto-pratinjau');
+    if (!sel || !inp) return;
+
+    function segarkan() {
+      var wajib = TANPA_FOTO.indexOf(sel.value) === -1;
+      inp.required = wajib;
+      lbl.innerHTML = 'Foto Bukti ' + (wajib
+        ? '<span class="text-danger">*</span>'
+        : '<span class="text-muted fw-normal">(tidak wajib)</span>');
+      ket.textContent = wajib
+        ? 'Wajib difoto. Penyesuaian mengurangi stok dan membebani laba tanpa nota dari pihak luar — foto ini satu-satunya buktinya. Di HP tombol ini langsung membuka kamera.'
+        : 'Barang hilang tidak ada wujudnya untuk difoto, jadi foto tidak diwajibkan. Tulis keterangannya di kolom Catatan.';
+    }
+
+    sel.addEventListener('change', segarkan);
+    segarkan();
+
+    // Pratinjau supaya petugas tahu fotonya kebalik/gelap sebelum dikirim.
+    inp.addEventListener('change', function () {
+      var f = inp.files && inp.files[0];
+      if (!f) { pra.classList.add('d-none'); return; }
+      pra.querySelector('img').src = URL.createObjectURL(f);
+      pra.classList.remove('d-none');
+    });
+  })();
 </script>
 @endpush

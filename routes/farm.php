@@ -76,6 +76,7 @@ Route::get('/admin/farm/stock-out/{stockOut}/receipt', [StockOutController::clas
 // ---------- PRODUKSI TELUR ----------
 Route::get('/admin/farm/eggs', [EggProductionController::class, 'index'])->name('farm.eggs.index');
 Route::post('/admin/farm/eggs', [EggProductionController::class, 'store'])->name('farm.eggs.store');
+Route::get('/admin/farm/eggs/{eggProduction}/detail', [EggProductionController::class, 'detail'])->name('farm.eggs.detail');
 Route::delete('/admin/farm/eggs/{eggProduction}', [EggProductionController::class, 'destroy'])->name('farm.eggs.destroy');
 
 // ---------- PENYESUAIAN STOK ----------
@@ -93,10 +94,9 @@ Route::get('/admin/farm/receivables', [ReceivableController::class, 'index'])->n
 Route::get('/admin/farm/receivables/agent/{agent}', [ReceivableController::class, 'card'])->name('farm.receivables.card');
 Route::post('/admin/farm/receivables/{stockOut}/pay', [ReceivableController::class, 'pay'])->name('farm.receivables.pay');
 
-// ---------- BUKA / TUTUP GUDANG ----------
+// ---------- GUDANG (tampilan stok) ----------
 Route::get('/admin/farm/warehouse', [WarehouseController::class, 'index'])->name('farm.warehouse.index');
 // Stok per supplier + rincian HPP — hanya untuk dilihat.
 Route::get('/admin/farm/warehouse/stock', [WarehouseController::class, 'stock'])->name('farm.warehouse.stock');
 Route::get('/admin/farm/warehouse/stock/{supplier}', [WarehouseController::class, 'stockDetail'])->name('farm.warehouse.stock.detail');
-Route::post('/admin/farm/warehouse/open', [WarehouseController::class, 'open'])->name('farm.warehouse.open');
-Route::post('/admin/farm/warehouse/{session}/close', [WarehouseController::class, 'close'])->name('farm.warehouse.close');
+// Buka/tutup gudang dihapus — koreksi stok hanya lewat Penyesuaian Stok.
