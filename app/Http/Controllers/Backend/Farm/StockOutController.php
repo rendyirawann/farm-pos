@@ -32,7 +32,16 @@ class StockOutController extends Controller
         $from = $request->filled('from') ? Carbon::parse($request->from) : null;
         $to   = $request->filled('to') ? Carbon::parse($request->to) : null;
 
-        $filter = function ($q) use ($from, $to, $request) {
+        // Dua jenis penjualan dipisah jadi tab: penjualan ke AGEN dibaca bersama
+        // tempo & piutangnya, sedangkan ECER selalu tunai di tempat. Menyatukannya
+        // dalam satu daftar membuat keduanya harus disaring dengan mata.
+        $jenis = in_array($request->input('jenis'), ['agen', 'ecer'], true)
+            ? $request->input('jenis')
+            : 'agen';
+
+        // Filter tanggal & status berlaku sama untuk kedua tab; jenisnya dipisah
+        // supaya jumlah pada tiap tab tetap sebanding.
+        $filterUmum = function ($q) use ($from, $to, $request) {
             if ($from) {
                 $q->whereDate('date', '>=', $from->toDateString());
             }
@@ -46,11 +55,15 @@ class StockOutController extends Controller
             return $q;
         };
 
-        $rows = $filter(StockOut::with(['agent', 'lines.item']))
+        $filterJenis = fn ($q, string $j) => $j === 'ecer'
+            ? $q->whereNull('agent_id')
+            : $q->whereNotNull('agent_id');
+
+        $rows = $filterJenis($filterUmum(StockOut::with(['agent', 'lines.item'])), $jenis)
             ->orderByDesc('date')->orderByDesc('id')
             ->paginate(10)->withQueryString();
 
-        $rekap = $filter(StockOut::query())
+        $rekap = $filterJenis($filterUmum(StockOut::query()), $jenis)
             ->selectRaw('COALESCE(SUM(total_sale),0) jual, COALESCE(SUM(total_cost),0) modal, COALESCE(SUM(gross_profit),0) laba')
             ->first();
 
@@ -60,6 +73,11 @@ class StockOutController extends Controller
             'to'    => $to?->format('Y-m-d'),
             'rekap' => $rekap,
             'status' => $request->input('status'),
+            'jenis'  => $jenis,
+            // Jumlah pada kedua tab ikut disaring, supaya angkanya sesuai dengan
+            // yang benar-benar akan terlihat ketika tabnya dibuka.
+            'jumlahAgen' => $filterJenis($filterUmum(StockOut::query()), 'agen')->count(),
+            'jumlahEcer' => $filterJenis($filterUmum(StockOut::query()), 'ecer')->count(),
             'jumlah'   => $rows->total(),
             'disaring' => (bool) ($from || $to || $request->filled('status')),
         ]);

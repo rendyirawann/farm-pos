@@ -8,7 +8,7 @@
 
     <div class="row g-4 mb-4">
       <div class="col-4"><div class="card bg-light-primary border-0"><div class="card-body p-5">
-        <div class="fs-8 text-muted fw-bold text-uppercase">Penjualan</div>
+        <div class="fs-8 text-muted fw-bold text-uppercase">Penjualan {{ $jenis === 'ecer' ? 'Ecer' : 'Agen' }}</div>
         <div class="fs-3 fw-bold text-gray-800">{{ $rp($rekap->jual) }}</div></div></div></div>
       <div class="col-4"><div class="card bg-light-warning border-0"><div class="card-body p-5">
         <div class="fs-8 text-muted fw-bold text-uppercase">Modal (FIFO)</div>
@@ -18,17 +18,46 @@
         <div class="fs-3 fw-bold text-success">{{ $rp($rekap->laba) }}</div></div></div></div>
     </div>
 
+    {{-- Dua jenis penjualan dipisah: nota agen dibaca bersama tempo & piutangnya,
+         ecer selalu tunai. Filter tanggal/status ikut terbawa saat berpindah tab. --}}
+    @php
+      $tabAgen = request()->fullUrlWithQuery(['jenis' => 'agen', 'page' => null]);
+      $tabEcer = request()->fullUrlWithQuery(['jenis' => 'ecer', 'page' => null]);
+    @endphp
+    <ul class="nav nav-tabs nav-line-tabs nav-line-tabs-2x border-0 fs-6 fw-bold mb-4 flex-nowrap overflow-auto">
+      <li class="nav-item">
+        <a class="nav-link text-nowrap {{ $jenis === 'agen' ? 'active' : '' }}" href="{{ $tabAgen }}">
+          <i class="ki-outline ki-profile-user fs-4 me-1"></i> Ke Agen
+          <span class="badge badge-light-{{ $jenis === 'agen' ? 'primary' : 'secondary' }} ms-2">
+            {{ number_format($jumlahAgen, 0, ',', '.') }}</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-nowrap {{ $jenis === 'ecer' ? 'active' : '' }}" href="{{ $tabEcer }}">
+          <i class="ki-outline ki-handcart fs-4 me-1"></i> Ecer / Umum
+          <span class="badge badge-light-{{ $jenis === 'ecer' ? 'primary' : 'secondary' }} ms-2">
+            {{ number_format($jumlahEcer, 0, ',', '.') }}</span>
+        </a>
+      </li>
+    </ul>
+
     <div class="card card-flush">
       <div class="card-header pt-5">
         <div>
-          <h3 class="card-title fw-bold fs-4 mb-0">Barang Keluar</h3>
+          <h3 class="card-title fw-bold fs-4 mb-0">
+            Barang Keluar — {{ $jenis === 'ecer' ? 'Ecer / Umum' : 'Ke Agen' }}
+          </h3>
           <span class="text-muted fs-8">
             {{ $disaring ? 'Hasil filter' : 'Seluruh riwayat' }}:
             <b class="text-gray-800">{{ number_format($jumlah, 0, ',', '.') }} nota</b>
+            · {{ $jenis === 'ecer'
+                  ? 'pembeli langsung, tanpa nama agen'
+                  : 'tercatat atas nama agen & bisa dihutang' }}
           </span>
         </div>
         <div class="card-toolbar gap-2 flex-wrap">
           <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
+            <input type="hidden" name="jenis" value="{{ $jenis }}">
             <input type="date" name="from" value="{{ $from }}" class="form-control form-control-sm form-control-solid" style="width:150px">
             <span class="text-muted">s/d</span>
             <input type="date" name="to" value="{{ $to }}" class="form-control form-control-sm form-control-solid" style="width:150px">
@@ -39,7 +68,8 @@
             </select>
             <button class="btn btn-sm btn-light-primary fw-bold">Filter</button>
             @if ($disaring)
-              <a href="{{ route('farm.stock-out.index') }}" class="btn btn-sm btn-light fw-bold">Tampilkan Semua</a>
+              <a href="{{ route('farm.stock-out.index', ['jenis' => $jenis]) }}"
+                 class="btn btn-sm btn-light fw-bold">Tampilkan Semua</a>
             @endif
           </form>
           <a href="{{ route('farm.stock-out.create') }}" class="btn btn-warning fw-bold">
@@ -59,7 +89,13 @@
               <tr>
                 <td class="ps-4"><a href="{{ route('farm.stock-out.show', $r->id) }}" class="fw-bold">{{ $r->invoice_no }}</a></td>
                 <td class="text-muted fs-8">{{ $r->date->format('d/m/Y') }}</td>
-                <td>{{ $r->agent?->name ?? 'Umum' }}</td>
+                <td>
+                  @if ($r->agent)
+                    {{ $r->agent->name }}
+                  @else
+                    <span class="badge badge-light-info fs-9">Ecer / Umum</span>
+                  @endif
+                </td>
                 <td class="fs-8">
                   @foreach ($r->lines as $l)
                     <span class="badge badge-light-warning fs-9 me-1 mb-1">
@@ -100,10 +136,10 @@
             @empty
               <tr><td colspan="8" class="text-center text-muted py-10">
                 @if ($disaring)
-                  Tidak ada nota yang cocok dengan filter ini.
-                  <a href="{{ route('farm.stock-out.index') }}" class="fw-bold">Tampilkan semua</a>.
+                  Tidak ada nota {{ $jenis === 'ecer' ? 'ecer' : 'agen' }} yang cocok dengan filter ini.
+                  <a href="{{ route('farm.stock-out.index', ['jenis' => $jenis]) }}" class="fw-bold">Tampilkan semua</a>.
                 @else
-                  Belum ada penjualan yang tercatat.
+                  Belum ada penjualan {{ $jenis === 'ecer' ? 'ecer / umum' : 'ke agen' }} yang tercatat.
                   <a href="{{ route('farm.stock-out.create') }}" class="fw-bold">Catat barang keluar</a>.
                 @endif
               </td></tr>
