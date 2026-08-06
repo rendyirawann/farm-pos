@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /**
  * STOCK OUT — penjualan ke agen. Harga pokok diambil FIFO dari lot pembelian,
@@ -148,9 +149,16 @@ class StockOutController extends Controller
 
     public function store(Request $request)
     {
+        // Nota ecer boleh belum lunas, tetapi piutang tanpa nama tidak bisa ditagih —
+        // jadi nama pembeli wajib bila tidak ada agen yang menanggung notanya.
         $data = $request->validate([
             'date'                => ['required', 'date'],
             'agent_id'            => ['nullable', 'integer'],
+            'customer_name'       => [
+                'nullable', 'string', 'max:100',
+                Rule::requiredIf(fn () => ! $request->filled('agent_id')
+                    && $request->input('payment_status') === 'unpaid'),
+            ],
             'payment_status'      => ['required', 'in:paid,unpaid'],
             'due_date'            => ['nullable', 'date'],
             'notes'               => ['nullable', 'string', 'max:255'],
@@ -160,6 +168,9 @@ class StockOutController extends Controller
             'lines.*.weight_kg'   => ['nullable', 'numeric', 'min:0'],
             'lines.*.price_basis' => ['required', 'in:kg,ekor,butir'],
             'lines.*.unit_price'  => ['required', 'numeric', 'min:0'],
+        ], [
+            'customer_name.required' => 'Nama pembeli wajib diisi untuk penjualan ecer yang belum lunas — '
+                . 'tanpa nama, piutangnya tidak bisa ditagih ke siapa pun.',
         ]);
 
         try {
@@ -168,6 +179,8 @@ class StockOutController extends Controller
                     'invoice_no'     => $this->generateInvoiceNo(),
                     'date'           => $data['date'],
                     'agent_id'       => $data['agent_id'] ?: null,
+                    // Nama pembeli hanya untuk nota ecer; nota agen sudah punya nama agen.
+                    'customer_name'  => $data['agent_id'] ? null : (trim((string) ($data['customer_name'] ?? '')) ?: null),
                     'user_id'        => Auth::id(),
                     'payment_status' => $data['payment_status'],
                     'due_date'       => $data['payment_status'] === 'unpaid' ? ($data['due_date'] ?? null) : null,
@@ -279,8 +292,8 @@ class StockOutController extends Controller
             'title'       => 'NOTA PENJUALAN',
             'invoice_no'  => $stockOut->invoice_no,
             'datetime'    => $stockOut->date->format('d/m/Y'),
-            'party'       => $stockOut->agent?->name ?? 'Umum',
-            'party_label' => 'Agen',
+            'party'       => $stockOut->pembeli(),
+            'party_label' => $stockOut->agent ? 'Agen' : 'Pembeli',
             'items'       => $stockOut->lines->map(fn ($l) => [
                 'name'      => $l->item?->name ?? '-',
                 'qty_ekor'  => (int) $l->qty_ekor,

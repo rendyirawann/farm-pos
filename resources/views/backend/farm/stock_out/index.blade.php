@@ -99,6 +99,9 @@
                 <td>
                   @if ($r->agent)
                     {{ $r->agent->name }}
+                  @elseif ($r->customer_name)
+                    {{ $r->customer_name }}
+                    <div class="fs-9 text-muted">ecer / umum</div>
                   @else
                     <span class="badge badge-light-info fs-9">Ecer / Umum</span>
                   @endif

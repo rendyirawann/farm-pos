@@ -45,8 +45,9 @@
             <div class="fw-bold">{{ $row->date->locale('id')->translatedFormat('d F Y') }}</div>
           </div>
           <div class="col-4 text-center">
-            <div class="text-muted">Agen</div>
-            <div class="fw-bold">{{ $row->agent?->name ?? 'Umum' }}</div>
+            <div class="text-muted">{{ $row->agent ? 'Agen' : 'Pembeli' }}</div>
+            <div class="fw-bold">{{ $row->pembeli() }}</div>
+            @unless ($row->agent)<div class="fs-9 text-muted">ecer / umum</div>@endunless
           </div>
           <div class="col-4 text-end">
             <div class="text-muted">Status</div>

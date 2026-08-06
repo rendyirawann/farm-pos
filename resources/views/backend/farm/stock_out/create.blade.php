@@ -64,18 +64,28 @@
                   <a href="{{ route('farm.agents.index') }}" class="fw-bold">tambah dulu</a>.</div>
               @endif
             </div>
+            {{-- Ecer boleh berhutang juga. Bedanya, tidak ada kartu agen yang bisa
+                 ditagih, jadi nama pembeli diketik langsung di sini — tanpa nama,
+                 piutangnya tidak bisa ditagih ke siapa pun. --}}
+            <div class="col-12 col-md-3" id="wrap-pembeli" style="{{ old('agent_id') ? 'display:none' : '' }}">
+              <label class="form-label fw-semibold fs-7" id="lbl-pembeli">Nama Pembeli</label>
+              <input type="text" name="customer_name" id="in-pembeli" maxlength="100"
+                     class="form-control form-control-solid form-control-lg"
+                     value="{{ old('customer_name') }}" placeholder="mis. Pak Budi / Warung Sari">
+              <div class="fs-9 text-muted mt-1" id="ket-pembeli">boleh dikosongkan bila bayar tunai</div>
+            </div>
             <div class="col-12 col-md-3">
               <label class="form-label fw-semibold fs-7 required">Status Bayar</label>
               <select name="payment_status" id="in-status" class="form-select form-select-solid form-select-lg">
-                <option value="paid">Lunas</option>
-                <option value="unpaid" selected>Belum Lunas</option>
+                <option value="paid" {{ old('payment_status') === 'paid' ? 'selected' : '' }}>Lunas</option>
+                <option value="unpaid" {{ old('payment_status') === 'unpaid' ? 'selected' : '' }}>Belum Lunas</option>
               </select>
             </div>
             <div class="col-12 col-md-3" id="wrap-tempo">
               <label class="form-label fw-semibold fs-7">Jatuh Tempo</label>
               <input type="date" name="due_date" id="in-due" class="form-control form-control-solid form-control-lg"
                      value="{{ old('due_date') }}">
-              <div class="fs-9 text-muted mt-1">terisi otomatis dari tempo agen</div>
+              <div class="fs-9 text-muted mt-1" id="ket-tempo">terisi otomatis dari tempo agen</div>
             </div>
           </div>
 
@@ -400,6 +410,10 @@
     const term = +(sel.selectedOptions[0]?.dataset.term || 0);
     const status = document.getElementById('in-status').value;
     document.getElementById('wrap-tempo').style.display = status === 'unpaid' ? '' : 'none';
+    // Nota ecer tidak punya tempo baku: tanggalnya diisi sendiri sesuai janji pembeli.
+    document.getElementById('ket-tempo').textContent = document.getElementById('sw-agen').checked
+      ? 'terisi otomatis dari tempo agen'
+      : 'isi sendiri sesuai janji bayar pembeli (boleh dikosongkan)';
     if (status === 'unpaid' && term > 0) {
       const d = new Date(document.getElementById('in-date').value || Date.now());
       d.setDate(d.getDate() + term);
@@ -408,18 +422,43 @@
   }
 
   /**
+   * Nama pembeli untuk nota ECER.
+   *
+   * Ecer boleh berhutang, tetapi hutangnya tidak menempel pada kartu agen mana
+   * pun — satu-satunya penanda siapa yang berutang adalah nama yang diketik di
+   * sini. Karena itu namanya WAJIB saat statusnya Belum Lunas, dan bebas
+   * dikosongkan saat bayar tunai.
+   */
+  function aturPembeli() {
+    var wrap = document.getElementById('wrap-pembeli');
+    var inp = document.getElementById('in-pembeli');
+    if (!wrap || !inp) return;
+
+    var keAgen = document.getElementById('sw-agen').checked;
+    var hutang = document.getElementById('in-status').value === 'unpaid';
+
+    wrap.style.display = keAgen ? 'none' : '';
+    inp.required = !keAgen && hutang;
+    document.getElementById('lbl-pembeli').className =
+      'form-label fw-semibold fs-7' + (inp.required ? ' required' : '');
+    document.getElementById('ket-pembeli').textContent = inp.required
+      ? 'wajib diisi — dipakai untuk menagih piutangnya'
+      : 'boleh dikosongkan bila bayar tunai';
+    if (keAgen) inp.value = '';
+  }
+
+  /**
    * Sakelar Ecer <-> Ke Agen.
    *
    * Ecer artinya tidak ada nama agen sama sekali: pilihan agen dikosongkan supaya
-   * nota tidak diam-diam tercatat atas nama agen yang terakhir dipilih. Ecer juga
-   * lunas di tempat, jadi status bayar diarahkan ke Lunas dan jatuh tempo
-   * disembunyikan — piutang tanpa nama tidak bisa ditagih ke siapa pun.
+   * nota tidak diam-diam tercatat atas nama agen yang terakhir dipilih. Statusnya
+   * tetap bebas — ecer pun boleh Belum Lunas, hanya saja penagihnya berpegang
+   * pada nama pembeli, bukan kartu agen.
    */
   function aturJenisJual() {
     var sw = document.getElementById('sw-agen');
     var wrap = document.getElementById('wrap-agen');
     var sel = document.getElementById('in-agent');
-    var status = document.getElementById('in-status');
     if (!sw || !wrap) return;
 
     var keAgen = sw.checked;
@@ -430,24 +469,16 @@
       ? 'Nota tercatat atas nama agen & bisa dihutang.'
       : 'Pembeli langsung, tanpa nama agen.';
 
-    if (!keAgen) {
-      sel.value = '';
-      status.value = 'paid';
-    }
-    // Pilihan "Belum Lunas" hanya masuk akal bila ada agen yang bisa ditagih.
-    var opsiHutang = status.querySelector('option[value="unpaid"]');
-    if (opsiHutang) {
-      opsiHutang.disabled = !keAgen;
-      opsiHutang.textContent = keAgen ? 'Belum Lunas' : 'Belum Lunas (perlu agen)';
-    }
+    if (!keAgen) sel.value = '';
 
+    aturPembeli();
     aturTempo();
   }
 
   document.getElementById('sw-agen')?.addEventListener('change', aturJenisJual);
   document.getElementById('btn-add').addEventListener('click', () => { barisBaru(); hitung(); });
   document.getElementById('in-agent').addEventListener('change', aturTempo);
-  document.getElementById('in-status').addEventListener('change', aturTempo);
+  document.getElementById('in-status').addEventListener('change', function () { aturTempo(); aturPembeli(); });
   document.getElementById('in-date').addEventListener('change', aturTempo);
 
   let timer = null;

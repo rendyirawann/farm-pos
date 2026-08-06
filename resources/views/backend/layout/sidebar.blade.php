@@ -266,7 +266,7 @@
                                 ['Stok/Supplier',  'farm.warehouse.stock',   'ki-chart-simple',   'primary'],
                                 ['Supplier',       'farm.suppliers.index',   'ki-truck',          'info'],
                                 ['Deposit',        'farm.deposits.index',    'ki-wallet',         'success'],
-                                ['Agen',           'farm.agents.index',      'ki-profile-user',   'dark'],
+                                ['CRM',            'farm.agents.index',      'ki-profile-user',   'dark'],
                                 ['Item',           'farm.items.index',       'ki-package',        'success'],
                                 ['Produksi Telur', 'farm.eggs.index',        'ki-abstract-26',    'warning'],
                                 ['Penyesuaian',    'farm.adjustments.index', 'ki-arrows-circle',  'danger'],

@@ -232,7 +232,7 @@
         <div class="table-responsive">
           <table class="table table-row-bordered align-middle gy-3 mb-0 farm-list-table">
             <thead><tr class="fw-bold text-muted bg-light fs-8">
-              <th class="ps-4">Nota</th><th>Tanggal</th><th>Agen</th>
+              <th class="ps-4">Nota</th><th>Tanggal</th><th>Agen / Pembeli</th>
               <th class="text-end">Jual</th><th class="text-end">Laba</th><th class="text-end pe-4">Status</th>
             </tr></thead>
             <tbody>
@@ -240,7 +240,7 @@
               <tr>
                 <td class="ps-4"><a href="{{ route('farm.stock-out.show', $n->id) }}" class="fw-bold">{{ $n->invoice_no }}</a></td>
                 <td class="text-muted fs-8">{{ $n->date->format('d/m/Y') }}</td>
-                <td>{{ $n->agent?->name ?? 'Umum' }}</td>
+                <td>{{ $n->pembeli() }}</td>
                 <td class="text-end fw-bold">{{ $rp($n->total_sale) }}</td>
                 <td class="text-end fw-bold text-success">{{ $rp($n->gross_profit) }}</td>
                 <td class="text-end pe-4">

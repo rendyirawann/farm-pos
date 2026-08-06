@@ -12,7 +12,7 @@ class StockOut extends Model
     use BelongsToTenant;
 
     protected $table = 'farm_stock_outs';
-    protected $fillable = ['tenant_id', 'invoice_no', 'date', 'agent_id', 'user_id',
+    protected $fillable = ['tenant_id', 'invoice_no', 'date', 'agent_id', 'customer_name', 'user_id',
         'total_sale', 'total_cost', 'gross_profit', 'payment_status', 'due_date',
         'paid_amount', 'paid_at', 'notes'];
     protected $casts = [
@@ -25,6 +25,16 @@ class StockOut extends Model
     public function agent()   { return $this->belongsTo(Agent::class, 'agent_id'); }
     public function user()    { return $this->belongsTo(User::class, 'user_id'); }
     public function payments(){ return $this->hasMany(AgentPayment::class, 'stock_out_id'); }
+
+    /**
+     * Nama pihak yang membeli — dipakai di daftar piutang, nota, dan laporan.
+     * Nota agen memakai nama agen; nota ecer memakai nama pembeli yang diketik
+     * saat mencatat (wajib bila belum lunas, supaya piutangnya bisa ditagih).
+     */
+    public function pembeli(): string
+    {
+        return $this->agent?->name ?: (trim((string) $this->customer_name) ?: 'Umum');
+    }
 
     public function isPaid(): bool  { return $this->payment_status === 'paid'; }
     public function remaining(): float { return max(0, (float) $this->total_sale - (float) $this->paid_amount); }

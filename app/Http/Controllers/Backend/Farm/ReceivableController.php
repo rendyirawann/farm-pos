@@ -17,7 +17,10 @@ class ReceivableController extends Controller
     {
         $q = StockOut::with(['agent', 'payments'])->where('payment_status', 'unpaid');
 
-        if ($request->filled('agent_id')) {
+        // "ecer" = nota tanpa agen (pembeli langsung yang berutang); sisanya id agen.
+        if ($request->input('agent_id') === 'ecer') {
+            $q->whereNull('agent_id');
+        } elseif ($request->filled('agent_id')) {
             $q->where('agent_id', $request->agent_id);
         }
         if ($request->input('filter') === 'overdue') {

@@ -394,7 +394,7 @@ class ReportService
             $baris[] = [
                 $n->date->format('d/m/y'),
                 $n->invoice_no,
-                $n->agent?->name ?? '—',
+                $n->pembeli(),
                 $this->angka($ekor),
                 $this->angka($kg, 2),
                 $kg > 0 ? $this->rp((float) $n->total_sale / $kg) : '—',
@@ -465,7 +465,7 @@ class ReportService
                     'kolom' => [
                         ['label' => 'Tgl', 'align' => 'left', 'lebar' => '6%'],
                         ['label' => 'No. Nota', 'align' => 'left', 'lebar' => '13%'],
-                        ['label' => 'Agen', 'align' => 'left'],
+                        ['label' => 'Agen / Pembeli', 'align' => 'left'],
                         ['label' => 'Ekor', 'align' => 'right', 'lebar' => '6%'],
                         ['label' => 'Kg', 'align' => 'right', 'lebar' => '8%'],
                         ['label' => 'Harga/kg', 'align' => 'right', 'lebar' => '10%'],
@@ -931,7 +931,7 @@ class ReportService
             $baris[] = [
                 $n->date->format('d/m/y'),
                 $n->invoice_no,
-                $n->agent?->name ?? '—',
+                $n->pembeli(),
                 $n->due_date?->format('d/m/y') ?? '—',
                 $umur !== null && $umur > 0 ? $umur . ' hari' : '—',
                 $this->rp($n->total_sale),
@@ -972,7 +972,7 @@ class ReportService
                     'kolom' => [
                         ['label' => 'Tgl', 'align' => 'left', 'lebar' => '7%'],
                         ['label' => 'No. Nota', 'align' => 'left', 'lebar' => '15%'],
-                        ['label' => 'Agen', 'align' => 'left'],
+                        ['label' => 'Agen / Pembeli', 'align' => 'left'],
                         ['label' => 'Jatuh Tempo', 'align' => 'left', 'lebar' => '10%'],
                         ['label' => 'Telat', 'align' => 'right', 'lebar' => '8%'],
                         ['label' => 'Nilai Nota', 'align' => 'right', 'lebar' => '12%'],

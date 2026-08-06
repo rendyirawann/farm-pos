@@ -21,7 +21,8 @@
         <div class="card-toolbar">
           <form method="GET" class="d-flex gap-2">
             <select name="agent_id" class="form-select form-select-sm form-select-solid" style="width:180px">
-              <option value="">Semua agen</option>
+              <option value="">Semua</option>
+              <option value="ecer" {{ $agentId === 'ecer' ? 'selected' : '' }}>Ecer / Umum</option>
               @foreach ($agents as $a)
                 <option value="{{ $a->id }}" {{ (string) $agentId === (string) $a->id ? 'selected' : '' }}>{{ $a->name }}</option>
               @endforeach
@@ -38,7 +39,7 @@
         <div class="table-responsive">
           <table class="table table-row-bordered align-middle gy-3 mb-0 farm-list-table">
             <thead><tr class="fw-bold text-muted bg-light fs-8">
-              <th class="ps-4">Nota</th><th>Tanggal</th><th>Agen</th><th>Jatuh Tempo</th>
+              <th class="ps-4">Nota</th><th>Tanggal</th><th>Agen / Pembeli</th><th>Jatuh Tempo</th>
               <th class="text-end">Total</th><th class="text-end">Dibayar</th><th class="text-end pe-4">Sisa</th>
             </tr></thead>
             <tbody>
@@ -46,7 +47,8 @@
               <tr class="{{ $r->isOverdue() ? 'bg-light-danger' : '' }}">
                 <td class="ps-4"><a href="{{ route('farm.stock-out.show', $r->id) }}" class="fw-bold">{{ $r->invoice_no }}</a></td>
                 <td class="text-muted fs-8">{{ $r->date->format('d/m/Y') }}</td>
-                <td>{{ $r->agent?->name ?? 'Umum' }}</td>
+                <td>{{ $r->pembeli() }}
+                  @unless ($r->agent)<div class="fs-9 text-muted">ecer / umum</div>@endunless</td>
                 <td>
                   @if ($r->due_date)
                     <span class="{{ $r->isOverdue() ? 'text-danger fw-bold' : '' }}">{{ $r->due_date->format('d/m/Y') }}</span>
