@@ -197,5 +197,37 @@
       .card-toolbar form > * { flex: 1 1 100%; width: 100% !important; min-width: 0 !important; }
       .card-header { flex-wrap: wrap; gap: .75rem; }
   }
+
+  /* =========================================================================
+     8. TAB GAYA MAP ARSIP (dipakai daftar Barang Keluar)
+     Tab diletakkan menempel pada tepi atas kartu. Tab yang aktif dibuat
+     menyatu dengan badan kartu — itulah yang membuat mata langsung tahu
+     daftar mana yang sedang terbuka, bukan sekadar teks yang lebih tebal.
+     ========================================================================= */
+  .farm-tab-arsip { margin-bottom: 0; }
+  .farm-tab-arsip .nav-link {
+      border-top-left-radius: .75rem !important;
+      border-top-right-radius: .75rem !important;
+      margin-right: 4px;
+      transition: background-color .15s ease, color .15s ease;
+  }
+  .farm-tab-arsip .nav-link:not(.active):hover {
+      background: rgba(255, 255, 255, .6);
+      color: var(--bs-primary) !important;
+  }
+  /* Tab aktif: sambungkan ke badan kartu dengan menutup garis batasnya. */
+  .farm-tab-arsip .nav-link.active {
+      position: relative;
+      box-shadow: 0 -2px 0 0 var(--bs-primary) inset,
+                  0 -1px 0 0 var(--bs-body-bg);
+  }
+  .farm-tab-arsip .nav-link.active::after {
+      content: '';
+      position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+      background: var(--bs-body-bg);
+  }
+  @media (max-width: 575.98px) {
+      .farm-tab-arsip .nav-link { padding-left: .9rem !important; padding-right: .9rem !important; font-size: .95rem !important; }
+  }
 </style>
 @endpush

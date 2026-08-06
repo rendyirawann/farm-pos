@@ -24,24 +24,31 @@
       $tabAgen = request()->fullUrlWithQuery(['jenis' => 'agen', 'page' => null]);
       $tabEcer = request()->fullUrlWithQuery(['jenis' => 'ecer', 'page' => null]);
     @endphp
-    <ul class="nav nav-tabs nav-line-tabs nav-line-tabs-2x border-0 fs-6 fw-bold mb-4 flex-nowrap overflow-auto">
-      <li class="nav-item">
-        <a class="nav-link text-nowrap {{ $jenis === 'agen' ? 'active' : '' }}" href="{{ $tabAgen }}">
-          <i class="ki-outline ki-profile-user fs-4 me-1"></i> Ke Agen
-          <span class="badge badge-light-{{ $jenis === 'agen' ? 'primary' : 'secondary' }} ms-2">
-            {{ number_format($jumlahAgen, 0, ',', '.') }}</span>
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link text-nowrap {{ $jenis === 'ecer' ? 'active' : '' }}" href="{{ $tabEcer }}">
-          <i class="ki-outline ki-handcart fs-4 me-1"></i> Ecer / Umum
-          <span class="badge badge-light-{{ $jenis === 'ecer' ? 'primary' : 'secondary' }} ms-2">
-            {{ number_format($jumlahEcer, 0, ',', '.') }}</span>
-        </a>
-      </li>
-    </ul>
-
     <div class="card card-flush">
+      {{-- Tab menempel pada tepi atas kartu seperti tab map arsip: tab yang aktif
+           menyatu dengan isi kartunya, jadi terlihat jelas daftar mana yang
+           sedang dibuka. Sebelumnya tab melayang di atas kartu dan nyaris tak
+           terlihat karena tidak punya bidang sendiri. --}}
+      <div class="card-header p-0 border-0 min-h-auto" style="background:#f6f7f9">
+        <ul class="nav nav-tabs border-0 flex-nowrap overflow-auto w-100 farm-tab-arsip">
+          @foreach ([
+              ['agen', 'Ke Agen', 'ki-profile-user', $tabAgen, $jumlahAgen],
+              ['ecer', 'Ecer / Umum', 'ki-handcart', $tabEcer, $jumlahEcer],
+          ] as [$kode, $label, $ikon, $tautan, $jml])
+            @php $aktif = $jenis === $kode; @endphp
+            <li class="nav-item">
+              <a href="{{ $tautan }}"
+                 class="nav-link border-0 rounded-0 px-5 py-4 text-nowrap fw-bold fs-6
+                        {{ $aktif ? 'active bg-body text-primary' : 'text-muted' }}">
+                <i class="ki-outline {{ $ikon }} fs-4 me-2 {{ $aktif ? 'text-primary' : '' }}"></i>{{ $label }}
+                <span class="badge badge-{{ $aktif ? 'primary' : 'light' }} ms-2">
+                  {{ number_format($jml, 0, ',', '.') }}</span>
+              </a>
+            </li>
+          @endforeach
+        </ul>
+      </div>
+
       <div class="card-header pt-5">
         <div>
           <h3 class="card-title fw-bold fs-4 mb-0">

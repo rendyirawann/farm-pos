@@ -117,11 +117,16 @@ License: Proprietary - Mooda System
                             'fnb'     => 'Mooda <br> Restaurant POS System',
                             'laundry' => 'Mooda <br> Laundry POS System',
                             'retail'  => 'Mooda <br> Retail POS System',
+                            // Peternakan bukan point-of-sale: intinya persediaan &
+                            // perdagangan (beli -> lot -> jual bermargin), sehingga
+                            // menyebutnya "POS" salah menggambarkan isinya.
+                            'farm'    => 'Mooda <br> Stock System',
                         ][$vAuth] ?? 'Mooda <br> POS System';
                         $vDesc = [
                             'fnb'     => 'Aplikasi Point of Sale cerdas untuk membantu restoran Anda dalam mengelola pesanan, manajemen meja, dan mempercepat pelayanan dapur.',
                             'laundry' => 'Aplikasi Point of Sale untuk usaha laundry — kelola layanan kiloan/satuan, pantau status cucian, dan cetak nota otomatis.',
                             'retail'  => 'Aplikasi Point of Sale untuk usaha retail — kelola produk, stok, dan transaksi dalam satu layar.',
+                            'farm'    => 'Aplikasi Stock System untuk usaha Anda — catat barang masuk & keluar, pantau stok dan harga pokok, sampai laba per hari.',
                         ][$vAuth] ?? 'Aplikasi Point of Sale cerdas untuk usaha Anda.';
                     @endphp
                     <h1 class="text-gray-800 fs-2qx fw-bold text-center mb-7">
